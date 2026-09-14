@@ -1,1 +1,22 @@
-<%= render "shared/errors", record: role %><%= form_with model: [ :console, role ], class: "form-stack" do |form| %><div class="form-grid"><div><%= form.label :name, class: "label" %><%= form.text_field :name, class: "field", required: true %></div><div><%= form.label :key, class: "label" %><%= form.text_field :key, class: "field", required: true %></div></div><div><%= form.label :description, class: "label" %><%= form.text_area :description, class: "field" %></div><fieldset><legend class="label">Permissions</legend><div class="checkbox-grid"><% @permissions.each do |permission| %><label class="checkbox-row"><%= check_box_tag "role[permission_ids][]", permission.id, role.permission_ids.include?(permission.id) %><span><strong><%= permission.name %></strong><span class="hint"><%= permission.key %></span></span></label><% end %></div></fieldset><div class="actions"><%= form.submit class: "btn-primary" %><%= link_to "Cancel", console_roles_path, class: "btn-secondary" %></div><% end %>
+<%= render "shared/errors", record: role %>
+<%= form_with model: [ :console, role ], class: "form-stack" do |form| %>
+  <div class="form-grid">
+    <div>
+      <%= form.label :name, class: "label" %>
+      <%= form.text_field :name, class: "field", required: true %>
+    </div>
+    <div>
+      <%= form.label :key, class: "label" %>
+      <%= form.text_field :key, class: "field", required: true %>
+    </div>
+  </div>
+  <div>
+    <%= form.label :description, class: "label" %>
+    <%= form.text_area :description, class: "field" %>
+  </div>
+  <%= render "shared/permission_groups", role: role, permission_groups: @permission_groups %>
+  <div class="actions">
+    <%= form.submit class: "btn-primary" %>
+    <%= link_to "Cancel", console_roles_path, class: "btn-secondary" %>
+  </div>
+<% end %>

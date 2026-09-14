@@ -1,9 +1,14 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for(:title) || "LMS" %></title>
+    <title>
+      <%= content_for(:title) || "LMS" %>
+    </title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="application-name" content="LMS">
+    <% if current_organization %>
+      <meta name="turbo-cache-control" content="no-preview">
+    <% end %>
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     <%= yield :head %>
@@ -21,9 +26,16 @@
             <% if current_organization %>
               <nav class="nav">
                 <%= link_to current_organization.name, current_organization, class: "nav-link" %>
-                <% if can?("memberships.index") %><%= link_to "Members", organization_memberships_path(current_organization), class: "nav-link" %><% end %>
-                <% if can?("roles.index") %><%= link_to "Roles", organization_roles_path(current_organization), class: "nav-link" %><% end %>
-                <% if can?("audit_events.index") %><%= link_to "Audit log", organization_audit_events_path(current_organization), class: "nav-link" %><% end %>
+                <%= link_to "Courses", organization_courses_path(current_organization), class: "nav-link" %>
+                <% if can?("memberships.index") %>
+                  <%= link_to "Members", organization_memberships_path(current_organization), class: "nav-link" %>
+                <% end %>
+                <% if can?("roles.index") %>
+                  <%= link_to "Roles", organization_roles_path(current_organization), class: "nav-link" %>
+                <% end %>
+                <% if can?("audit_events.index") %>
+                  <%= link_to "Audit log", organization_audit_events_path(current_organization), class: "nav-link" %>
+                <% end %>
               </nav>
             <% end %>
           </div>
@@ -34,10 +46,11 @@
         </div>
       </header>
     <% end %>
-
     <main class="page">
       <% flash.each do |type, message| %>
-        <div class="<%= type.to_s == "alert" ? "alert-error" : "alert-success" %>"><%= message %></div>
+        <div class="<%= type.to_s == "alert" ? "alert-error" : "alert-success" %>">
+          <%= message %>
+        </div>
       <% end %>
       <%= yield %>
     </main>

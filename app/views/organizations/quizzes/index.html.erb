@@ -1,0 +1,34 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow"><%= @course.name %></p>
+    <h1 class="title">Quizzes</h1>
+    <p class="subtitle">Build and maintain assessments for this course.</p>
+  </div>
+  <div class="actions">
+    <%= back_link_to "Back to course", organization_course_path(current_organization, @course) %>
+    <% if policy(Quiz).create? %>
+      <%= link_to "New quiz", new_organization_course_quiz_path(current_organization, @course), class: "btn-primary" %>
+    <% end %>
+  </div>
+</div>
+
+<div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  <% @quizzes.each do |quiz| %>
+    <%= link_to(policy(quiz).update? ? organization_course_quiz_path(current_organization, @course, quiz) : attempt_organization_course_quiz_path(current_organization, @course, quiz), class: "card-link") do %>
+      <h2><%= quiz.title %></h2>
+      <% if quiz.description.present? %>
+        <p class="subtitle"><%= truncate(quiz.description, length: 180) %></p>
+      <% end %>
+      <p class="mt-4 text-sm text-slate-500"><%= pluralize(quiz.questions.size, "question") %></p>
+    <% end %>
+  <% end %>
+</div>
+
+<% if @quizzes.empty? %>
+  <div class="empty-state">
+    No quizzes have been created for this course yet.
+    <% if policy(Quiz).create? %>
+      <div class="mt-4"><%= link_to "Create the first quiz", new_organization_course_quiz_path(current_organization, @course), class: "btn-primary" %></div>
+    <% end %>
+  </div>
+<% end %>

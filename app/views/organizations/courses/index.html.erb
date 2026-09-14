@@ -1,0 +1,23 @@
+<div class="page-header">
+  <div>
+    <h1 class="title">Courses</h1>
+    <p class="subtitle">Courses available to you in <%= current_organization.name %>.</p>
+  </div>
+  <div class="actions">
+    <%= back_link_to "Back to organization", organization_path(current_organization) %>
+    <% if policy(Course).create? %>
+      <%= link_to "New course", new_organization_course_path(current_organization), class: "btn-primary" %>
+    <% end %>
+  </div>
+</div>
+<div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  <% @courses.each do |course| %>
+    <%= link_to organization_course_path(current_organization, course), class: "card-link" do %>
+      <h2><%= course.name %></h2>
+      <p class="subtitle"><%= truncate(course.description, length: 180) %></p>
+    <% end %>
+  <% end %>
+</div>
+<% if @courses.empty? %>
+  <div class="empty-state">No courses are available to you yet.</div>
+<% end %>

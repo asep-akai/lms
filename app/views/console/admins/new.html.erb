@@ -1,1 +1,5 @@
-<h1 class="title">New administrator</h1><p class="subtitle">Administrators cannot register themselves.</p><%= render "form", admin: @admin %>
+<div class="page-header">
+  <div><h1 class="title">New administrator</h1><p class="subtitle">Create a console administrator and set their initial password.</p></div>
+  <%= back_link_to "Back to administrators", console_admins_path %>
+</div>
+<%= render "form", admin: @admin %>

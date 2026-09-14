@@ -1,3 +1,26 @@
-<div class="page-header"><div><p class="eyebrow">Workspace</p><h1 class="title">Organizations</h1><p class="subtitle">Choose an organization to manage its access controls.</p></div></div>
-<div class="stats"><% @organizations.each do |organization| %><%= link_to organization, class: "card-link" do %><h2><%= organization.name %></h2><p class="hint"><%= organization.slug %></p><p class="subtitle"><%= pluralize(organization.memberships.count, "member") %></p><span class="<%= status_badge_class(organization.status) %>"><%= organization.status.titleize %></span><% end %><% end %></div>
-<% if @organizations.empty? %><div class="empty-state">No organizations are available yet.</div><% end %>
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Workspace</p>
+    <h1 class="title">Organizations</h1>
+    <p class="subtitle">Choose an organization to continue.</p>
+  </div>
+</div>
+<div class="stats">
+  <% @organizations.each do |organization| %>
+    <%= link_to organization, class: "card-link" do %>
+      <h2>
+        <%= organization.name %>
+      </h2>
+      <p class="hint">
+        <%= organization.slug %>
+      </p>
+      <% roles = @roles_by_organization_id.fetch(organization.id, []) %>
+      <p class="subtitle">
+        <%= roles.any? ? roles.map(&:name).to_sentence : "No role assigned" %>
+      </p>
+    <% end %>
+  <% end %>
+</div>
+<% if @organizations.empty? %>
+  <div class="empty-state">No organizations are available yet.</div>
+<% end %>

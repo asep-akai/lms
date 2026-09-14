@@ -1,4 +1,5 @@
 import { Turbo } from "@hotwired/turbo-rails"
+import { makeDialogDismissible } from "dialog"
 
 Turbo.config.forms.confirm = (message) => new Promise((resolve) => {
   const dialog = document.createElement("dialog")
@@ -14,7 +15,9 @@ Turbo.config.forms.confirm = (message) => new Promise((resolve) => {
     </form>
   `
   dialog.querySelector(".subtitle").textContent = message
+  const removeDismissibleBehavior = makeDialogDismissible(dialog, () => dialog.close("cancel"))
   dialog.addEventListener("close", () => {
+    removeDismissibleBehavior()
     resolve(dialog.returnValue === "confirm")
     dialog.remove()
   }, { once: true })

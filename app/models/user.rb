@@ -33,4 +33,8 @@ class User < ApplicationRecord
       .where(roles: { organization_id: organization.id }, permissions: { key: permission_key })
       .exists?
   end
+
+  def organization_admin?(organization)
+    active? && memberships.active.exists?(organization: organization) && roles.exists?(organization: organization, key: "admin")
+  end
 end

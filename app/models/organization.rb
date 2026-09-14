@@ -2,6 +2,7 @@ class Organization < ApplicationRecord
   has_many :memberships, dependent: :destroy
   has_many :users, through: :memberships
   has_many :roles, dependent: :destroy
+  has_many :courses, dependent: :destroy
   has_many :audit_events, dependent: :destroy
 
   normalizes :slug, with: ->(slug) { slug.to_s.strip.downcase.parameterize }

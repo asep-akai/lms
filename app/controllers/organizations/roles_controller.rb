@@ -34,8 +34,17 @@ class Organizations::RolesController < Organizations::BaseController
 
   def update
     authorize @role
-    if @role.update(role_params.except(:permission_ids).merge(permission_ids: permitted_permission_ids))
-      AuditRecorder.record!(action: "role.updated", auditable: @role, metadata: { name: @role.name })
+    previous_permissions = @role.permissions.order(:key).pluck(:key)
+    if @role.update(role_attributes_for_update.merge(permission_ids: permitted_permission_ids))
+      changes = @role.saved_changes.slice("name", "key", "description").merge(
+        "permissions" => [ previous_permissions, @role.permissions.order(:key).pluck(:key) ]
+      )
+      AuditRecorder.record!(
+        action: "role.updated",
+        auditable: @role,
+        metadata: { name: @role.name },
+        changes: changes
+      )
       redirect_to organization_roles_path(Current.organization), notice: "Role updated."
     else
       load_permissions
@@ -46,7 +55,7 @@ class Organizations::RolesController < Organizations::BaseController
   def destroy
     authorize @role
     if @role.destroy
-      AuditRecorder.record!(action: "role.deleted", metadata: { name: @role.name, key: @role.key })
+      AuditRecorder.record!(action: "role.deleted", auditable: @role, metadata: { name: @role.name, key: @role.key })
       redirect_to organization_roles_path(Current.organization), notice: "Role deleted."
     else
       redirect_to organization_roles_path(Current.organization), alert: @role.errors.full_messages.to_sentence
@@ -63,10 +72,15 @@ class Organizations::RolesController < Organizations::BaseController
     end
 
     def permitted_permission_ids
-      Permission.where(id: role_params[:permission_ids]).ids
+      Permission.organization_assignable.where(id: role_params[:permission_ids]).ids
+    end
+
+    def role_attributes_for_update
+      attributes = role_params.except(:permission_ids)
+      @role.system? ? attributes.except(:key) : attributes
     end
 
     def load_permissions
-      @permissions = Permission.ordered
+      @permission_groups = Permission.organization_assignable.organization_groups
     end
 end

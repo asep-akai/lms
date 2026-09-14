@@ -1,1 +1,5 @@
-<h1 class="title">Edit organization</h1><p class="subtitle">Update tenant identity and availability.</p><%= render "form", organization: @organization %>
+<div class="page-header">
+  <div><h1 class="title">Edit organization</h1><p class="subtitle">Update tenant identity and availability.</p></div>
+  <%= back_link_to "Back to organizations", console_organizations_path %>
+</div>
+<%= render "form", organization: @organization %>

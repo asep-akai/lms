@@ -33,8 +33,17 @@ module Console
 
     def update
       authorize @role
+      previous_permissions = @role.permissions.order(:key).pluck(:key)
       if @role.update(role_params.except(:permission_ids).merge(permission_ids: permission_ids))
-        AuditRecorder.record!(action: "console.role.updated", auditable: @role, metadata: { key: @role.key })
+        changes = @role.saved_changes.slice("name", "key", "description").merge(
+          "permissions" => [ previous_permissions, @role.permissions.order(:key).pluck(:key) ]
+        )
+        AuditRecorder.record!(
+          action: "console.role.updated",
+          auditable: @role,
+          metadata: { key: @role.key },
+          changes: changes
+        )
         redirect_to console_roles_path, notice: "Role updated."
       else
         load_permissions
@@ -46,7 +55,7 @@ module Console
       authorize @role
       key = @role.key
       if @role.destroy
-        AuditRecorder.record!(action: "console.role.deleted", metadata: { key: key })
+        AuditRecorder.record!(action: "console.role.deleted", auditable: @role, metadata: { key: key })
         redirect_to console_roles_path, notice: "Role deleted."
       else
         redirect_to console_roles_path, alert: @role.errors.full_messages.to_sentence
@@ -63,11 +72,11 @@ module Console
       end
 
       def permission_ids
-        Permission.where(id: role_params[:permission_ids]).ids
+        Permission.console_assignable.where(id: role_params[:permission_ids]).ids
       end
 
       def load_permissions
-        @permissions = Permission.ordered
+        @permission_groups = Permission.console_assignable.console_groups
       end
   end
 end

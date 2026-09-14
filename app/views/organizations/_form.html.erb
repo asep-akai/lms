@@ -1,1 +1,25 @@
-<%= render "shared/errors", record: organization %><%= form_with model: organization, class: "form-stack" do |form| %><div class="form-grid"><div><%= form.label :name, class: "label" %><%= form.text_field :name, required: true, class: "field" %></div><div><%= form.label :slug, class: "label" %><%= form.text_field :slug, required: true, class: "field" %></div><div><%= form.label :timezone, class: "label" %><%= form.time_zone_select :timezone, nil, {}, class: "field" %></div><div><%= form.label :locale, class: "label" %><%= form.select :locale, [[ "English", "en" ], [ "Bahasa Indonesia", "id" ]], {}, class: "field" %></div></div><div class="actions"><%= form.submit class: "btn-primary" %><%= link_to "Cancel", organization, class: "btn-secondary" %></div><% end %>
+<%= render "shared/errors", record: organization %>
+<%= form_with model: organization, class: "form-stack" do |form| %>
+  <div class="form-grid">
+    <div>
+      <%= form.label :name, class: "label" %>
+      <%= form.text_field :name, required: true, class: "field" %>
+    </div>
+    <div>
+      <%= form.label :slug, class: "label" %>
+      <%= form.text_field :slug, required: true, class: "field" %>
+    </div>
+    <div>
+      <%= form.label :timezone, class: "label" %>
+      <%= form.time_zone_select :timezone, nil, {}, class: "field" %>
+    </div>
+    <div>
+      <%= form.label :locale, class: "label" %>
+      <%= form.select :locale, [%w[English en], ["Bahasa Indonesia", "id"]], {}, class: "field" %>
+    </div>
+  </div>
+  <div class="actions">
+    <%= form.submit class: "btn-primary" %>
+    <%= link_to "Cancel", organization, class: "btn-secondary" %>
+  </div>
+<% end %>

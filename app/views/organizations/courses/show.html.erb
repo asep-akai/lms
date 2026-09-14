@@ -1,0 +1,33 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Course</p>
+    <h1 class="title"><%= @course.name %></h1>
+  </div>
+  <div class="actions">
+    <%= back_link_to "Back to courses", organization_courses_path(current_organization) %>
+    <% if policy(Quiz).index? %>
+      <%= link_to policy(Quiz).create? ? "Manage quizzes" : "View quizzes", organization_course_quizzes_path(current_organization, @course), class: "btn-secondary" %>
+    <% end %>
+    <% if policy(@course).enrollments? %>
+      <%= link_to "Manage students", enrollments_organization_course_path(current_organization, @course), class: "btn-secondary" %>
+    <% end %>
+    <% if policy(@course).update? %>
+      <%= link_to "Edit course", edit_organization_course_path(current_organization, @course), class: "btn-primary" %>
+    <% end %>
+  </div>
+</div>
+<section class="card card-body mt-8">
+  <h2>About this course</h2>
+  <div class="mt-4 whitespace-pre-wrap text-slate-700"><%= @course.description %></div>
+</section>
+<% if policy(@course).destroy? %>
+  <div class="mt-8">
+    <%= button_to(
+      "Delete course",
+      organization_course_path(current_organization, @course),
+      method: :delete,
+      form: { data: { turbo_confirm: "Delete this course and all of its enrollments?" } },
+      class: "btn-danger"
+    ) %>
+  </div>
+<% end %>

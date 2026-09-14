@@ -1,1 +1,5 @@
-<h1 class="title">New organization</h1><p class="subtitle">Provision a tenant with protected Admin, Teacher, and Student roles.</p><%= render "form", organization: @organization %>
+<div class="page-header">
+  <div><h1 class="title">New organization</h1><p class="subtitle">Provision a tenant with protected Admin, Teacher, and Student roles.</p></div>
+  <%= back_link_to "Back to organizations", console_organizations_path %>
+</div>
+<%= render "form", organization: @organization %>

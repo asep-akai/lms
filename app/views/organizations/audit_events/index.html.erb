@@ -1,1 +1,88 @@
-<h1 class="title">Audit log</h1><p class="subtitle">The 100 most recent administrative and security events.</p><div class="table-wrap"><table class="data-table"><thead><tr><th class="th">Time</th><th class="th">Actor</th><th class="th">Action</th><th class="th">Subject</th></tr></thead><tbody><% @audit_events.each do |event| %><tr><td class="td"><%= event.occurred_at.in_time_zone(current_organization.timezone).to_fs(:short) %></td><td class="td"><%= event.actor&.name || "System" %></td><td class="td"><%= event.action.humanize %></td><td class="td"><%= event.auditable ? "#{event.auditable_type} ##{event.auditable_id}" : "—" %></td></tr><% end %></tbody></table></div>
+<div class="page-header">
+  <div>
+    <h1 class="title">Audit log</h1>
+    <p class="subtitle">The 100 most recent administrative and security events.</p>
+  </div>
+  <%= back_link_to "Back to organization", organization_path(current_organization) %>
+</div>
+<% if @audit_events.any? %>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="th">Time</th>
+          <th class="th">Event</th>
+          <th class="th">Actor</th>
+          <th class="th">Subject</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @audit_events.each do |event| %>
+          <% presenter = AuditEventPresenter.new(event) %>
+          <tr>
+            <td class="td align-top whitespace-nowrap">
+              <time datetime="<%= event.occurred_at.iso8601 %>"><%= presenter.occurred_at(current_organization.timezone) %></time>
+            </td>
+            <td class="td align-top">
+              <strong class="font-semibold text-slate-950"><%= presenter.description %></strong>
+              <p class="hint mt-1"><%= event.action %></p>
+              <% if presenter.details? %>
+                <details class="mt-2">
+                  <summary class="text-link w-fit">View details</summary>
+                  <% if presenter.change_rows.any? %>
+                    <div class="mt-3 max-w-full overflow-x-auto">
+                      <table class="min-w-[30rem] text-left text-sm">
+                        <thead>
+                          <tr class="border-b border-slate-200 text-slate-700">
+                            <th class="pb-2 pr-4 font-medium">Changed field</th>
+                            <th class="pb-2 pr-4 font-medium">Before</th>
+                            <th class="pb-2 font-medium">After</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <% presenter.change_rows.each do |field, before, after| %>
+                            <tr class="border-b border-slate-100 last:border-0">
+                              <th class="py-2 pr-4 align-top font-medium text-slate-700"><%= field %></th>
+                              <td class="py-2 pr-4 align-top text-slate-600"><%= before %></td>
+                              <td class="py-2 align-top text-slate-950"><%= after %></td>
+                            </tr>
+                          <% end %>
+                        </tbody>
+                      </table>
+                    </div>
+                  <% end %>
+                  <% if presenter.detail_rows.any? %>
+                    <dl class="mt-3 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-sm">
+                      <% presenter.detail_rows.each do |label, value| %>
+                        <dt class="font-medium text-slate-700"><%= label %></dt>
+                        <dd class="min-w-0 break-words text-slate-600"><%= value %></dd>
+                      <% end %>
+                    </dl>
+                  <% end %>
+                </details>
+              <% end %>
+            </td>
+            <td class="td align-top">
+              <strong class="font-semibold text-slate-950"><%= presenter.actor_name %></strong>
+              <% if presenter.actor_email && presenter.actor_email != presenter.actor_name %>
+                <p class="hint mt-1"><%= presenter.actor_email %></p>
+              <% end %>
+              <p class="hint mt-1"><%= presenter.actor_type %></p>
+            </td>
+            <td class="td align-top">
+              <strong class="font-semibold text-slate-950"><%= presenter.subject_name %></strong>
+              <% if presenter.subject_reference.present? && presenter.subject_reference != presenter.subject_name %>
+                <p class="hint mt-1"><%= presenter.subject_reference %></p>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% else %>
+  <div class="card p-6">
+    <h2 class="text-base font-semibold text-slate-950">No audit events yet</h2>
+    <p class="mt-1 text-sm text-slate-600">Administrative and security events will appear here as activity occurs.</p>
+  </div>
+<% end %>

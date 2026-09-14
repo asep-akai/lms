@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_07_102200) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_10_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -47,6 +47,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_07_102200) do
     t.index ["organization_id"], name: "index_audit_events_on_organization_id"
   end
 
+  create_table "course_enrollments", force: :cascade do |t|
+    t.bigint "course_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "membership_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["course_id", "membership_id"], name: "index_course_enrollments_on_course_id_and_membership_id", unique: true
+    t.index ["course_id"], name: "index_course_enrollments_on_course_id"
+    t.index ["membership_id"], name: "index_course_enrollments_on_membership_id"
+  end
+
+  create_table "courses", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description", null: false
+    t.string "name", null: false
+    t.bigint "organization_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id", "name"], name: "index_courses_on_organization_id_and_name"
+    t.index ["organization_id"], name: "index_courses_on_organization_id"
+  end
+
   create_table "memberships", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "organization_id", null: false
@@ -78,6 +98,63 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_07_102200) do
     t.string "name", null: false
     t.datetime "updated_at", null: false
     t.index ["key"], name: "index_permissions_on_key", unique: true
+  end
+
+  create_table "quiz_answer_options", force: :cascade do |t|
+    t.text "content", null: false
+    t.boolean "correct", default: false, null: false
+    t.datetime "created_at", null: false
+    t.bigint "quiz_question_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["quiz_question_id"], name: "index_quiz_answer_options_on_quiz_question_id"
+  end
+
+  create_table "quiz_answers", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "quiz_answer_option_id"
+    t.bigint "quiz_attempt_id", null: false
+    t.bigint "quiz_question_id", null: false
+    t.text "short_answer_response"
+    t.datetime "updated_at", null: false
+    t.index ["quiz_answer_option_id"], name: "index_quiz_answers_on_quiz_answer_option_id"
+    t.index ["quiz_attempt_id", "quiz_question_id"], name: "index_quiz_answers_on_quiz_attempt_id_and_quiz_question_id", unique: true
+    t.index ["quiz_attempt_id"], name: "index_quiz_answers_on_quiz_attempt_id"
+    t.index ["quiz_question_id"], name: "index_quiz_answers_on_quiz_question_id"
+  end
+
+  create_table "quiz_attempts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "last_activity_at", null: false
+    t.integer "last_question_position"
+    t.bigint "membership_id", null: false
+    t.bigint "quiz_id", null: false
+    t.datetime "started_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["membership_id"], name: "index_quiz_attempts_on_membership_id"
+    t.index ["quiz_id", "membership_id"], name: "index_quiz_attempts_on_quiz_id_and_membership_id", unique: true
+    t.index ["quiz_id"], name: "index_quiz_attempts_on_quiz_id"
+  end
+
+  create_table "quiz_questions", force: :cascade do |t|
+    t.text "content_html", null: false
+    t.datetime "created_at", null: false
+    t.integer "position", default: 0, null: false
+    t.string "question_type", null: false
+    t.bigint "quiz_id", null: false
+    t.string "short_answer"
+    t.datetime "updated_at", null: false
+    t.index ["quiz_id", "position"], name: "index_quiz_questions_on_quiz_id_and_position"
+    t.index ["quiz_id"], name: "index_quiz_questions_on_quiz_id"
+  end
+
+  create_table "quizzes", force: :cascade do |t|
+    t.bigint "course_id", null: false
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["course_id", "title"], name: "index_quizzes_on_course_id_and_title"
+    t.index ["course_id"], name: "index_quizzes_on_course_id"
   end
 
   create_table "role_assignments", force: :cascade do |t|
@@ -280,8 +357,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_07_102200) do
   end
 
   add_foreign_key "audit_events", "organizations"
+  add_foreign_key "course_enrollments", "courses"
+  add_foreign_key "course_enrollments", "memberships"
+  add_foreign_key "courses", "organizations"
   add_foreign_key "memberships", "organizations"
   add_foreign_key "memberships", "users"
+  add_foreign_key "quiz_answer_options", "quiz_questions"
+  add_foreign_key "quiz_answers", "quiz_answer_options"
+  add_foreign_key "quiz_answers", "quiz_attempts"
+  add_foreign_key "quiz_answers", "quiz_questions"
+  add_foreign_key "quiz_attempts", "memberships"
+  add_foreign_key "quiz_attempts", "quizzes"
+  add_foreign_key "quiz_questions", "quizzes"
+  add_foreign_key "quizzes", "courses"
   add_foreign_key "role_assignments", "roles"
   add_foreign_key "role_permissions", "permissions"
   add_foreign_key "role_permissions", "roles"

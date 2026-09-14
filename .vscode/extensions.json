@@ -1,0 +1,13 @@
+{
+    "recommendations": [
+        "shopify.ruby-lsp",
+        "aliariff.vscode-erb-beautify"
+    ],
+    "unwantedRecommendations": [
+        "castwide.solargraph",
+        "elia.erb-formatter",
+        "rebornix.ruby",
+        "testdouble.vscode-standard-ruby",
+        "wingrunr21.vscode-ruby"
+    ]
+}

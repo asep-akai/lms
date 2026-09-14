@@ -1,6 +1,7 @@
 class Membership < ApplicationRecord
   belongs_to :user
   belongs_to :organization
+  has_many :quiz_attempts, dependent: :destroy
   validates :user_id, uniqueness: { scope: :organization_id }
   validates :status, inclusion: { in: %w[active suspended] }
 
@@ -14,7 +15,13 @@ class Membership < ApplicationRecord
     status == "active"
   end
 
+  def organization_admin?
+    roles.exists?(key: "admin")
+  end
+
   def roles
+    return Role.none unless user && organization
+
     user.roles.where(organization: organization)
   end
 

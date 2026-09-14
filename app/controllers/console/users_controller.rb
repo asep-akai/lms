@@ -1,10 +1,10 @@
 module Console
   class UsersController < BaseController
-    before_action :set_user, only: %i[edit update destroy]
+    before_action :set_user, only: %i[edit update destroy send_password_reset]
 
     def index
       authorize User
-      @users = policy_scope(User).order(:name)
+      @users = policy_scope(User).includes(:roles, memberships: :organization).order(:name)
     end
 
     def new
@@ -13,16 +13,12 @@ module Console
     end
 
     def create
-      @user = User.new(user_params)
+      @user = User.new(create_user_params)
       authorize @user
-      generated_password = SecureRandom.base58(32)
-      @user.password = generated_password
-      @user.password_confirmation = generated_password
       @user.invited_at = Time.current
       if @user.save
-        @user.send_reset_password_instructions
         AuditRecorder.record!(action: "console.user.created", auditable: @user, metadata: { email: @user.email })
-        redirect_to console_users_path, notice: "User created and invited."
+        redirect_to console_users_path, notice: "User created."
       else
         render :new, status: :unprocessable_entity
       end
@@ -34,8 +30,19 @@ module Console
 
     def update
       authorize @user
-      if @user.update(user_params)
-        AuditRecorder.record!(action: "console.user.updated", auditable: @user, metadata: { email: @user.email })
+      attributes = update_user_params
+      password_changed = attributes[:password].present?
+
+      if @user.update(attributes)
+        AuditRecorder.record!(
+          action: "console.user.updated",
+          auditable: @user,
+          metadata: { email: @user.email },
+          changes: @user.saved_changes.slice("name", "email", "status")
+        )
+        if password_changed
+          AuditRecorder.record!(action: "console.user.password_changed", auditable: @user, metadata: { email: @user.email })
+        end
         redirect_to console_users_path, notice: "User updated."
       else
         render :edit, status: :unprocessable_entity
@@ -46,8 +53,15 @@ module Console
       authorize @user
       email = @user.email
       @user.destroy!
-      AuditRecorder.record!(action: "console.user.deleted", metadata: { email: email })
+      AuditRecorder.record!(action: "console.user.deleted", auditable: @user, metadata: { email: email })
       redirect_to console_users_path, notice: "User deleted."
+    end
+
+    def send_password_reset
+      authorize @user, :update?
+      @user.send_reset_password_instructions
+      AuditRecorder.record!(action: "console.user.password_reset_sent", auditable: @user, metadata: { email: @user.email })
+      redirect_to console_users_path, notice: "Password reset instructions sent."
     end
 
     private
@@ -57,6 +71,16 @@ module Console
 
       def user_params
         params.require(:user).permit(:name, :email, :status)
+      end
+
+      def create_user_params
+        params.require(:user).permit(:name, :email, :status, :password, :password_confirmation)
+      end
+
+      def update_user_params
+        attributes = params.require(:user).permit(:name, :email, :status, :password, :password_confirmation)
+        attributes = attributes.except(:password, :password_confirmation) if attributes.values_at(:password, :password_confirmation).all?(&:blank?)
+        attributes
       end
   end
 end

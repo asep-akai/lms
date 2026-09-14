@@ -1,0 +1,19 @@
+<div class="page-header">
+  <h1 class="title"><%= course.persisted? ? "Edit course" : "New course" %></h1>
+  <%= back_link_to course.persisted? ? "Back to course" : "Back to courses", course.persisted? ? organization_course_path(current_organization, course) : organization_courses_path(current_organization) %>
+</div>
+<%= render "shared/errors", record: course %>
+<%= form_with model: [ current_organization, course ], class: "form-stack mt-8" do |form| %>
+  <div>
+    <%= form.label :name, class: "label" %>
+    <%= form.text_field :name, required: true, maxlength: 160, autofocus: true, class: "field" %>
+  </div>
+  <div>
+    <%= form.label :description, class: "label" %>
+    <%= form.text_area :description, required: true, maxlength: 5000, rows: 10, class: "field" %>
+  </div>
+  <div class="actions">
+    <%= form.submit class: "btn-primary" %>
+    <%= link_to "Cancel", course.persisted? ? organization_course_path(current_organization, course) : organization_courses_path(current_organization), class: "btn-secondary" %>
+  </div>
+<% end %>

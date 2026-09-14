@@ -24,7 +24,7 @@ class OrganizationPolicy < ApplicationPolicy
       if principal.is_a?(Admin)
         principal.can?("organizations.index") ? scope.all : scope.none
       else
-        scope.joins(:memberships).merge(Membership.active).where(memberships: { user_id: principal.id }).distinct
+        scope.active.joins(:memberships).merge(Membership.active).where(memberships: { user_id: principal.id }).distinct
       end
     end
   end

@@ -1,1 +1,8 @@
-<h1 class="title">Organization settings</h1><p class="subtitle">Manage organization identity and regional settings.</p><%= render "form", organization: @organization %>
+<div class="page-header">
+  <div>
+    <h1 class="title">Organization settings</h1>
+    <p class="subtitle">Manage organization identity and regional settings.</p>
+  </div>
+  <%= back_link_to "Back to organization", organization_path(current_organization) %>
+</div>
+<%= render "form", organization: @organization %>

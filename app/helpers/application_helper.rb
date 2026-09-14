@@ -15,4 +15,9 @@ module ApplicationHelper
     data = options.delete(:data).to_h.merge(turbo_frame: "modal")
     link_to name, modal_url, **options, data: data
   end
+
+  def back_link_to(name, url, **options)
+    classes = [ "btn-secondary", options.delete(:class) ].compact.join(" ")
+    link_to name, url, **options, class: classes
+  end
 end

@@ -1,1 +1,30 @@
-<h1 class="title">Edit membership</h1><p class="subtitle"><%= @membership.user.name %> · <%= @membership.user.email %></p><%= render "shared/errors", record: @membership %><%= form_with model: [ current_organization, @membership ], class: "form-stack" do |form| %><div><%= form.label :status, class: "label" %><%= form.select :status, [[ "Active", "active" ], [ "Suspended", "suspended" ]], {}, class: "field" %></div><%= render "role_fields", membership: @membership %><div class="actions"><%= form.submit "Save membership", class: "btn-primary" %><%= link_to "Cancel", organization_memberships_path(current_organization), class: "btn-secondary" %></div><% end %>
+<div class="page-header">
+  <div>
+    <h1 class="title">Edit membership</h1>
+    <p class="subtitle"><%= @membership.user.name %> · <%= @membership.user.email %></p>
+  </div>
+  <%= back_link_to "Back to members", organization_memberships_path(current_organization) %>
+</div>
+<%= render "shared/errors", record: @membership %>
+<%= form_with model: [ current_organization, @membership ], class: "form-stack" do |form| %>
+  <div class="form-grid">
+    <div>
+      <%= form.label :status, class: "label" %>
+      <%= form.select :status, [%w[Active active], %w[Suspended suspended]], {}, class: "field" %>
+    </div>
+    <div>
+      <%= form.label :password, "New password", class: "label" %>
+      <%= form.password_field :password, class: "field", autocomplete: "new-password" %>
+      <p class="hint">Leave blank to keep the current password. Existing passwords cannot be viewed.</p>
+    </div>
+    <div>
+      <%= form.label :password_confirmation, "Confirm new password", class: "label" %>
+      <%= form.password_field :password_confirmation, class: "field", autocomplete: "new-password" %>
+    </div>
+  </div>
+  <%= render "role_fields", membership: @membership %>
+  <div class="actions">
+    <%= form.submit "Save membership", class: "btn-primary" %>
+    <%= link_to "Cancel", organization_memberships_path(current_organization), class: "btn-secondary" %>
+  </div>
+<% end %>

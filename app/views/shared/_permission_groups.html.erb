@@ -1,0 +1,21 @@
+<section aria-labelledby="permissions-heading">
+  <h2 id="permissions-heading" class="text-lg font-semibold text-slate-950">Permissions</h2>
+  <div class="mt-4 space-y-8">
+    <% permission_groups.each do |label, permissions| %>
+      <fieldset>
+        <legend class="label"><%= label %></legend>
+        <div class="checkbox-grid">
+          <% permissions.each do |permission| %>
+            <label class="checkbox-row">
+              <%= check_box_tag "role[permission_ids][]", permission.id, role.permission_ids.include?(permission.id) %>
+              <span>
+                <strong><%= permission.name %></strong>
+                <span class="hint"><%= permission.description %> (<%= permission.key %>)</span>
+              </span>
+            </label>
+          <% end %>
+        </div>
+      </fieldset>
+    <% end %>
+  </div>
+</section>

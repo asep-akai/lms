@@ -1,1 +1,54 @@
-<%= render "shared/errors", record: admin %><%= form_with model: [ :console, admin ], class: "form-stack" do |form| %><div class="form-grid"><div><%= form.label :name, class: "label" %><%= form.text_field :name, class: "field", required: true %></div><div><%= form.label :email, class: "label" %><%= form.email_field :email, class: "field", required: true %></div><div><%= form.label :status, class: "label" %><%= form.select :status, [[ "Active", "active" ], [ "Suspended", "suspended" ]], {}, class: "field" %></div></div><fieldset><legend class="label">Console roles</legend><div class="checkbox-grid"><% @roles.each do |role| %><label class="checkbox-row"><%= check_box_tag "admin[role_ids][]", role.id, admin.role_ids.include?(role.id) %><span><strong><%= role.name %></strong><span class="hint"><%= role.description %></span></span></label><% end %></div></fieldset><div class="actions"><%= form.submit class: "btn-primary" %><%= link_to "Cancel", console_admins_path, class: "btn-secondary" %></div><% end %>
+<%= render "shared/errors", record: admin %>
+<%= form_with model: [ :console, admin ], class: "form-stack" do |form| %>
+  <div class="form-grid">
+    <div>
+      <%= form.label :name, class: "label" %>
+      <%= form.text_field :name, class: "field", required: true %>
+    </div>
+    <div>
+      <%= form.label :email, class: "label" %>
+      <%= form.email_field :email, class: "field", required: true %>
+    </div>
+    <div>
+      <%= form.label :status, class: "label" %>
+      <%= form.select :status, [%w[Active active], %w[Suspended suspended]], {}, class: "field" %>
+    </div>
+    <div>
+      <%= form.label :password, admin.new_record? ? "Initial password" : "New password", class: "label" %>
+      <%= form.password_field :password, class: "field", required: admin.new_record?, autocomplete: "new-password" %>
+      <p class="hint">
+        <% if admin.new_record? %>
+          At least <%= Admin.password_length.min %> characters. Share it securely.
+        <% else %>
+          Leave blank to keep the current password. Existing passwords cannot be viewed.
+        <% end %>
+      </p>
+    </div>
+    <div>
+      <%= form.label :password_confirmation, admin.new_record? ? "Confirm initial password" : "Confirm new password", class: "label" %>
+      <%= form.password_field :password_confirmation, class: "field", required: admin.new_record?, autocomplete: "new-password" %>
+    </div>
+  </div>
+  <fieldset>
+    <legend class="label">Console roles</legend>
+    <div class="checkbox-grid">
+      <% @roles.each do |role| %>
+        <label class="checkbox-row">
+          <%= check_box_tag "admin[role_ids][]", role.id, admin.role_ids.include?(role.id) %>
+          <span>
+            <strong>
+              <%= role.name %>
+            </strong>
+            <span class="hint">
+              <%= role.description %>
+            </span>
+          </span>
+        </label>
+      <% end %>
+    </div>
+  </fieldset>
+  <div class="actions">
+    <%= form.submit class: "btn-primary" %>
+    <%= link_to "Cancel", console_admins_path, class: "btn-secondary" %>
+  </div>
+<% end %>

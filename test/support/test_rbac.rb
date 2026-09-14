@@ -11,7 +11,7 @@ module TestRbac
         role.update!(name: name, system: true)
         [ key, role ]
       end
-      roles.fetch("admin").permissions = Permission.where(key: RbacSeeder::APP_ADMIN_PERMISSIONS)
+      roles.fetch("admin").permissions = Permission.organization_assignable
 
       organization.memberships.includes(:user).find_each do |membership|
         key = membership.user.email == "one@example.com" ? "admin" : "student"

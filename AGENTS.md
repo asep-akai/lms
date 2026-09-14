@@ -183,6 +183,11 @@ database makes a permission change look like it did not take.
 **Views.** Use the utilities in `app/assets/tailwind/application.css`. Do not
 invent class names; add one there instead.
 
+**Back navigation.** Detail pages and full-page create, edit, or management
+screens must include a `back_link_to` the nearest parent page. Put it in the
+page header. Modal forms keep their Close or Cancel action instead of adding a
+second back control.
+
 **Modals.** `modal_link_to` in the view, `render_modal(...) if modal_request?`
 in the action. The link keeps its `href` and the same URL without `?modal=1`
 renders the full page — one route, one policy, one form partial.

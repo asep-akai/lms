@@ -1,0 +1,62 @@
+<% question = form.object %>
+<% question.answer_options.build while question.answer_options.size < 4 %>
+<section class="card card-body" data-controller="question-editor" data-quiz-editor-target="question">
+  <%= form.hidden_field :id if question.persisted? %>
+  <%= form.hidden_field :position, data: { quiz_editor_target: "position" } %>
+  <%= form.hidden_field :_destroy, value: "0", data: { quiz_editor_target: "destroy" } %>
+
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <h2 class="text-base">Question</h2>
+    <button type="button" class="text-link" data-action="quiz-editor#removeQuestion">Remove question</button>
+  </div>
+
+  <div class="mt-5">
+    <%= form.label :content_html, "Question", class: "label" %>
+    <div data-controller="rich-text-editor">
+      <div class="rich-editor-toolbar" aria-label="Text formatting" data-action="mousedown->rich-text-editor#preserveSelection">
+        <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="bold" aria-label="Bold"><strong>B</strong></button>
+        <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="italic" aria-label="Italic"><em>I</em></button>
+        <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="underline" aria-label="Underline"><u>U</u></button>
+        <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="insertUnorderedList">Bulleted list</button>
+        <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="insertOrderedList">Numbered list</button>
+      </div>
+      <div class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" data-rich-text-editor-target="editor" data-action="input->rich-text-editor#synchronize"><%= sanitize(question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div>
+      <%= form.hidden_field :content_html, data: { rich_text_editor_target: "input" } %>
+    </div>
+    <p class="hint">Use the toolbar for basic formatting. Pasted formatting is reduced to supported text styles.</p>
+  </div>
+
+  <div class="mt-5">
+    <%= form.label :question_type, "Question type", class: "label" %>
+    <%= form.select :question_type, QuizQuestion::QUESTION_TYPES, {}, class: "field", data: { question_editor_target: "type", action: "change->question-editor#update" } %>
+  </div>
+
+  <div class="mt-5" data-question-editor-target="multipleChoice">
+    <p class="label">Answer choices</p>
+    <p class="hint">Provide at least two choices and mark exactly one as correct.</p>
+    <div class="mt-3 space-y-3">
+      <%= form.fields_for :answer_options do |option_form| %>
+        <div class="rounded-lg border border-slate-200 p-3">
+          <%= option_form.hidden_field :id if option_form.object.persisted? %>
+          <%= option_form.hidden_field :_destroy, value: "0" %>
+          <div class="flex items-start gap-3">
+            <div class="min-w-0 flex-1">
+              <%= option_form.label :content, "Choice", class: "label" %>
+              <%= option_form.text_field :content, maxlength: 2000, class: "field" %>
+            </div>
+            <div class="pt-8">
+              <%= option_form.check_box :correct, class: "h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-600" %>
+              <%= option_form.label :correct, "Correct", class: "ml-1 text-sm font-medium text-slate-700" %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="mt-5" data-question-editor-target="shortAnswer" <%= "hidden" unless question.short_answer? %>>
+    <%= form.label :short_answer, "Expected answer", class: "label" %>
+    <%= form.text_field :short_answer, maxlength: 1000, class: "field" %>
+    <p class="hint">This will be used as the starting point for answer checking later.</p>
+  </div>
+</section>

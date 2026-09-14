@@ -37,7 +37,7 @@ services:
 
   web:
     <<: *app
-    command: sh -c "bin/rails db:prepare db:seed && bin/rails server -b 0.0.0.0"
+    command: sh -c "bin/rails db:prepare db:seed && bin/rails server -b 0.0.0.0 -P /tmp/lms-server.pid"
     environment:
       <<: *app_environment
       ADMIN_NAME: ${ADMIN_NAME:-Platform Administrator}
@@ -51,7 +51,7 @@ services:
       DEFAULT_ORGANIZATION_TIMEZONE: ${DEFAULT_ORGANIZATION_TIMEZONE:-UTC}
       DEFAULT_ORGANIZATION_LOCALE: ${DEFAULT_ORGANIZATION_LOCALE:-en}
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3001:3000"
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:3000/up || exit 1"]
       interval: 10s

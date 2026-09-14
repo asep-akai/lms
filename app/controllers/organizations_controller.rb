@@ -8,7 +8,7 @@ class OrganizationsController < AppController
 
   def show
     authorize @organization
-    @memberships = @organization.memberships.includes(:user).order("users.name")
+    @roles = Current.membership.roles.ordered
   end
 
   def edit
@@ -17,13 +17,12 @@ class OrganizationsController < AppController
 
   def update
     authorize @organization
-    previous_status = @organization.status
     if @organization.update(organization_params)
       AuditRecorder.record!(
         action: "organization.updated",
         auditable: @organization,
         organization: @organization,
-        metadata: { previous_status: previous_status, status: @organization.status }
+        changes: @organization.saved_changes.slice("name", "slug", "timezone", "locale")
       )
       redirect_to @organization, notice: "Organization updated."
     else

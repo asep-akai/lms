@@ -1,0 +1,34 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Course</p>
+    <h1 class="title">Manage students</h1>
+    <p class="subtitle"><%= @course.name %></p>
+  </div>
+  <%= back_link_to "Back to course", organization_course_path(current_organization, @course) %>
+</div>
+<%= render "shared/errors", record: @course %>
+<%= form_with url: enrollments_organization_course_path(current_organization, @course), method: :patch, class: "form-stack mt-8" do %>
+  <%= hidden_field_tag "course[membership_ids][]", "" %>
+  <fieldset>
+    <legend class="label">Enrolled students</legend>
+    <% if @students.any? %>
+      <div class="checkbox-grid">
+        <% @students.each do |membership| %>
+          <label class="checkbox-row">
+            <%= check_box_tag "course[membership_ids][]", membership.id, @enrolled_membership_ids.include?(membership.id) %>
+            <span>
+              <strong><%= membership.user.name %></strong>
+              <span class="hint"><%= membership.user.email %></span>
+            </span>
+          </label>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="empty-state">There are no active students in this organization.</div>
+    <% end %>
+  </fieldset>
+  <div class="actions">
+    <%= submit_tag "Save enrollments", class: "btn-primary" %>
+    <%= link_to "Cancel", organization_course_path(current_organization, @course), class: "btn-secondary" %>
+  </div>
+<% end %>

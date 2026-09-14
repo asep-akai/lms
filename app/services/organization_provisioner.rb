@@ -14,7 +14,7 @@ class OrganizationProvisioner
       roles = DEFAULT_ROLES.to_h do |key, name|
         [ key, organization.roles.create!(key: key, name: name, system: true) ]
       end
-      roles.fetch("admin").permissions = Permission.where(key: RbacSeeder::APP_ADMIN_PERMISSIONS)
+      roles.fetch("admin").permissions = Permission.organization_assignable
 
       membership = organization.memberships.create!(user: owner)
       membership.role_ids = [ roles.fetch("admin").id ]

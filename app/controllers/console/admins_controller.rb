@@ -14,18 +14,14 @@ module Console
     end
 
     def create
-      @admin = Admin.new(admin_params.except(:role_ids))
+      @admin = Admin.new(admin_account_params)
       authorize @admin
-      generated_password = SecureRandom.base58(32)
-      @admin.password = generated_password
-      @admin.password_confirmation = generated_password
       Admin.transaction do
         @admin.save!
         assign_roles!
-        @admin.send_reset_password_instructions
         AuditRecorder.record!(action: "console.admin.created", auditable: @admin, metadata: { email: @admin.email })
       end
-      redirect_to console_admins_path, notice: "Administrator created and invited."
+      redirect_to console_admins_path, notice: "Administrator created."
     rescue ActiveRecord::RecordInvalid
       load_roles
       render :new, status: :unprocessable_entity
@@ -38,10 +34,25 @@ module Console
 
     def update
       authorize @admin
+      attributes = admin_account_params
+      password_changed = attributes[:password].present?
+      previous_roles = @admin.roles.order(:name).pluck(:name)
+
       Admin.transaction do
-        @admin.update!(admin_params.except(:role_ids))
+        @admin.update!(attributes)
         assign_roles!
-        AuditRecorder.record!(action: "console.admin.updated", auditable: @admin, metadata: { email: @admin.email })
+        changes = @admin.saved_changes.slice("name", "email", "status").merge(
+          "roles" => [ previous_roles, @admin.roles.order(:name).pluck(:name) ]
+        )
+        AuditRecorder.record!(
+          action: "console.admin.updated",
+          auditable: @admin,
+          metadata: { email: @admin.email },
+          changes: changes
+        )
+        if password_changed
+          AuditRecorder.record!(action: "console.admin.password_changed", auditable: @admin, metadata: { email: @admin.email })
+        end
       end
       redirect_to console_admins_path, notice: "Administrator updated."
     rescue ActiveRecord::RecordInvalid
@@ -53,7 +64,7 @@ module Console
       authorize @admin
       email = @admin.email
       @admin.destroy!
-      AuditRecorder.record!(action: "console.admin.deleted", metadata: { email: email })
+      AuditRecorder.record!(action: "console.admin.deleted", auditable: @admin, metadata: { email: email })
       redirect_to console_admins_path, notice: "Administrator deleted."
     end
 
@@ -63,7 +74,13 @@ module Console
       end
 
       def admin_params
-        params.require(:admin).permit(:name, :email, :status, role_ids: [])
+        params.require(:admin).permit(:name, :email, :status, :password, :password_confirmation, role_ids: [])
+      end
+
+      def admin_account_params
+        attributes = admin_params.except(:role_ids)
+        attributes = attributes.except(:password, :password_confirmation) if @admin&.persisted? && attributes.values_at(:password, :password_confirmation).all?(&:blank?)
+        attributes
       end
 
       def assign_roles!

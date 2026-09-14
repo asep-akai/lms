@@ -1,1 +1,51 @@
-<div class="page-header"><div><h1 class="title">Users</h1><p class="subtitle">Application identities belonging to organizations.</p></div><%= link_to "New user", new_console_user_path, class: "btn-primary" %></div><div class="table-wrap"><table class="data-table"><thead><tr><th class="th">User</th><th class="th">Organizations</th><th class="th">Status</th><th class="th">Actions</th></tr></thead><tbody><% @users.each do |user| %><tr><td class="td"><strong><%= user.name %></strong><br><%= user.email %></td><td class="td"><%= user.organizations.count %></td><td class="td"><span class="<%= status_badge_class(user.status) %>"><%= user.status.titleize %></span></td><td class="td"><%= link_to "Edit", edit_console_user_path(user), class: "text-link" %> <%= button_to "Delete", console_user_path(user), method: :delete, form: { data: { turbo_confirm: "Delete this user?" } }, class: "danger-link" %></td></tr><% end %></tbody></table></div>
+<div class="page-header">
+  <div>
+    <h1 class="title">Users</h1>
+    <p class="subtitle">Application identities belonging to organizations.</p>
+  </div>
+  <%= link_to "New user", new_console_user_path, class: "btn-primary" %>
+</div>
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="th">User</th>
+        <th class="th">Organizations</th>
+        <th class="th">Status</th>
+        <th class="th">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @users.each do |user| %>
+        <tr>
+          <td class="td">
+            <strong>
+              <%= user.name %>
+            </strong>
+            <br>
+            <%= user.email %>
+          </td>
+          <td class="td">
+            <%= render "organization_memberships", user: user %>
+          </td>
+          <td class="td">
+            <span class="<%= status_badge_class(user.status) %>">
+              <%= user.status.titleize %>
+            </span>
+          </td>
+          <td class="td">
+            <%= link_to "Edit", edit_console_user_path(user), class: "text-link" %>
+            <%= button_to(
+              "Send password reset",
+              send_password_reset_console_user_path(user),
+              method: :post,
+              form: { data: { turbo_confirm: "Email password reset instructions to #{user.email}?" } },
+              class: "text-link"
+            ) %>
+            <%= button_to "Delete", console_user_path(user), method: :delete, form: { data: { turbo_confirm: "Delete this user?" } }, class: "danger-link" %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

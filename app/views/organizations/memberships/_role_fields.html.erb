@@ -1,1 +1,25 @@
-<fieldset><legend class="label">Roles</legend><div class="checkbox-grid"><% @roles.each do |role| %><label class="checkbox-row"><%= check_box_tag "membership[role_ids][]", role.id, membership.role_ids.include?(role.id) %><span><strong><%= role.name %></strong><span class="hint"><%= role.description %></span></span></label><% end %></div></fieldset>
+<fieldset>
+  <legend class="label">Roles</legend>
+  <div class="checkbox-grid">
+    <% @roles.each do |role| %>
+      <label class="checkbox-row">
+        <%= check_box_tag "membership[role_ids][]", role.id, membership.role_ids.include?(role.id) %>
+        <span>
+          <strong>
+            <%= role.name %>
+          </strong>
+          <span class="hint">
+            <% if role.key == "admin" %>
+              Protected role with all organization permissions.
+            <% else %>
+              <%= role.description %>
+            <% end %>
+          </span>
+        </span>
+      </label>
+    <% end %>
+  </div>
+  <% unless current_membership.organization_admin? %>
+    <p class="hint mt-2">Only organization administrators can assign the administrator role.</p>
+  <% end %>
+</fieldset>

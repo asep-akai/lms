@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for(:title) || "LMS Console" %></title>
+    <title>
+      <%= content_for(:title) || "LMS Console" %>
+    </title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -24,7 +26,11 @@
       </div>
     </header>
     <main class="page">
-      <% flash.each do |type, message| %><div class="<%= type.to_s == "alert" ? "alert-error" : "alert-success" %>"><%= message %></div><% end %>
+      <% flash.each do |type, message| %>
+        <div class="<%= type.to_s == "alert" ? "alert-error" : "alert-success" %>">
+          <%= message %>
+        </div>
+      <% end %>
       <%= yield %>
     </main>
     <%= turbo_frame_tag "modal" %>

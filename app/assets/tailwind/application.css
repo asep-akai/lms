@@ -12,6 +12,13 @@
   body { @apply bg-slate-50 text-slate-900 antialiased; }
   h1 { @apply text-3xl font-semibold tracking-tight text-slate-950; }
   h2 { @apply text-xl font-semibold text-slate-950; }
+  a[href], button:not(:disabled), select:not(:disabled), summary, [role="button"], label[for], label:has(input:not(:disabled)) { @apply cursor-pointer; }
+  button:disabled, select:disabled, input:disabled { @apply cursor-not-allowed; }
+  input[type="button"]:not(:disabled), input[type="checkbox"]:not(:disabled), input[type="file"]:not(:disabled), input[type="radio"]:not(:disabled), input[type="submit"]:not(:disabled) { @apply cursor-pointer; }
+}
+
+@layer components {
+  dialog.dismissible-modal::backdrop { @apply cursor-pointer; }
 }
 
 @utility shell { @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8; }
@@ -36,6 +43,7 @@
 @utility btn-primary { @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700; }
 @utility btn-secondary { @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50; }
 @utility btn-danger { @apply btn bg-red-600 text-white hover:bg-red-500; }
+@utility btn-disabled { @apply btn border border-slate-200 bg-slate-100 text-slate-400 shadow-none hover:bg-slate-100; }
 @utility field { @apply mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-100; }
 @utility label { @apply block text-sm font-medium text-slate-700; }
 @utility hint { @apply mt-1 text-xs text-slate-500; }
@@ -60,5 +68,9 @@
 @utility alert-success { @apply alert border-emerald-200 bg-emerald-50 text-emerald-700; }
 @utility auth-shell { @apply mx-auto flex min-h-[70vh] max-w-md items-center; }
 @utility auth-card { @apply card w-full p-8; }
-@utility modal-backdrop { @apply fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4; }
-@utility modal-panel { @apply card max-h-[90vh] w-full max-w-3xl overflow-y-auto p-6; }
+@utility modal-backdrop { @apply fixed inset-0 z-50 flex cursor-pointer items-center justify-center bg-slate-950/50 p-4; }
+@utility modal-panel { @apply card m-auto max-h-[90vh] w-[calc(100%-2rem)] max-w-3xl cursor-default overflow-y-auto p-6; }
+@utility rich-editor-toolbar { @apply flex flex-wrap gap-2 rounded-t-lg border border-b-0 border-slate-300 bg-slate-50 p-2; }
+@utility rich-editor-button { @apply min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-600; }
+@utility rich-editor { @apply min-h-36 rounded-b-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-100; }
+@utility rich-content { @apply leading-7; }

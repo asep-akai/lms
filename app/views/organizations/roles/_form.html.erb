@@ -1,1 +1,29 @@
-<h1 class="title"><%= role.persisted? ? "Edit role" : "New custom role" %></h1><%= render "shared/errors", record: role %><%= form_with model: [ current_organization, role ], class: "form-stack" do |form| %><%= hidden_field_tag :modal, "1" if modal_request? %><div class="form-grid"><div><%= form.label :name, class: "label" %><%= form.text_field :name, required: true, class: "field" %></div><div><%= form.label :key, class: "label" %><%= form.text_field :key, required: true, class: "field" %></div></div><div><%= form.label :description, class: "label" %><%= form.text_area :description, class: "field" %></div><fieldset><legend class="label">Permissions</legend><div class="checkbox-grid"><% @permissions.each do |permission| %><label class="checkbox-row"><%= check_box_tag "role[permission_ids][]", permission.id, role.permission_ids.include?(permission.id) %><span><strong><%= permission.name %></strong><span class="hint"><%= permission.description %></span></span></label><% end %></div></fieldset><div class="actions"><%= form.submit class: "btn-primary" %><%= link_to "Cancel", organization_roles_path(current_organization), class: "btn-secondary", data: { turbo_frame: "_top" } %></div><% end %>
+<h1 class="title">
+  <%= role.persisted? ? "Edit role" : "New custom role" %>
+</h1>
+<%= render "shared/errors", record: role %>
+<%= form_with model: [ current_organization, role ], class: "form-stack", data: { turbo_frame: "_top" } do |form| %>
+  <%= hidden_field_tag :modal, "1" if modal_request? %>
+  <div class="form-grid">
+    <div>
+      <%= form.label :name, class: "label" %>
+      <%= form.text_field :name, required: true, class: "field" %>
+    </div>
+    <div>
+      <%= form.label :key, class: "label" %>
+      <%= form.text_field :key, required: true, disabled: role.system?, class: "field" %>
+      <% if role.system? %>
+        <p class="hint">Built-in role keys cannot be changed.</p>
+      <% end %>
+    </div>
+  </div>
+  <div>
+    <%= form.label :description, class: "label" %>
+    <%= form.text_area :description, class: "field" %>
+  </div>
+  <%= render "shared/permission_groups", role: role, permission_groups: @permission_groups %>
+  <div class="actions">
+    <%= form.submit class: "btn-primary" %>
+    <%= link_to "Cancel", organization_roles_path(current_organization), class: "btn-secondary", data: { turbo_frame: "_top" } %>
+  </div>
+<% end %>

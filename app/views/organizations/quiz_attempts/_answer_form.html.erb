@@ -1,0 +1,9 @@
+<%= form_with model: answer, url: organization_course_quiz_attempt_answer_path(current_organization, @course, @quiz, question_id: question.id), method: :patch, id: "quiz-answer-form", class: "mt-5", data: { controller: "quiz-submit", quiz_submit_unanswered_count_value: unanswered_questions_count, quiz_submit_current_answer_saved_value: current_answer_saved } do |form| %>
+  <% if question.multiple_choice? %>
+    <fieldset><legend class="label">Your answer</legend><div class="mt-3 space-y-2"><% question.answer_options.each do |option| %><label class="checkbox-row"><%= form.radio_button :quiz_answer_option_id, option.id, checked: answer.quiz_answer_option_id == option.id %><span><%= option.content %></span></label><% end %></div></fieldset>
+  <% else %>
+    <%= form.label :short_answer_response, "Your answer", class: "label" %><%= form.text_area :short_answer_response, value: answer.short_answer_response, rows: 4, class: "field" %>
+  <% end %>
+  <% if answer.errors.any? %><p class="field-error"><%= answer.errors.full_messages.to_sentence %></p><% end %>
+  <div class="actions mt-4"><button type="submit" name="next_question" value="<%= previous_question&.position %>" formaction="<%= organization_course_quiz_attempt_answer_path(current_organization, @course, @quiz, question_id: question.id, next_question: previous_question&.position) %>" class="<%= previous_question ? "btn-secondary" : "btn-disabled" %>" <%= "disabled" if previous_question.nil? %>>Previous</button><% if next_question %><button type="submit" name="next_question" value="<%= next_question.position %>" formaction="<%= organization_course_quiz_attempt_answer_path(current_organization, @course, @quiz, question_id: question.id, next_question: next_question.position) %>" class="btn-primary">Next</button><% else %><%= form.submit "Submit", class: "btn-primary", data: { action: "click->quiz-submit#confirm" } %><% end %></div>
+<% end %>

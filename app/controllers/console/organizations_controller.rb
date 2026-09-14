@@ -1,6 +1,6 @@
 module Console
   class OrganizationsController < BaseController
-    before_action :set_organization, only: %i[edit update destroy]
+    before_action :set_organization, only: %i[edit update toggle_status]
 
     def index
       authorize Organization
@@ -36,23 +36,36 @@ module Console
     def update
       authorize @organization
       if @organization.update(organization_params)
-        AuditRecorder.record!(action: "console.organization.updated", auditable: @organization, organization: @organization)
+        AuditRecorder.record!(
+          action: "console.organization.updated",
+          auditable: @organization,
+          organization: @organization,
+          changes: @organization.saved_changes.slice("name", "slug", "status", "timezone", "locale")
+        )
         redirect_to console_organizations_path, notice: "Organization updated."
       else
         render :edit, status: :unprocessable_entity
       end
     end
 
-    def destroy
-      authorize @organization
-      @organization.update!(status: "suspended")
-      AuditRecorder.record!(action: "console.organization.suspended", auditable: @organization, organization: @organization)
-      redirect_to console_organizations_path, notice: "Organization suspended."
+    def toggle_status
+      authorize @organization, :update?
+      reactivating = !@organization.active?
+      new_status = reactivating ? "active" : "suspended"
+      event = reactivating ? "reactivated" : "suspended"
+      @organization.update!(status: new_status)
+      AuditRecorder.record!(
+        action: "console.organization.#{event}",
+        auditable: @organization,
+        organization: @organization,
+        changes: @organization.saved_changes.slice("status")
+      )
+      redirect_to console_organizations_path, notice: "Organization #{event}."
     end
 
     private
       def set_organization
-        @organization = Organization.find(params[:id])
+        @organization = Organization.find_by!(slug: params[:slug])
       end
 
       def organization_params

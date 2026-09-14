@@ -1,1 +1,5 @@
-<h1 class="title">Edit user</h1><%= render "form", user: @user %>
+<div class="page-header">
+  <div><h1 class="title">Edit user</h1><p class="subtitle">Update account details or replace the password without viewing the current one.</p></div>
+  <%= back_link_to "Back to users", console_users_path %>
+</div>
+<%= render "form", user: @user %>

@@ -16,4 +16,14 @@ class AppController < ApplicationController
     def can?(permission)
       Current.organization.present? && current_user.can?(permission, organization: Current.organization)
     end
+
+    def handle_unauthorized
+      message = if Current.organization.present? && !Current.organization.active?
+        "This organization is suspended and cannot be accessed."
+      else
+        "You are not authorized to perform that action."
+      end
+
+      redirect_to root_path, alert: message
+    end
 end

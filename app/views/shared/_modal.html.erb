@@ -1,5 +1,5 @@
 <%= turbo_frame_tag "modal" do %>
-  <div class="modal-backdrop" data-controller="modal" data-action="click->modal#backdrop">
+  <div class="modal-backdrop" data-controller="modal">
     <dialog class="modal-panel" data-modal-target="dialog">
       <div class="actions">
         <button type="button" class="btn-secondary" data-action="modal#close">Close</button>

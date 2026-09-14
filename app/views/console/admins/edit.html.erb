@@ -1,1 +1,5 @@
-<h1 class="title">Edit administrator</h1><%= render "form", admin: @admin %>
+<div class="page-header">
+  <div><h1 class="title">Edit administrator</h1><p class="subtitle">Update account details or replace the password without viewing the current one.</p></div>
+  <%= back_link_to "Back to administrators", console_admins_path %>
+</div>
+<%= render "form", admin: @admin %>

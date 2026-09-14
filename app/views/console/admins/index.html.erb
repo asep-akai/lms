@@ -1,1 +1,46 @@
-<div class="page-header"><div><h1 class="title">Administrators</h1><p class="subtitle">Separate identities authorized to use this console.</p></div><%= link_to "New administrator", new_console_admin_path, class: "btn-primary" %></div><div class="table-wrap"><table class="data-table"><thead><tr><th class="th">Administrator</th><th class="th">Roles</th><th class="th">Status</th><th class="th">Actions</th></tr></thead><tbody><% @admins.each do |admin| %><tr><td class="td"><strong><%= admin.name %></strong><br><%= admin.email %></td><td class="td"><%= admin.roles.map(&:name).to_sentence %></td><td class="td"><span class="<%= status_badge_class(admin.status) %>"><%= admin.status.titleize %></span></td><td class="td"><%= link_to "Edit", edit_console_admin_path(admin), class: "text-link" %><% unless admin == current_admin %> <%= button_to "Delete", console_admin_path(admin), method: :delete, form: { data: { turbo_confirm: "Delete this administrator?" } }, class: "danger-link" %><% end %></td></tr><% end %></tbody></table></div>
+<div class="page-header">
+  <div>
+    <h1 class="title">Administrators</h1>
+    <p class="subtitle">Separate identities authorized to use this console.</p>
+  </div>
+  <%= link_to "New administrator", new_console_admin_path, class: "btn-primary" %>
+</div>
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="th">Administrator</th>
+        <th class="th">Roles</th>
+        <th class="th">Status</th>
+        <th class="th">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @admins.each do |admin| %>
+        <tr>
+          <td class="td">
+            <strong>
+              <%= admin.name %>
+            </strong>
+            <br>
+            <%= admin.email %>
+          </td>
+          <td class="td">
+            <%= admin.roles.map(&:name).to_sentence %>
+          </td>
+          <td class="td">
+            <span class="<%= status_badge_class(admin.status) %>">
+              <%= admin.status.titleize %>
+            </span>
+          </td>
+          <td class="td">
+            <%= link_to "Edit", edit_console_admin_path(admin), class: "text-link" %>
+            <% unless admin == current_admin %>
+              <%= button_to "Delete", console_admin_path(admin), method: :delete, form: { data: { turbo_confirm: "Delete this administrator?" } }, class: "danger-link" %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

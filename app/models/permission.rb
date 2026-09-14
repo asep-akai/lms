@@ -21,7 +21,48 @@ class Permission < ApplicationRecord
     "memberships.create" => [ "Add members", "Invite members to an organization." ],
     "memberships.update" => [ "Update members", "Update member status and role assignments." ],
     "memberships.destroy" => [ "Remove members", "Remove members from an organization." ],
+    "courses.index" => [ "List courses", "View every course in the organization." ],
+    "courses.create" => [ "Create courses", "Create courses in the organization." ],
+    "courses.update" => [ "Update courses", "Update course names and descriptions." ],
+    "courses.destroy" => [ "Delete courses", "Delete courses and their enrollments." ],
+    "course_enrollments.update" => [ "Manage course enrollments", "Enroll or remove students from courses." ],
+    "quizzes.index" => [ "List quizzes", "View quizzes in organization courses." ],
+    "quizzes.create" => [ "Create quizzes", "Create quizzes and questions in organization courses." ],
+    "quizzes.update" => [ "Update quizzes", "Edit quizzes and their questions." ],
+    "quizzes.destroy" => [ "Delete quizzes", "Delete quizzes and their questions." ],
     "audit_events.index" => [ "View audit log", "Review organization security and administrative activity." ]
+  }.freeze
+
+  CONSOLE_ONLY_KEYS = %w[
+    console.access
+    organizations.index organizations.create organizations.update
+    users.index users.create users.update users.destroy
+    admins.index admins.create admins.update admins.destroy
+  ].freeze
+
+  ORGANIZATION_ONLY_KEYS = %w[
+    organization.update
+    memberships.index memberships.create memberships.update memberships.destroy
+    courses.index courses.create courses.update courses.destroy
+    course_enrollments.update
+    quizzes.index quizzes.create quizzes.update quizzes.destroy
+    audit_events.index
+  ].freeze
+
+  ORGANIZATION_GROUPS = {
+    "Organization" => %w[organization.update],
+    "Members" => %w[memberships.index memberships.create memberships.update memberships.destroy],
+    "Courses" => %w[courses.index courses.create courses.update courses.destroy course_enrollments.update quizzes.index quizzes.create quizzes.update quizzes.destroy],
+    "Roles" => %w[roles.index roles.create roles.update roles.destroy],
+    "Audit" => %w[audit_events.index]
+  }.freeze
+
+  CONSOLE_GROUPS = {
+    "Console access" => %w[console.access],
+    "Organizations" => %w[organizations.index organizations.create organizations.update],
+    "Users" => %w[users.index users.create users.update users.destroy],
+    "Administrators" => %w[admins.index admins.create admins.update admins.destroy],
+    "Roles" => %w[roles.index roles.create roles.update roles.destroy]
   }.freeze
 
   has_many :role_permissions, dependent: :restrict_with_error
@@ -31,4 +72,23 @@ class Permission < ApplicationRecord
   validates :name, presence: true
 
   scope :ordered, -> { order(:name) }
+  scope :organization_assignable, -> { where.not(key: CONSOLE_ONLY_KEYS) }
+  scope :console_assignable, -> { where.not(key: ORGANIZATION_ONLY_KEYS) }
+
+  def self.organization_groups
+    grouped(ORGANIZATION_GROUPS)
+  end
+
+  def self.console_groups
+    grouped(CONSOLE_GROUPS)
+  end
+
+  def self.grouped(definitions)
+    permissions_by_key = where(key: definitions.values.flatten).index_by(&:key)
+    definitions.map do |label, keys|
+      [ label, keys.filter_map { |key| permissions_by_key[key] } ]
+    end
+  end
+
+  private_class_method :grouped
 end

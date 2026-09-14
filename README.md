@@ -1,20 +1,26 @@
 # LMS
 
-A multi-tenant learning management system built with Rails, HotcoQueue.
+A multi-tenant learning management system built with Ruby on Rails and PostgreSQL.
 
-This repository currently implements the Phase 1 platform foundation:
+The current application includes:
 
 - Separate Devise authentication for application users and console administrators
 - A dedicated, permission-gated `/console`
 - Isolated organizations with active/suspended states
 - Organization memberships
-- Protected Admin, Teacher, and Student roles
+- Built-in Organization administrator, Teacher, and Student roles
 - Custom roles backed by explicit permissions
+- Organization-scoped course creation and management
+- Student enrollment and enrollment-limited course access
 - Cross-organization access checks
 - Administrative audit events
 - Docker Compose development environment
 
-Course delivery and enrollment are intentionally deferred to the next product phase.
+Courses currently contain a name, description, and student enrollments. Lessons,
+learning materials, submissions, and grading are not implemented yet.
+
+For a detailed system map, data model, request flows, and directory guide, see
+[Architecture and project structure](docs/ARCHITECTURE.md).
 
 ## Start with Docker
 
@@ -83,7 +89,11 @@ Console administrators are installation-level operators stored in the separate `
 
 ## Invitation flow
 
-An organization administrator adds a member by name and email. Existing users receive a membership in the organization. New users receive a password-reset email, delivered asynchronously, which acts as their account activation link during Phase 1.
+An organization administrator adds a member by name and email. Existing users
+receive another organization membership without changing their password. New
+users receive an initial password chosen by the administrator. Administrators
+can later replace that password without seeing its current value, and platform
+console administrators can also send Devise password-reset instructions.
 
 ## Production direction
 

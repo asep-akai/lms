@@ -1,0 +1,13 @@
+<div class="page-header">
+  <div>
+    <h1 class="title">New quiz</h1>
+    <p class="subtitle">Create the quiz first, then add and edit questions one at a time.</p>
+  </div>
+  <%= back_link_to "Back to quizzes", organization_course_quizzes_path(current_organization, course) %>
+</div>
+<%= render "shared/errors", record: quiz %>
+<%= form_with model: [ current_organization, course, quiz ], class: "form-stack mt-8" do |form| %>
+  <div><%= form.label :title, class: "label" %><%= form.text_field :title, required: true, maxlength: 160, autofocus: true, class: "field" %></div>
+  <div><%= form.label :description, class: "label" %><%= form.text_area :description, maxlength: 5000, rows: 4, class: "field" %></div>
+  <div class="actions"><%= form.submit "Create quiz", class: "btn-primary" %><%= link_to "Cancel", organization_course_quizzes_path(current_organization, course), class: "btn-secondary" %></div>
+<% end %>

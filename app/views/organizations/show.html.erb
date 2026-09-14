@@ -1,3 +1,83 @@
-<div class="page-header"><div><p class="eyebrow">Organization</p><h1 class="title"><%= @organization.name %></h1><p class="subtitle">Administration and access control.</p></div><% if can?("organization.update") %><%= link_to "Settings", edit_organization_path(@organization), class: "btn-secondary" %><% end %></div>
-<div class="stats"><div class="stat"><p class="stat-label">Members</p><p class="stat-value"><%= @organization.memberships.count %></p></div><div class="stat"><p class="stat-label">Active members</p><p class="stat-value"><%= @organization.memberships.active.count %></p></div><div class="stat"><p class="stat-label">Roles</p><p class="stat-value"><%= @organization.roles.count %></p></div><div class="stat"><p class="stat-label">Timezone</p><p class="subtitle"><%= @organization.timezone %></p></div></div>
-<div class="stats"><% if can?("memberships.index") %><%= link_to "Manage members", organization_memberships_path(@organization), class: "card-link" %><% end %><% if can?("roles.index") %><%= link_to "Manage roles", organization_roles_path(@organization), class: "card-link" %><% end %><% if can?("audit_events.index") %><%= link_to "Review audit log", organization_audit_events_path(@organization), class: "card-link" %><% end %></div>
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Organization</p>
+    <h1 class="title">
+      <%= @organization.name %>
+    </h1>
+    <p class="subtitle">Your organization dashboard.</p>
+  </div>
+  <% if can?("organization.update") %>
+    <%= link_to "Settings", edit_organization_path(@organization), class: "btn-secondary" %>
+  <% end %>
+</div>
+<section class="card card-body mt-8" aria-labelledby="your-roles-heading">
+  <p class="eyebrow">Your access</p>
+  <h2 id="your-roles-heading" class="mt-1 text-xl font-semibold text-slate-950">Your roles</h2>
+  <% if @roles.any? %>
+    <div class="mt-4 flex flex-wrap gap-3">
+      <% @roles.each do |role| %>
+        <div class="rounded-lg border border-slate-200 px-4 py-3">
+          <p class="font-semibold text-slate-950">
+            <%= role.name %>
+          </p>
+          <% if role.description.present? %>
+            <p class="mt-1 text-sm text-slate-600">
+              <%= role.description %>
+            </p>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="mt-4 text-sm text-slate-600">No roles are assigned to you. Contact an organization administrator for help.</p>
+  <% end %>
+</section>
+<div class="stats">
+  <%= link_to organization_courses_path(@organization), class: "card-link" do %>
+    <h2>Courses</h2>
+    <p class="subtitle">View the courses available to you.</p>
+  <% end %>
+</div>
+<% if can?("memberships.index") || can?("roles.index") %>
+  <div class="stats">
+    <% if can?("memberships.index") %>
+      <div class="stat">
+        <p class="stat-label">Members</p>
+        <p class="stat-value">
+          <%= @organization.memberships.count %>
+        </p>
+      </div>
+      <div class="stat">
+        <p class="stat-label">Active members</p>
+        <p class="stat-value">
+          <%= @organization.memberships.active.count %>
+        </p>
+      </div>
+    <% end %>
+    <% if can?("roles.index") %>
+      <div class="stat">
+        <p class="stat-label">Roles</p>
+        <p class="stat-value">
+          <%= @organization.roles.count %>
+        </p>
+      </div>
+    <% end %>
+    <div class="stat">
+      <p class="stat-label">Timezone</p>
+      <p class="subtitle">
+        <%= @organization.timezone %>
+      </p>
+    </div>
+  </div>
+  <div class="stats">
+    <% if can?("memberships.index") %>
+      <%= link_to "Manage members", organization_memberships_path(@organization), class: "card-link" %>
+    <% end %>
+    <% if can?("roles.index") %>
+      <%= link_to "Manage roles", organization_roles_path(@organization), class: "card-link" %>
+    <% end %>
+    <% if can?("audit_events.index") %>
+      <%= link_to "Review audit log", organization_audit_events_path(@organization), class: "card-link" %>
+    <% end %>
+  </div>
+<% end %>

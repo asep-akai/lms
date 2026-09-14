@@ -9,4 +9,26 @@ class PermissionTest < ActiveSupport::TestCase
     assert_empty policy_keys - Permission::CATALOG.keys
     assert_empty Permission::CATALOG.keys - Permission.pluck(:key)
   end
+
+  test "organization permissions are grouped by focus in a stable order" do
+    groups = Permission.organization_assignable.organization_groups
+
+    assert_equal %w[Organization Members Courses Roles Audit], groups.map(&:first)
+    assert_equal %w[courses.index courses.create courses.update courses.destroy course_enrollments.update quizzes.index quizzes.create quizzes.update quizzes.destroy],
+      groups.to_h.fetch("Courses").map(&:key)
+  end
+
+  test "console permissions are grouped by focus in a stable order" do
+    groups = Permission.console_assignable.console_groups
+
+    assert_equal [ "Console access", "Organizations", "Users", "Administrators", "Roles" ], groups.map(&:first)
+    assert_equal %w[users.index users.create users.update users.destroy], groups.to_h.fetch("Users").map(&:key)
+  end
+
+  test "organization administrator role has every organization permission" do
+    admin_role = organizations(:one).roles.find_by!(key: "admin")
+
+    assert_equal Permission.organization_assignable.order(:key).pluck(:key), admin_role.permissions.order(:key).pluck(:key)
+    assert_empty admin_role.permissions.where(key: Permission::CONSOLE_ONLY_KEYS)
+  end
 end

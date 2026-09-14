@@ -22,6 +22,7 @@ class Admin < ApplicationRecord
 
   def can?(permission_key, organization: nil)
     return false unless active?
+    return false if Permission::ORGANIZATION_ONLY_KEYS.include?(permission_key)
 
     role_assignments.joins(role: :permissions)
       .where(roles: { organization_id: organization&.id }, permissions: { key: permission_key })

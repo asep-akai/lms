@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "indexedAt": 1788850069043,
+  "controllers": {
+    "modal": {
+      "filePath": "/Users/leoharnadi/Desktop/UE LMS/lms/app/javascript/controllers/modal_controller.js",
+      "targets": [
+        "dialog"
+      ],
+      "values": [],
+      "outlets": [],
+      "actions": [
+        {
+          "name": "close",
+          "line": 10
+        },
+        {
+          "name": "backdrop",
+          "line": 14
+        }
+      ],
+      "classes": [],
+      "mtime": 1788776639858.416
+    },
+    "hello": {
+      "filePath": "/Users/leoharnadi/Desktop/UE LMS/lms/app/javascript/controllers/hello_controller.js",
+      "targets": [],
+      "values": [],
+      "outlets": [],
+      "actions": [],
+      "classes": [],
+      "mtime": 1788535757761.682
+    }
+  }
+}

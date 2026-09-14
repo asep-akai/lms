@@ -1,1 +1,36 @@
-<%= render "shared/errors", record: user %><%= form_with model: [ :console, user ], class: "form-stack" do |form| %><div class="form-grid"><div><%= form.label :name, class: "label" %><%= form.text_field :name, class: "field", required: true %></div><div><%= form.label :email, class: "label" %><%= form.email_field :email, class: "field", required: true %></div><div><%= form.label :status, class: "label" %><%= form.select :status, [[ "Active", "active" ], [ "Suspended", "suspended" ]], {}, class: "field" %></div></div><div class="actions"><%= form.submit class: "btn-primary" %><%= link_to "Cancel", console_users_path, class: "btn-secondary" %></div><% end %>
+<%= render "shared/errors", record: user %>
+<%= form_with model: [ :console, user ], class: "form-stack" do |form| %>
+  <div class="form-grid">
+    <div>
+      <%= form.label :name, class: "label" %>
+      <%= form.text_field :name, class: "field", required: true %>
+    </div>
+    <div>
+      <%= form.label :email, class: "label" %>
+      <%= form.email_field :email, class: "field", required: true %>
+    </div>
+    <div>
+      <%= form.label :status, class: "label" %>
+      <%= form.select :status, [%w[Active active], %w[Suspended suspended]], {}, class: "field" %>
+    </div>
+    <div>
+      <%= form.label :password, user.new_record? ? "Initial password" : "New password", class: "label" %>
+      <%= form.password_field :password, class: "field", required: user.new_record?, autocomplete: "new-password" %>
+      <p class="hint">
+        <% if user.new_record? %>
+          At least <%= User.password_length.min %> characters. Share it with the user securely.
+        <% else %>
+          Leave blank to keep the current password. Existing passwords cannot be viewed.
+        <% end %>
+      </p>
+    </div>
+    <div>
+      <%= form.label :password_confirmation, user.new_record? ? "Confirm initial password" : "Confirm new password", class: "label" %>
+      <%= form.password_field :password_confirmation, class: "field", required: user.new_record?, autocomplete: "new-password" %>
+    </div>
+  </div>
+  <div class="actions">
+    <%= form.submit class: "btn-primary" %>
+    <%= link_to "Cancel", console_users_path, class: "btn-secondary" %>
+  </div>
+<% end %>

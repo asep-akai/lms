@@ -1,2 +1,60 @@
-<div class="page-header"><div><h1 class="title">Organizations</h1><p class="subtitle">Provision and suspend tenant workspaces.</p></div><%= link_to "New organization", new_console_organization_path, class: "btn-primary" %></div>
-<div class="table-wrap"><table class="data-table"><thead><tr><th class="th">Organization</th><th class="th">Members</th><th class="th">Status</th><th class="th">Actions</th></tr></thead><tbody><% @organizations.each do |organization| %><tr><td class="td"><strong><%= organization.name %></strong><br><%= organization.slug %></td><td class="td"><%= organization.memberships.count %></td><td class="td"><span class="<%= status_badge_class(organization.status) %>"><%= organization.status.titleize %></span></td><td class="td"><%= link_to "Edit", edit_console_organization_path(organization), class: "text-link" %> <%= button_to "Suspend", console_organization_path(organization), method: :delete, form: { data: { turbo_confirm: "Suspend this organization?" } }, class: "danger-link" %></td></tr><% end %></tbody></table></div>
+<div class="page-header">
+  <div>
+    <h1 class="title">Organizations</h1>
+    <p class="subtitle">Provision and suspend tenant workspaces.</p>
+  </div>
+  <%= link_to "New organization", new_console_organization_path, class: "btn-primary" %>
+</div>
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="th">Organization</th>
+        <th class="th">Members</th>
+        <th class="th">Status</th>
+        <th class="th">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @organizations.each do |organization| %>
+        <tr>
+          <td class="td">
+            <strong>
+              <%= organization.name %>
+            </strong>
+            <br>
+            <%= organization.slug %>
+          </td>
+          <td class="td">
+            <%= organization.memberships.count %>
+          </td>
+          <td class="td">
+            <span class="<%= status_badge_class(organization.status) %>">
+              <%= organization.status.titleize %>
+            </span>
+          </td>
+          <td class="td">
+            <%= link_to "Edit", edit_console_organization_path(organization), class: "text-link" %>
+            <% if organization.active? %>
+              <%= button_to(
+                "Suspend",
+                toggle_status_console_organization_path(organization),
+                method: :patch,
+                form: { data: { turbo_confirm: "Suspend this organization? Its members will lose access until it is reactivated." } },
+                class: "danger-link"
+              ) %>
+            <% else %>
+              <%= button_to(
+                "Reactivate",
+                toggle_status_console_organization_path(organization),
+                method: :patch,
+                form: { data: { turbo_confirm: "Reactivate this organization? Its members will regain access." } },
+                class: "text-link"
+              ) %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

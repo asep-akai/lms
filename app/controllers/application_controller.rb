@@ -8,8 +8,15 @@ class ApplicationController < ActionController::Base
   stale_when_importmap_changes
 
   rescue_from Pundit::NotAuthorizedError, with: :handle_unauthorized
+  rescue_from ActionController::InvalidAuthenticityToken, with: :handle_invalid_authenticity_token
 
   private
+    def handle_invalid_authenticity_token
+      reset_session
+      destination = request.path.start_with?("/console") ? new_admin_session_path : new_user_session_path
+      redirect_to destination, alert: "Your session or sign-in form expired. Please try again."
+    end
+
     def handle_unauthorized
       redirect_to root_path, alert: "You are not authorized to perform that action."
     end

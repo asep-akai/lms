@@ -1,0 +1,17 @@
+<% memberships = user.memberships.sort_by { |membership| membership.organization.name.downcase } %>
+<% if memberships.any? %>
+  <ul class="space-y-3">
+    <% memberships.each do |membership| %>
+      <% role_names = user.roles.select { |role| role.organization_id == membership.organization_id }.map(&:name).sort %>
+      <li>
+        <div class="flex flex-wrap items-center gap-2">
+          <strong class="font-semibold text-slate-950"><%= membership.organization.name %></strong>
+          <span class="<%= status_badge_class(membership.status) %>">Membership <%= membership.status %></span>
+        </div>
+        <p class="hint">Roles: <%= role_names.to_sentence.presence || "None assigned" %></p>
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <span class="text-slate-500">No organization memberships</span>
+<% end %>

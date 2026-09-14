@@ -16,13 +16,30 @@ Rails.application.routes.draw do
   resources :organizations, param: :slug, only: %i[index show edit update] do
     resources :memberships, controller: "organizations/memberships", except: :show
     resources :roles, controller: "organizations/roles", except: :show
+    resources :courses, controller: "organizations/courses" do
+      resources :quizzes, controller: "organizations/quizzes" do
+        get :attempt, on: :member, controller: "organizations/quiz_attempts"
+        patch "attempt/questions/:question_id", to: "organizations/quiz_attempts#update_answer", as: :attempt_answer
+        resources :questions, controller: "organizations/quiz_questions", only: %i[create update destroy] do
+          patch :move, on: :member
+        end
+      end
+      member do
+        get :enrollments
+        patch :enrollments, action: :update_enrollments
+      end
+    end
     resources :audit_events, controller: "organizations/audit_events", only: :index
   end
 
   namespace :console do
     root "dashboard#show"
-    resources :organizations, except: :show
-    resources :users, except: :show
+    resources :organizations, param: :slug, except: %i[show destroy] do
+      patch :toggle_status, on: :member
+    end
+    resources :users, except: :show do
+      post :send_password_reset, on: :member
+    end
     resources :admins, except: :show
     resources :roles, except: :show
   end

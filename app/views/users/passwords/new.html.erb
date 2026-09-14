@@ -1,1 +1,16 @@
-<div class="auth-shell"><div class="auth-card"><h1 class="title">Reset password</h1><p class="subtitle">We will email reset instructions if the account exists.</p><%= form_with model: resource, url: password_path(resource_name), class: "form-stack" do |form| %><div><%= form.label :email, class: "label" %><%= form.email_field :email, autofocus: true, autocomplete: "email", class: "field" %></div><div class="actions"><%= form.submit "Send instructions", class: "btn-primary" %><%= link_to "Back", new_user_session_path, class: "btn-secondary" %></div><% end %></div></div>
+<div class="auth-shell">
+  <div class="auth-card">
+    <h1 class="title">Reset password</h1>
+    <p class="subtitle">We will email reset instructions if the account exists.</p>
+    <%= form_with model: resource, url: password_path(resource_name), class: "form-stack" do |form| %>
+      <div>
+        <%= form.label :email, class: "label" %>
+        <%= form.email_field :email, autofocus: true, autocomplete: "email", class: "field" %>
+      </div>
+      <div class="actions">
+        <%= form.submit "Send instructions", class: "btn-primary" %>
+        <%= link_to "Back", new_user_session_path, class: "btn-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>

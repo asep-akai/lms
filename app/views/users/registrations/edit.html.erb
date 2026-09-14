@@ -1,1 +1,30 @@
-<div class="auth-shell"><div class="auth-card"><h1 class="title">Account settings</h1><%= form_with model: resource, url: user_registration_path, method: :patch, class: "form-stack" do |form| %><%= render "shared/errors", record: resource %><div><%= form.label :name, class: "label" %><%= form.text_field :name, class: "field" %></div><div><%= form.label :email, class: "label" %><%= form.email_field :email, autocomplete: "email", class: "field" %></div><div><%= form.label :password, "New password", class: "label" %><%= form.password_field :password, autocomplete: "new-password", class: "field" %><p class="hint">Leave blank to keep the current password.</p></div><div><%= form.label :password_confirmation, class: "label" %><%= form.password_field :password_confirmation, autocomplete: "new-password", class: "field" %></div><div><%= form.label :current_password, class: "label" %><%= form.password_field :current_password, autocomplete: "current-password", class: "field" %></div><%= form.submit "Update account", class: "btn-primary" %><% end %></div></div>
+<div class="auth-shell">
+  <div class="auth-card">
+    <h1 class="title">Account settings</h1>
+    <%= form_with model: resource, url: user_registration_path, method: :patch, class: "form-stack" do |form| %>
+      <%= render "shared/errors", record: resource %>
+      <div>
+        <%= form.label :name, class: "label" %>
+        <%= form.text_field :name, class: "field" %>
+      </div>
+      <div>
+        <%= form.label :email, class: "label" %>
+        <%= form.email_field :email, autocomplete: "email", class: "field" %>
+      </div>
+      <div>
+        <%= form.label :password, "New password", class: "label" %>
+        <%= form.password_field :password, autocomplete: "new-password", class: "field" %>
+        <p class="hint">Leave blank to keep the current password.</p>
+      </div>
+      <div>
+        <%= form.label :password_confirmation, class: "label" %>
+        <%= form.password_field :password_confirmation, autocomplete: "new-password", class: "field" %>
+      </div>
+      <div>
+        <%= form.label :current_password, class: "label" %>
+        <%= form.password_field :current_password, autocomplete: "current-password", class: "field" %>
+      </div>
+      <%= form.submit "Update account", class: "btn-primary" %>
+    <% end %>
+  </div>
+</div>

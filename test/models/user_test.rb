@@ -14,4 +14,9 @@ class UserTest < ActiveSupport::TestCase
   test "does not gain console access from organization roles" do
     assert_not users(:one).can?("console.access", organization: organizations(:one))
   end
+
+  test "identifies active organization administrators" do
+    assert users(:one).organization_admin?(organizations(:one))
+    assert_not users(:two).organization_admin?(organizations(:two))
+  end
 end
