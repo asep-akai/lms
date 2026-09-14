@@ -73,6 +73,7 @@ class QuizEditorTest < ApplicationSystemTestCase
     page.driver.browser.action.send_keys("More detail").perform
     click_button "Bulleted list"
     assert_selector "[contenteditable] ul", text: "More detail"
+    assert_equal "disc", page.evaluate_script("getComputedStyle(document.querySelector('[contenteditable] ul')).listStyleType")
 
     click_button "Save question"
     assert_text "Question updated."
