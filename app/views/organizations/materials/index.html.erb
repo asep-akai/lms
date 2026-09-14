@@ -1,0 +1,23 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow"><%= @course.name %></p>
+    <h1 class="title">Materials</h1>
+    <p class="subtitle">Manage the text and image resources in this course.</p>
+  </div>
+  <div class="actions">
+    <%= back_link_to "Back to course", organization_course_path(current_organization, @course) %>
+    <% if policy(Material).create? %>
+      <%= link_to "New material", new_organization_course_material_path(current_organization, @course), class: "btn-primary" %>
+    <% end %>
+  </div>
+</div>
+
+<div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  <% @materials.each do |material| %>
+    <%= render "organizations/courses/material_card", item: material %>
+  <% end %>
+</div>
+
+<% if @materials.empty? %>
+  <div class="empty-state">No materials have been created for this course.</div>
+<% end %>

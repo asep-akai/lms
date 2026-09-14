@@ -26,10 +26,18 @@ class Permission < ApplicationRecord
     "courses.update" => [ "Update courses", "Update course names and descriptions." ],
     "courses.destroy" => [ "Delete courses", "Delete courses and their enrollments." ],
     "course_enrollments.update" => [ "Manage course enrollments", "Enroll or remove students from courses." ],
+    "materials.index" => [ "List materials", "View materials in organization courses." ],
+    "materials.create" => [ "Create materials", "Create text and image materials in organization courses." ],
+    "materials.update" => [ "Update materials", "Edit course materials and their images." ],
+    "materials.destroy" => [ "Delete materials", "Delete course materials and their images." ],
     "quizzes.index" => [ "List quizzes", "View quizzes in organization courses." ],
     "quizzes.create" => [ "Create quizzes", "Create quizzes and questions in organization courses." ],
     "quizzes.update" => [ "Update quizzes", "Edit quizzes and their questions." ],
     "quizzes.destroy" => [ "Delete quizzes", "Delete quizzes and their questions." ],
+    "quiz_attempts.index" => [ "List quiz attempts", "View student attempt statuses for quizzes." ],
+    "quiz_attempts.show" => [ "View quiz attempts", "Review a student's answers for a quiz." ],
+    "quiz_attempts.review" => [ "Review quiz attempts", "Mark submitted quiz attempts as reviewed." ],
+    "quiz_attempts.reset" => [ "Reset quiz attempts", "Delete a student's attempt and allow them to retry the quiz." ],
     "audit_events.index" => [ "View audit log", "Review organization security and administrative activity." ]
   }.freeze
 
@@ -45,14 +53,16 @@ class Permission < ApplicationRecord
     memberships.index memberships.create memberships.update memberships.destroy
     courses.index courses.create courses.update courses.destroy
     course_enrollments.update
+    materials.index materials.create materials.update materials.destroy
     quizzes.index quizzes.create quizzes.update quizzes.destroy
+    quiz_attempts.index quiz_attempts.show quiz_attempts.review quiz_attempts.reset
     audit_events.index
   ].freeze
 
   ORGANIZATION_GROUPS = {
     "Organization" => %w[organization.update],
     "Members" => %w[memberships.index memberships.create memberships.update memberships.destroy],
-    "Courses" => %w[courses.index courses.create courses.update courses.destroy course_enrollments.update quizzes.index quizzes.create quizzes.update quizzes.destroy],
+    "Courses" => %w[courses.index courses.create courses.update courses.destroy course_enrollments.update materials.index materials.create materials.update materials.destroy quizzes.index quizzes.create quizzes.update quizzes.destroy quiz_attempts.index quiz_attempts.show quiz_attempts.review quiz_attempts.reset],
     "Roles" => %w[roles.index roles.create roles.update roles.destroy],
     "Audit" => %w[audit_events.index]
   }.freeze

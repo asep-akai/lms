@@ -1,0 +1,74 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Organization</p>
+    <h1 class="title">Grading</h1>
+    <p class="subtitle">Quiz attempts across <%= current_organization.name %>, ordered by most recent activity.</p>
+  </div>
+  <%= back_link_to "Back to organization", organization_path(current_organization) %>
+</div>
+
+<nav class="actions mt-6" aria-label="Filter attempts">
+  <% [ [ "All", nil ], [ "In progress", "in_progress" ], [ "Waiting for review", "waiting_for_review" ], [ "Reviewed", "reviewed" ] ].each do |label, status| %>
+    <%= link_to label,
+      organization_grading_path(current_organization, status: status),
+      class: @status == status ? "btn-primary" : "btn-secondary",
+      aria: (@status == status ? { current: "page" } : {}) %>
+  <% end %>
+</nav>
+
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="th">Quiz</th>
+        <th class="th">Course</th>
+        <th class="th">Student</th>
+        <th class="th">Status</th>
+        <th class="th">Score</th>
+        <th class="th">Activity</th>
+        <th class="th">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @attempts.each do |attempt| %>
+        <tr>
+          <td class="td"><strong class="text-slate-950"><%= attempt.quiz.title %></strong></td>
+          <td class="td"><%= attempt.quiz.course.name %></td>
+          <td class="td"><strong class="text-slate-950"><%= attempt.membership.user.name %></strong><br><%= attempt.membership.user.email %></td>
+          <td class="td">
+            <% if attempt.reviewed? %>
+              <span class="badge-neutral">Reviewed</span>
+            <% elsif attempt.waiting_for_review? %>
+              <span class="badge-suspended">Waiting for review</span>
+            <% else %>
+              <span class="badge-active">In progress</span>
+            <% end %>
+          </td>
+          <td class="td attempt-score">
+            <% if attempt.reviewed? %>
+              <% grading = @gradings_by_attempt_id.fetch(attempt.id) %>
+              <strong class="text-slate-950"><%= grading.correct_count %>/<%= grading.total_count %></strong><br><%= grading.percentage %>%
+            <% else %>
+              <span class="text-slate-400">—</span>
+            <% end %>
+          </td>
+          <td class="td">
+            <% activity_at = attempt.reviewed_at || attempt.submitted_at || attempt.last_activity_at || attempt.started_at %>
+            <time datetime="<%= activity_at.iso8601 %>"><%= l(activity_at, format: :short) %></time>
+          </td>
+          <td class="td">
+            <% if policy(attempt).show? %>
+              <%= link_to "View attempt", organization_grading_attempt_path(current_organization, attempt), class: "text-link" %>
+            <% else %>
+              <span class="text-slate-400">No access</span>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<% if @attempts.empty? %>
+  <div class="empty-state">No attempts match this filter.</div>
+<% end %>

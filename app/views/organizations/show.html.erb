@@ -37,6 +37,18 @@
     <h2>Courses</h2>
     <p class="subtitle">View the courses available to you.</p>
   <% end %>
+  <% if can?("quiz_attempts.index") %>
+    <%= link_to organization_grading_path(@organization), class: "card-link" do %>
+      <h2>Grading</h2>
+      <p class="subtitle">Review quiz attempts across courses.</p>
+    <% end %>
+  <% end %>
+  <% if current_membership.student? %>
+    <%= link_to organization_evaluation_path(@organization), class: "card-link" do %>
+      <h2>Evaluation</h2>
+      <p class="subtitle">View your reviewed quiz results.</p>
+    <% end %>
+  <% end %>
 </div>
 <% if can?("memberships.index") || can?("roles.index") %>
   <div class="stats">

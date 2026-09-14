@@ -27,6 +27,12 @@
               <nav class="nav">
                 <%= link_to current_organization.name, current_organization, class: "nav-link" %>
                 <%= link_to "Courses", organization_courses_path(current_organization), class: "nav-link" %>
+                <% if can?("quiz_attempts.index") %>
+                  <%= link_to "Grading", organization_grading_path(current_organization), class: "nav-link" %>
+                <% end %>
+                <% if current_membership.student? %>
+                  <%= link_to "Evaluation", organization_evaluation_path(current_organization), class: "nav-link" %>
+                <% end %>
                 <% if can?("memberships.index") %>
                   <%= link_to "Members", organization_memberships_path(current_organization), class: "nav-link" %>
                 <% end %>

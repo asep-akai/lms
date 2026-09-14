@@ -5,9 +5,6 @@
   </div>
   <div class="actions">
     <%= back_link_to "Back to courses", organization_courses_path(current_organization) %>
-    <% if policy(Quiz).index? %>
-      <%= link_to policy(Quiz).create? ? "Manage quizzes" : "View quizzes", organization_course_quizzes_path(current_organization, @course), class: "btn-secondary" %>
-    <% end %>
     <% if policy(@course).enrollments? %>
       <%= link_to "Manage students", enrollments_organization_course_path(current_organization, @course), class: "btn-secondary" %>
     <% end %>
@@ -20,6 +17,24 @@
   <h2>About this course</h2>
   <div class="mt-4 whitespace-pre-wrap text-slate-700"><%= @course.description %></div>
 </section>
+<% if @materials %>
+  <%= render "content_section",
+    title: "Materials",
+    description: "Reading and visual resources for this course.",
+    items: @materials,
+    item_partial: "organizations/courses/material_card",
+    empty_message: "No materials are available yet.",
+    action: policy(Material).create? ? { label: "Manage materials", path: organization_course_materials_path(current_organization, @course) } : nil %>
+<% end %>
+<% if @quizzes %>
+  <%= render "content_section",
+    title: "Quizzes",
+    description: "Assessments available in this course.",
+    items: @quizzes,
+    item_partial: "organizations/courses/quiz_card",
+    empty_message: "No quizzes are available yet.",
+    action: policy(Quiz).create? ? { label: "Manage quizzes", path: organization_course_quizzes_path(current_organization, @course) } : nil %>
+<% end %>
 <% if policy(@course).destroy? %>
   <div class="mt-8">
     <%= button_to(

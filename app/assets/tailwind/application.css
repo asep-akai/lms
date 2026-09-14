@@ -54,6 +54,7 @@
 @utility badge { @apply rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset; }
 @utility badge-active { @apply badge bg-emerald-50 text-emerald-700 ring-emerald-600/20; }
 @utility badge-suspended { @apply badge bg-amber-50 text-amber-700 ring-amber-600/20; }
+@utility badge-neutral { @apply badge bg-slate-100 text-slate-600 ring-slate-500/20; }
 @utility table-wrap { @apply mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm; }
 @utility data-table { @apply min-w-full divide-y divide-slate-200; }
 @utility th { @apply bg-slate-50 px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500; }

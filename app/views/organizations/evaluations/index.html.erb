@@ -1,0 +1,38 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Your results</p>
+    <h1 class="title">Evaluation</h1>
+    <p class="subtitle">Reviewed quiz attempts across your courses.</p>
+  </div>
+  <%= back_link_to "Back to organization", organization_path(current_organization) %>
+</div>
+
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="th">Quiz</th>
+        <th class="th">Course</th>
+        <th class="th">Score</th>
+        <th class="th">Reviewed</th>
+        <th class="th">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @attempts.each do |attempt| %>
+        <% grading = @gradings_by_attempt_id.fetch(attempt.id) %>
+        <tr>
+          <td class="td"><strong class="text-slate-950"><%= attempt.quiz.title %></strong></td>
+          <td class="td"><%= attempt.quiz.course.name %></td>
+          <td class="td"><strong class="text-slate-950"><%= grading.correct_count %>/<%= grading.total_count %></strong><br><%= grading.percentage %>%</td>
+          <td class="td"><time datetime="<%= attempt.reviewed_at.iso8601 %>"><%= l(attempt.reviewed_at, format: :short) %></time></td>
+          <td class="td"><%= link_to "View results", organization_evaluation_attempt_path(current_organization, attempt), class: "text-link" %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<% if @attempts.empty? %>
+  <div class="empty-state">You do not have any reviewed quiz results yet.</div>
+<% end %>

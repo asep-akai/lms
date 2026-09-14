@@ -130,6 +130,135 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     assert AuditEvent.exists?(auditable: quiz, action: "quiz.created")
   end
 
+  test "organization administrator creates material that an enrolled student can view" do
+    student_membership = organizations(:one).memberships.create!(user: users(:two), status: "active")
+    student_membership.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]
+    course = organizations(:one).courses.create!(name: "Biology", description: "Living systems.")
+    course.course_enrollments.create!(membership: student_membership)
+
+    sign_in users(:one)
+    assert_difference "Material.count", 1 do
+      post organization_course_materials_path(organizations(:one), course), params: {
+        material: { title: "Cell structures", body_html: "<p><strong>Cells</strong> contain organelles.</p>" }
+      }
+    end
+
+    material = course.materials.find_by!(title: "Cell structures")
+    assert_redirected_to organization_course_material_path(organizations(:one), course, material)
+    assert AuditEvent.exists?(action: "material.created", auditable: material)
+
+    sign_in users(:two)
+    get organization_course_path(organizations(:one), course)
+    assert_response :success
+    assert_select "h3", "Cell structures"
+
+    get organization_course_material_path(organizations(:one), course, material)
+    assert_response :success
+    assert_select "strong", "Cells"
+    assert_select "a", text: "Edit material", count: 0
+  end
+
+  test "grading lists attempts and keeps listing viewing and review permissions separate" do
+    reviewer = User.create!(name: "Quiz Reviewer", email: "reviewer@example.com", password: "password", status: "active")
+    reviewer_membership = organizations(:one).memberships.create!(user: reviewer, status: "active")
+    reviewer_role = organizations(:one).roles.create!(name: "Attempt monitor", key: "attempt_monitor")
+    reviewer_role.permissions = [ Permission.find_by!(key: "quiz_attempts.index") ]
+    reviewer_membership.role_ids = [ reviewer_role.id ]
+
+    student_membership = organizations(:one).memberships.create!(user: users(:two), status: "active")
+    student_membership.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]
+    course = organizations(:one).courses.create!(name: "Biology", description: "Living systems.")
+    course.course_enrollments.create!(membership: student_membership)
+    quiz = course.quizzes.create!(title: "Cells check-in")
+    question = quiz.questions.create!(question_type: "short_answer", content_html: "<p>Name an organelle.</p>", short_answer: "Mitochondrion", position: 1)
+    attempt = QuizAttempt.create!(quiz: quiz, membership: student_membership, started_at: 1.hour.ago, last_activity_at: Time.current, submitted_at: Time.current)
+    attempt.answers.create!(quiz_question: question, short_answer_response: "Mitochondrion")
+    older_quiz = course.quizzes.create!(title: "Earlier assessment")
+    QuizAttempt.create!(quiz: older_quiz, membership: student_membership, started_at: 3.hours.ago, last_activity_at: 2.hours.ago)
+
+    sign_in reviewer
+    get organization_grading_path(organizations(:one))
+    assert_response :success
+    assert_select "tr", text: /Cells check-in.*Biology.*Student User.*Waiting for review/m
+    assert_operator response.body.index("Cells check-in"), :<, response.body.index("Earlier assessment")
+    assert_select "tr", text: /Cells check-in/ do
+      assert_select ".attempt-score", text: "—"
+    end
+    assert_select "a", text: "View attempt", count: 0
+
+    get organization_grading_path(organizations(:one), status: "in_progress")
+    assert_response :success
+    assert_select "td", text: "Cells check-in", count: 0
+
+    get organization_grading_attempt_path(organizations(:one), attempt)
+    assert_redirected_to root_path
+
+    reviewer_role.permissions << Permission.find_by!(key: "quiz_attempts.show")
+    get organization_grading_attempt_path(organizations(:one), attempt)
+    assert_response :success
+    assert_select "h1", "Student User"
+    assert_select "p", text: "Mitochondrion"
+    assert_select "button", text: "Mark as reviewed", count: 0
+
+    reviewer_role.permissions << Permission.find_by!(key: "quiz_attempts.review")
+    patch organization_grade_answer_path(organizations(:one), attempt, question_id: question.id), params: { correct: "0" }
+    assert_redirected_to organization_grading_attempt_path(organizations(:one), attempt, anchor: "question-#{question.id}")
+    assert_not attempt.answer_overrides.find_by!(quiz_question: question).correct?
+
+    get organization_grading_attempt_path(organizations(:one), attempt)
+    assert_response :success
+    assert_select "#score-heading", text: "0/1"
+    assert_select "p", text: "0%"
+    assert_select "span", text: "Manually graded"
+
+    delete organization_reset_answer_grade_path(organizations(:one), attempt, question_id: question.id)
+    assert_redirected_to organization_grading_attempt_path(organizations(:one), attempt, anchor: "question-#{question.id}")
+    assert_empty attempt.answer_overrides.where(quiz_question: question)
+
+    get organization_grading_attempt_path(organizations(:one), attempt)
+    assert_response :success
+    assert_select "#score-heading", text: "1/1"
+    assert_select "span", text: "Manually graded", count: 0
+
+    patch organization_grade_answer_path(organizations(:one), attempt, question_id: question.id), params: { correct: "1" }
+    assert attempt.answer_overrides.find_by!(quiz_question: question).correct?
+
+    patch organization_review_grading_attempt_path(organizations(:one), attempt)
+    assert_redirected_to organization_grading_attempt_path(organizations(:one), attempt)
+    assert_predicate attempt.reload, :reviewed?
+
+    get organization_grading_path(organizations(:one), status: "reviewed")
+    assert_response :success
+    assert_select "tr", text: /Cells check-in.*Biology.*Student User.*Reviewed/m
+    assert_select "tr", text: /Cells check-in/ do
+      assert_select ".attempt-score", text: /1\/1.*100%/m
+    end
+
+    patch organization_unreview_grading_attempt_path(organizations(:one), attempt)
+    assert_redirected_to organization_grading_attempt_path(organizations(:one), attempt)
+    assert_not attempt.reload.reviewed?
+    assert_predicate attempt, :waiting_for_review?
+    assert_predicate attempt, :submitted?
+
+    delete organization_reset_grading_attempt_path(organizations(:one), attempt)
+    assert_redirected_to root_path
+    assert QuizAttempt.exists?(attempt.id)
+
+    reviewer_role.permissions << Permission.find_by!(key: "quiz_attempts.reset")
+    assert_difference "QuizAttempt.count", -1 do
+      delete organization_reset_grading_attempt_path(organizations(:one), attempt)
+    end
+    assert_redirected_to organization_grading_path(organizations(:one))
+    assert_not QuizAnswer.exists?(quiz_attempt_id: attempt.id)
+    assert_not QuizAnswerOverride.exists?(quiz_attempt_id: attempt.id)
+    assert AuditEvent.exists?(action: "quiz_attempt.reset", auditable_type: "QuizAttempt", auditable_id: attempt.id)
+
+    sign_in users(:two)
+    get organization_course_path(organizations(:one), course)
+    assert_response :success
+    assert_select "a", text: "Start quiz"
+  end
+
   test "organization administrator moves a quiz question between adjacent slots" do
     course = organizations(:one).courses.create!(name: "Biology", description: "Living systems.")
     quiz = course.quizzes.create!(title: "Cells check-in")
@@ -176,6 +305,55 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     assert_select "a", text: "Edit course", count: 0
   end
 
+  test "course page presents quizzes as course content" do
+    student_membership = organizations(:one).memberships.create!(user: users(:two), status: "active")
+    student_membership.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]
+    course = organizations(:one).courses.create!(name: "Biology", description: "Living systems.")
+    course.course_enrollments.create!(membership: student_membership)
+    quiz = course.quizzes.create!(title: "Cells check-in", description: "Review cell structure.")
+
+    sign_in users(:two)
+    get organization_course_path(organizations(:one), course)
+
+    assert_response :success
+    assert_select "section[aria-labelledby='quizzes-heading']" do
+      assert_select "h2", text: "Quizzes"
+      assert_select "h3", text: "Cells check-in"
+      assert_select "a[href='#{attempt_organization_course_quiz_path(organizations(:one), course, quiz)}']", text: "Start quiz"
+      assert_select ".badge-neutral", text: "Not started"
+    end
+    assert_select "a", text: "View quizzes", count: 0
+  end
+
+  test "submitted quiz attempt is shown as in review and cannot be reopened" do
+    student_membership = organizations(:one).memberships.create!(user: users(:two), status: "active")
+    student_membership.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]
+    course = organizations(:one).courses.create!(name: "Biology", description: "Living systems.")
+    course.course_enrollments.create!(membership: student_membership)
+    quiz = course.quizzes.create!(title: "Cells check-in")
+    question = quiz.questions.create!(question_type: "short_answer", content_html: "<p>Name an organelle.</p>", short_answer: "Mitochondrion", position: 1)
+
+    sign_in users(:two)
+    get attempt_organization_course_quiz_path(organizations(:one), course, quiz)
+    assert_response :success
+
+    patch organization_course_quiz_attempt_answer_path(organizations(:one), course, quiz, question_id: question.id), params: {
+      quiz_answer: { short_answer_response: "Mitochondrion" },
+      submit_attempt: "Submit"
+    }
+
+    assert_redirected_to organization_course_path(organizations(:one), course)
+    attempt = QuizAttempt.find_by!(quiz: quiz, membership: student_membership)
+    assert_predicate attempt, :submitted?
+
+    get attempt_organization_course_quiz_path(organizations(:one), course, quiz)
+    assert_redirected_to organization_course_path(organizations(:one), course)
+    follow_redirect!
+    assert_select ".badge-suspended", text: "In review"
+    assert_select "button[disabled]", text: "In review"
+    assert_select "a[href='#{attempt_organization_course_quiz_path(organizations(:one), course, quiz)}']", count: 0
+  end
+
   test "enrolled student saves and resumes quiz answers" do
     membership = organizations(:one).memberships.create!(user: users(:two), status: "active")
     membership.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]
@@ -192,12 +370,52 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
         quiz_answer: { short_answer_response: "Mitochondrion" }
       }
     end
-    assert_redirected_to organization_course_quizzes_path(organizations(:one), course)
+    assert_redirected_to organization_course_path(organizations(:one), course)
 
     get attempt_organization_course_quiz_path(organizations(:one), course, quiz)
     assert_response :success
     assert_select "textarea", text: "Mitochondrion"
     assert_equal 1, QuizAttempt.where(quiz: quiz, membership: membership).count
+  end
+
+  test "student evaluation exposes only their reviewed results" do
+    membership = organizations(:one).memberships.create!(user: users(:two), status: "active")
+    membership.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]
+    course = organizations(:one).courses.create!(name: "Biology", description: "Living systems.")
+    course.course_enrollments.create!(membership: membership)
+    quiz = course.quizzes.create!(title: "Reviewed cells quiz")
+    question = quiz.questions.create!(question_type: "short_answer", content_html: "<p>Name an organelle.</p>", short_answer: "Mitochondrion", position: 1)
+    attempt = QuizAttempt.create!(quiz: quiz, membership: membership, started_at: 2.hours.ago, last_activity_at: 1.hour.ago, submitted_at: 1.hour.ago, reviewed_at: Time.current)
+    attempt.answers.create!(quiz_question: question, short_answer_response: "Mitochondrion")
+    attempt.answer_overrides.create!(quiz_question: question, correct: false)
+
+    waiting_quiz = course.quizzes.create!(title: "Waiting cells quiz")
+    waiting_attempt = QuizAttempt.create!(quiz: waiting_quiz, membership: membership, started_at: 1.hour.ago, last_activity_at: Time.current, submitted_at: Time.current)
+
+    sign_in users(:two)
+    get organization_evaluation_path(organizations(:one))
+    assert_response :success
+    assert_select "tr", text: /Reviewed cells quiz.*Biology.*0\/1.*0%/m
+    assert_select "td", text: "Waiting cells quiz", count: 0
+
+    get organization_evaluation_attempt_path(organizations(:one), attempt)
+    assert_response :success
+    assert_select "#evaluation-score-heading", text: "0/1"
+    assert_select "span", text: "Wrong"
+    assert_select "p", text: "Mitochondrion", minimum: 2
+    assert_select "a[href='#{organization_evaluation_path(organizations(:one))}']", text: "Back to evaluation"
+
+    get organization_course_path(organizations(:one), course)
+    assert_response :success
+    course_result_path = organization_evaluation_attempt_path(organizations(:one), attempt, from: "course")
+    assert_select "a[href='#{course_result_path}']", text: "View results"
+
+    get course_result_path
+    assert_response :success
+    assert_select "a[href='#{organization_course_path(organizations(:one), course)}']", text: "Back to course"
+
+    get organization_evaluation_attempt_path(organizations(:one), waiting_attempt)
+    assert_redirected_to root_path
   end
 
   test "student can navigate backward from the final quiz question" do

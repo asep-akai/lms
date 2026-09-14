@@ -188,6 +188,11 @@ screens must include a `back_link_to` the nearest parent page. Put it in the
 page header. Modal forms keep their Close or Cancel action instead of adding a
 second back control.
 
+**Course content.** Render course content types through the reusable
+`organizations/courses/content_section` partial. Give each content type its own
+card partial so quizzes, materials, and later content can coexist without
+coupling their presentation.
+
 **Modals.** `modal_link_to` in the view, `render_modal(...) if modal_request?`
 in the action. The link keeps its `href` and the same URL without `?modal=1`
 renders the full page — one route, one policy, one form partial.

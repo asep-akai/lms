@@ -17,7 +17,12 @@ export default class extends Controller {
 
     if (confirmed) {
       this.confirmed = true
-      this.element.requestSubmit(event.currentTarget)
+      const submissionIntent = document.createElement("input")
+      submissionIntent.type = "hidden"
+      submissionIntent.name = "submit_attempt"
+      submissionIntent.value = "1"
+      this.element.append(submissionIntent)
+      this.element.submit()
     }
   }
 

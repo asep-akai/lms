@@ -19,6 +19,10 @@ class Membership < ApplicationRecord
     roles.exists?(key: "admin")
   end
 
+  def student?
+    roles.exists?(key: "student")
+  end
+
   def roles
     return Role.none unless user && organization
 

@@ -1,0 +1,36 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow"><%= @course.name %> · Material</p>
+    <h1 class="title"><%= @material.title %></h1>
+  </div>
+  <div class="actions">
+    <%= back_link_to "Back to course", organization_course_path(current_organization, @course) %>
+    <% if policy(@material).update? %>
+      <%= link_to "Edit material", edit_organization_course_material_path(current_organization, @course, @material), class: "btn-primary" %>
+    <% end %>
+  </div>
+</div>
+
+<article class="card card-body mt-8">
+  <div class="rich-content text-slate-800"><%= sanitize(@material.body_html, tags: Material::ALLOWED_HTML_TAGS, attributes: []) %></div>
+</article>
+
+<% if @material.images.attached? %>
+  <section class="mt-8" aria-labelledby="material-images-heading">
+    <h2 id="material-images-heading">Images</h2>
+    <div class="mt-4 grid gap-4 sm:grid-cols-2">
+      <% @material.images.each do |image| %>
+        <figure class="card overflow-hidden">
+          <%= image_tag image, alt: image.filename.to_s, class: "h-auto w-full" %>
+          <figcaption class="px-4 py-3 text-sm text-slate-600"><%= image.filename %></figcaption>
+        </figure>
+      <% end %>
+    </div>
+  </section>
+<% end %>
+
+<% if policy(@material).destroy? %>
+  <div class="mt-8">
+    <%= button_to "Delete material", organization_course_material_path(current_organization, @course, @material), method: :delete, form: { data: { turbo_confirm: "Delete this material and its images?" } }, class: "btn-danger" %>
+  </div>
+<% end %>

@@ -1,0 +1,33 @@
+<% attempt = @quiz_attempts[item.id] %>
+<div class="card card-body flex flex-col">
+  <div class="flex items-start justify-between gap-3">
+    <h3 class="font-semibold text-slate-950"><%= item.title %></h3>
+    <% unless policy(item).update? %>
+      <% if attempt&.reviewed? %>
+        <span class="badge-neutral">Reviewed</span>
+      <% elsif attempt&.submitted? %>
+        <span class="badge-suspended">In review</span>
+      <% elsif attempt %>
+        <span class="badge-active">In progress</span>
+      <% else %>
+        <span class="badge-neutral">Not started</span>
+      <% end %>
+    <% end %>
+  </div>
+  <% if item.description.present? %>
+    <p class="subtitle"><%= truncate(item.description, length: 180) %></p>
+  <% end %>
+  <p class="mt-4 text-sm text-slate-500"><%= pluralize(item.questions.size, "question") %></p>
+  <div class="actions mt-auto pt-5">
+    <% if policy(item).update? %>
+      <%= link_to "Manage quiz", organization_course_quiz_path(current_organization, @course, item), class: "btn-secondary" %>
+    <% end %>
+    <% if !policy(item).update? && attempt&.reviewed? %>
+      <%= link_to "View results", organization_evaluation_attempt_path(current_organization, attempt, from: "course"), class: "btn-primary" %>
+    <% elsif !policy(item).update? && attempt&.submitted? %>
+      <button type="button" class="btn-disabled" disabled>In review</button>
+    <% elsif !policy(item).update? %>
+      <%= link_to attempt ? "Resume quiz" : "Start quiz", attempt_organization_course_quiz_path(current_organization, @course, item), class: "btn-primary" %>
+    <% end %>
+  </div>
+</div>

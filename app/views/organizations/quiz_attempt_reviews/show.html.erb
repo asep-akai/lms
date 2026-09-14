@@ -1,0 +1,84 @@
+<% quiz = @attempt.quiz %>
+<% course = quiz.course %>
+<div class="page-header">
+  <div>
+    <p class="eyebrow"><%= course.name %> · <%= quiz.title %></p>
+    <h1 class="title"><%= @attempt.membership.user.name %></h1>
+    <p class="subtitle"><%= @attempt.membership.user.email %></p>
+  </div>
+  <div class="actions">
+    <%= back_link_to "Back to grading", organization_grading_path(current_organization) %>
+    <% if @attempt.waiting_for_review? && policy(@attempt).review? %>
+      <%= button_to "Mark as reviewed", organization_review_grading_attempt_path(current_organization, @attempt), method: :patch, class: "btn-primary" %>
+    <% elsif @attempt.reviewed? && policy(@attempt).review? %>
+      <%= button_to "Return to review queue",
+        organization_unreview_grading_attempt_path(current_organization, @attempt),
+        method: :patch,
+        form: { data: { turbo_confirm: "Return this attempt to the waiting-for-review queue?" } },
+        class: "btn-secondary" %>
+    <% end %>
+    <% if policy(@attempt).reset? %>
+      <%= button_to "Reset attempt",
+        organization_reset_grading_attempt_path(current_organization, @attempt),
+        method: :delete,
+        form: { data: { turbo_confirm: "Reset this attempt? The student's answers and grading will be permanently removed, and they will be able to retry the quiz." } },
+        class: "btn-danger" %>
+    <% end %>
+  </div>
+</div>
+
+<div class="mt-6 flex flex-wrap items-center gap-3">
+  <% if @attempt.reviewed? %>
+    <span class="badge-neutral">Reviewed</span>
+    <span class="text-sm text-slate-600">Reviewed <%= l(@attempt.reviewed_at, format: :short) %></span>
+  <% elsif @attempt.waiting_for_review? %>
+    <span class="badge-suspended">Waiting for review</span>
+    <span class="text-sm text-slate-600">Submitted <%= l(@attempt.submitted_at, format: :short) %></span>
+  <% else %>
+    <span class="badge-active">In progress</span>
+    <span class="text-sm text-slate-600">Last active <%= l(@attempt.last_activity_at, format: :short) %></span>
+  <% end %>
+</div>
+
+<section class="card card-body mt-8" aria-labelledby="score-heading">
+  <p class="eyebrow">Score</p>
+  <h2 id="score-heading" class="mt-1"><%= @grading.correct_count %>/<%= @grading.total_count %></h2>
+  <p class="mt-1 text-2xl font-semibold text-slate-950"><%= @grading.percentage %>%</p>
+  <p class="subtitle">Calculated from the answer key and any manual overrides below.</p>
+</section>
+
+<div class="mt-8 space-y-4">
+  <% @grading.results.each do |result| %>
+    <% question = result.question %>
+    <% answer = result.answer %>
+    <section id="question-<%= question.id %>" class="card card-body">
+      <p class="text-sm font-medium text-slate-500">Question <%= question.position %> · <%= question.question_type.humanize %></p>
+      <div class="rich-content mt-3 text-slate-800"><%= sanitize(question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div>
+      <div class="mt-5 grid gap-5 border-t border-slate-200 pt-4 sm:grid-cols-2">
+        <div>
+          <p class="text-sm font-medium text-slate-700">Student answer</p>
+          <% if answer %>
+            <p class="mt-2 whitespace-pre-wrap text-slate-950"><%= question.multiple_choice? ? answer.quiz_answer_option&.content : answer.short_answer_response %></p>
+          <% else %>
+            <p class="mt-2 text-sm text-slate-500">Unanswered</p>
+          <% end %>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-slate-700">Answer key</p>
+          <p class="mt-2 text-slate-950"><%= question.multiple_choice? ? question.answer_options.find(&:correct?)&.content : question.short_answer %></p>
+        </div>
+      </div>
+      <div class="mt-5 flex flex-wrap items-center gap-3">
+        <span class="<%= result.correct ? "badge-active" : "badge-suspended" %>"><%= result.correct ? "Correct" : "Wrong" %></span>
+        <% if result.overridden %><span class="text-sm text-slate-500">Manually graded</span><% end %>
+        <% if @attempt.submitted? && policy(@attempt).review? %>
+          <%= button_to "Mark correct", organization_grade_answer_path(current_organization, @attempt, question_id: question.id), method: :patch, params: { correct: "1" }, class: result.correct ? "btn-primary" : "btn-secondary" %>
+          <%= button_to "Mark wrong", organization_grade_answer_path(current_organization, @attempt, question_id: question.id), method: :patch, params: { correct: "0" }, class: result.correct ? "btn-secondary" : "btn-danger" %>
+          <% if result.overridden %>
+            <%= button_to "Use answer key", organization_reset_answer_grade_path(current_organization, @attempt, question_id: question.id), method: :delete, class: "btn-secondary" %>
+          <% end %>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+</div>

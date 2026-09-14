@@ -9,6 +9,7 @@ class QuizQuestion < ApplicationRecord
   belongs_to :quiz, inverse_of: :questions
   has_many :answer_options, class_name: "QuizAnswerOption", dependent: :destroy, inverse_of: :quiz_question
   has_many :answers, class_name: "QuizAnswer", dependent: :destroy
+  has_many :answer_overrides, class_name: "QuizAnswerOverride", dependent: :destroy
 
   accepts_nested_attributes_for :answer_options, allow_destroy: true, reject_if: :blank_answer_option?
 

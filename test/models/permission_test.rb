@@ -14,7 +14,7 @@ class PermissionTest < ActiveSupport::TestCase
     groups = Permission.organization_assignable.organization_groups
 
     assert_equal %w[Organization Members Courses Roles Audit], groups.map(&:first)
-    assert_equal %w[courses.index courses.create courses.update courses.destroy course_enrollments.update quizzes.index quizzes.create quizzes.update quizzes.destroy],
+    assert_equal %w[courses.index courses.create courses.update courses.destroy course_enrollments.update materials.index materials.create materials.update materials.destroy quizzes.index quizzes.create quizzes.update quizzes.destroy quiz_attempts.index quiz_attempts.show quiz_attempts.review quiz_attempts.reset],
       groups.to_h.fetch("Courses").map(&:key)
   end
 

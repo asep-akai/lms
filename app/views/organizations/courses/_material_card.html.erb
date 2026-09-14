@@ -1,0 +1,12 @@
+<%= link_to organization_course_material_path(current_organization, @course, item), class: "card-link overflow-hidden p-0" do %>
+  <% if item.images.attached? %>
+    <%= image_tag item.images.first, alt: "", class: "h-36 w-full object-cover" %>
+  <% end %>
+  <div class="p-6">
+    <h3 class="font-semibold text-slate-950"><%= item.title %></h3>
+    <p class="mt-2 text-sm text-slate-600"><%= truncate(strip_tags(item.body_html), length: 140) %></p>
+    <% if item.images.attached? %>
+      <p class="mt-4 text-sm text-slate-500"><%= pluralize(item.images.size, "image") %></p>
+    <% end %>
+  </div>
+<% end %>

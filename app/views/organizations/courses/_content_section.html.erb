@@ -1,0 +1,21 @@
+<section class="mt-8" aria-labelledby="<%= title.parameterize %>-heading">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h2 id="<%= title.parameterize %>-heading"><%= title %></h2>
+      <% if description.present? %>
+        <p class="subtitle"><%= description %></p>
+      <% end %>
+    </div>
+    <% if action %>
+      <%= link_to action[:label], action[:path], class: "btn-secondary" %>
+    <% end %>
+  </div>
+
+  <% if items.any? %>
+    <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <%= render partial: item_partial, collection: items, as: :item %>
+    </div>
+  <% else %>
+    <div class="empty-state"><%= empty_message %></div>
+  <% end %>
+</section>

@@ -17,6 +17,7 @@ Rails.application.routes.draw do
     resources :memberships, controller: "organizations/memberships", except: :show
     resources :roles, controller: "organizations/roles", except: :show
     resources :courses, controller: "organizations/courses" do
+      resources :materials, controller: "organizations/materials"
       resources :quizzes, controller: "organizations/quizzes" do
         get :attempt, on: :member, controller: "organizations/quiz_attempts"
         patch "attempt/questions/:question_id", to: "organizations/quiz_attempts#update_answer", as: :attempt_answer
@@ -29,6 +30,15 @@ Rails.application.routes.draw do
         patch :enrollments, action: :update_enrollments
       end
     end
+    get "grading", to: "organizations/quiz_attempt_reviews#index", as: :grading
+    get "grading/attempts/:id", to: "organizations/quiz_attempt_reviews#show", as: :grading_attempt
+    patch "grading/attempts/:id/review", to: "organizations/quiz_attempt_reviews#review", as: :review_grading_attempt
+    patch "grading/attempts/:id/unreview", to: "organizations/quiz_attempt_reviews#unreview", as: :unreview_grading_attempt
+    patch "grading/attempts/:id/questions/:question_id", to: "organizations/quiz_attempt_reviews#grade_answer", as: :grade_answer
+    delete "grading/attempts/:id/questions/:question_id/grade", to: "organizations/quiz_attempt_reviews#reset_grade", as: :reset_answer_grade
+    delete "grading/attempts/:id", to: "organizations/quiz_attempt_reviews#reset", as: :reset_grading_attempt
+    get "evaluation", to: "organizations/evaluations#index", as: :evaluation
+    get "evaluation/attempts/:id", to: "organizations/evaluations#show", as: :evaluation_attempt
     resources :audit_events, controller: "organizations/audit_events", only: :index
   end
 

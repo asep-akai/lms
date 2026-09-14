@@ -10,9 +10,37 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_10_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_14_121000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "active_storage_attachments", force: :cascade do |t|
+    t.bigint "blob_id", null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.bigint "record_id", null: false
+    t.string "record_type", null: false
+    t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
+    t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
+  end
+
+  create_table "active_storage_blobs", force: :cascade do |t|
+    t.bigint "byte_size", null: false
+    t.string "checksum"
+    t.string "content_type"
+    t.datetime "created_at", null: false
+    t.string "filename", null: false
+    t.string "key", null: false
+    t.text "metadata"
+    t.string "service_name", null: false
+    t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
+  end
+
+  create_table "active_storage_variant_records", force: :cascade do |t|
+    t.bigint "blob_id", null: false
+    t.string "variation_digest", null: false
+    t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
 
   create_table "admins", force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -67,6 +95,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_120000) do
     t.index ["organization_id"], name: "index_courses_on_organization_id"
   end
 
+  create_table "materials", force: :cascade do |t|
+    t.text "body_html", null: false
+    t.bigint "course_id", null: false
+    t.datetime "created_at", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["course_id"], name: "index_materials_on_course_id"
+  end
+
   create_table "memberships", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "organization_id", null: false
@@ -109,6 +146,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_120000) do
     t.index ["quiz_question_id"], name: "index_quiz_answer_options_on_quiz_question_id"
   end
 
+  create_table "quiz_answer_overrides", force: :cascade do |t|
+    t.boolean "correct", null: false
+    t.datetime "created_at", null: false
+    t.bigint "quiz_attempt_id", null: false
+    t.bigint "quiz_question_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["quiz_attempt_id", "quiz_question_id"], name: "idx_on_quiz_attempt_id_quiz_question_id_4bde5e5bfc", unique: true
+    t.index ["quiz_attempt_id"], name: "index_quiz_answer_overrides_on_quiz_attempt_id"
+    t.index ["quiz_question_id"], name: "index_quiz_answer_overrides_on_quiz_question_id"
+  end
+
   create_table "quiz_answers", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "quiz_answer_option_id"
@@ -128,7 +176,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_120000) do
     t.integer "last_question_position"
     t.bigint "membership_id", null: false
     t.bigint "quiz_id", null: false
+    t.datetime "reviewed_at"
     t.datetime "started_at", null: false
+    t.datetime "submitted_at"
     t.datetime "updated_at", null: false
     t.index ["membership_id"], name: "index_quiz_attempts_on_membership_id"
     t.index ["quiz_id", "membership_id"], name: "index_quiz_attempts_on_quiz_id_and_membership_id", unique: true
@@ -356,13 +406,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_120000) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "audit_events", "organizations"
   add_foreign_key "course_enrollments", "courses"
   add_foreign_key "course_enrollments", "memberships"
   add_foreign_key "courses", "organizations"
+  add_foreign_key "materials", "courses"
   add_foreign_key "memberships", "organizations"
   add_foreign_key "memberships", "users"
   add_foreign_key "quiz_answer_options", "quiz_questions"
+  add_foreign_key "quiz_answer_overrides", "quiz_attempts"
+  add_foreign_key "quiz_answer_overrides", "quiz_questions"
   add_foreign_key "quiz_answers", "quiz_answer_options"
   add_foreign_key "quiz_answers", "quiz_attempts"
   add_foreign_key "quiz_answers", "quiz_questions"

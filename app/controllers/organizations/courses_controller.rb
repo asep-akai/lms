@@ -8,6 +8,11 @@ class Organizations::CoursesController < Organizations::BaseController
 
   def show
     authorize @course
+    @materials = @course.materials.with_attached_images.order(:created_at, :id) if policy(Material).index?
+    if policy(Quiz).index?
+      @quizzes = @course.quizzes.includes(:questions).order(:created_at, :id)
+      @quiz_attempts = Current.membership.quiz_attempts.where(quiz: @quizzes).index_by(&:quiz_id)
+    end
   end
 
   def new

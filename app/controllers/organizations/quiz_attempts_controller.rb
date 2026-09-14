@@ -5,6 +5,8 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
   def attempt
     authorize @quiz, :show?
     @attempt = find_or_start_attempt
+    return redirect_submitted_attempt if @attempt.submitted?
+
     @questions = @quiz.questions.includes(:answer_options)
     @question = selected_question
     @attempt.update_column(:last_question_position, @question.position)
@@ -16,19 +18,21 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
   def update_answer
     authorize @quiz, :show?
     attempt = find_or_start_attempt
+    return redirect_submitted_attempt if attempt.submitted?
+
     question = @quiz.questions.find(params[:question_id])
     answer = attempt.answers.find_or_initialize_by(quiz_question: question)
     answer.assign_attributes(answer_params(question))
 
     if answer_blank?(answer, question)
       answer.destroy! if answer.persisted?
-      redirect_after_answer(question)
+      redirect_after_answer(question, attempt)
       return
     end
 
     if answer.save
       attempt.update_column(:last_activity_at, Time.current)
-      redirect_after_answer(question)
+      redirect_after_answer(question, attempt)
     else
       @attempt = attempt
       @questions = @quiz.questions.includes(:answer_options)
@@ -75,13 +79,28 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
       question.multiple_choice? ? answer.quiz_answer_option_id.blank? : answer.short_answer_response.blank?
     end
 
-    def redirect_after_answer(question)
+    def redirect_after_answer(question, attempt)
+      if params[:submit_attempt].present?
+        attempt.submit!
+        redirect_to organization_course_path(Current.organization, @course), notice: "Quiz submitted. Your attempt is in review."
+        return
+      end
+
+      if params[:leave_quiz].present?
+        redirect_to organization_course_path(Current.organization, @course), notice: "Quiz progress saved."
+        return
+      end
+
       target_position = params[:next_question].presence
       if target_position
         redirect_to attempt_organization_course_quiz_path(Current.organization, @course, @quiz, question: target_position)
       else
-        redirect_to organization_course_quizzes_path(Current.organization, @course), notice: "Quiz progress saved."
+        redirect_to organization_course_path(Current.organization, @course), notice: "Quiz progress saved."
       end
+    end
+
+    def redirect_submitted_attempt
+      redirect_to organization_course_path(Current.organization, @course), alert: "This quiz has been submitted and is in review."
     end
 
     def set_attempt_progress
