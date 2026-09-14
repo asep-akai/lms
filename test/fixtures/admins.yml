@@ -1,0 +1,14 @@
+<% encrypted_password = Devise::Encryptor.digest(Admin, "password") %>
+
+one:
+  email: admin@example.com
+  encrypted_password: <%= encrypted_password %>
+  name: Console Administrator
+  status: active
+
+two:
+  email: second-admin@example.com
+  encrypted_password: <%= encrypted_password %>
+  name: Second Administrator
+  status: active
+# column: value

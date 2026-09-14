@@ -1,0 +1,1 @@
+<fieldset><legend class="label">Roles</legend><div class="checkbox-grid"><% @roles.each do |role| %><label class="checkbox-row"><%= check_box_tag "membership[role_ids][]", role.id, membership.role_ids.include?(role.id) %><span><strong><%= role.name %></strong><span class="hint"><%= role.description %></span></span></label><% end %></div></fieldset>

@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  name: First Organization
+  slug: first-organization
+  status: active
+  timezone: UTC
+  locale: en
+
+two:
+  name: Second Organization
+  slug: second-organization
+  status: active
+  timezone: UTC
+  locale: en

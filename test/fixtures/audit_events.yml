@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  organization: one
+  actor: one (User)
+  action: membership.created
+  auditable: one (Membership)
+  metadata: {}
+  occurred_at: 2026-09-04 22:29:45
+
+two:
+  organization: two
+  actor: two (User)
+  action: membership.updated
+  auditable: two (Membership)
+  metadata: {}
+  occurred_at: 2026-09-04 22:29:45

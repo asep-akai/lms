@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #eef7ff;
+  --color-brand-100: #d9edff;
+  --color-brand-600: #0969a8;
+  --color-brand-700: #075784;
+  --color-brand-900: #123a56;
+}
+
+@layer base {
+  body { @apply bg-slate-50 text-slate-900 antialiased; }
+  h1 { @apply text-3xl font-semibold tracking-tight text-slate-950; }
+  h2 { @apply text-xl font-semibold text-slate-950; }
+}
+
+@utility shell { @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8; }
+@utility topbar { @apply border-b border-slate-200 bg-white; }
+@utility topbar-inner { @apply shell flex items-center justify-between py-4; }
+@utility brand { @apply text-xl font-bold tracking-tight text-brand-700; }
+@utility nav { @apply hidden items-center gap-4 text-sm md:flex; }
+@utility nav-link { @apply text-slate-600 hover:text-slate-950; }
+@utility page { @apply shell py-10; }
+@utility page-header { @apply flex flex-col justify-between gap-4 sm:flex-row sm:items-end; }
+@utility eyebrow { @apply text-sm font-medium text-brand-700; }
+@utility title { @apply mt-1 text-3xl font-semibold tracking-tight text-slate-950; }
+@utility subtitle { @apply mt-2 text-slate-600; }
+@utility card { @apply rounded-xl border border-slate-200 bg-white shadow-sm; }
+@utility card-body { @apply p-6; }
+@utility card-link { @apply card card-body transition hover:border-brand-600 hover:shadow; }
+@utility stats { @apply mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4; }
+@utility stat { @apply card p-5; }
+@utility stat-label { @apply text-sm text-slate-500; }
+@utility stat-value { @apply mt-2 text-3xl font-semibold; }
+@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold; }
+@utility btn-primary { @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700; }
+@utility btn-secondary { @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50; }
+@utility btn-danger { @apply btn bg-red-600 text-white hover:bg-red-500; }
+@utility field { @apply mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-100; }
+@utility label { @apply block text-sm font-medium text-slate-700; }
+@utility hint { @apply mt-1 text-xs text-slate-500; }
+@utility field-error { @apply mt-1 text-xs text-red-600; }
+@utility form-stack { @apply space-y-6; }
+@utility form-grid { @apply grid gap-6 sm:grid-cols-2; }
+@utility actions { @apply flex flex-wrap gap-3; }
+@utility badge { @apply rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset; }
+@utility badge-active { @apply badge bg-emerald-50 text-emerald-700 ring-emerald-600/20; }
+@utility badge-suspended { @apply badge bg-amber-50 text-amber-700 ring-amber-600/20; }
+@utility table-wrap { @apply mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm; }
+@utility data-table { @apply min-w-full divide-y divide-slate-200; }
+@utility th { @apply bg-slate-50 px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500; }
+@utility td { @apply px-5 py-4 text-sm text-slate-600; }
+@utility text-link { @apply font-medium text-brand-700 hover:text-brand-900; }
+@utility danger-link { @apply font-medium text-red-600 hover:text-red-800; }
+@utility empty-state { @apply mt-8 rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500; }
+@utility checkbox-grid { @apply mt-3 grid gap-3 sm:grid-cols-2; }
+@utility checkbox-row { @apply flex gap-3 rounded-lg border border-slate-200 bg-white p-4; }
+@utility alert { @apply mb-6 rounded-lg border px-4 py-3 text-sm; }
+@utility alert-error { @apply alert border-red-200 bg-red-50 text-red-700; }
+@utility alert-success { @apply alert border-emerald-200 bg-emerald-50 text-emerald-700; }
+@utility auth-shell { @apply mx-auto flex min-h-[70vh] max-w-md items-center; }
+@utility auth-card { @apply card w-full p-8; }
+@utility modal-backdrop { @apply fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4; }
+@utility modal-panel { @apply card max-h-[90vh] w-full max-w-3xl overflow-y-auto p-6; }

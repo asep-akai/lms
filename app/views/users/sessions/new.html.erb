@@ -1,0 +1,13 @@
+<div class="auth-shell">
+  <div class="auth-card">
+    <p class="eyebrow">Learning workspace</p>
+    <h1 class="title">Sign in</h1>
+    <p class="subtitle">Use the account provided by your organization.</p>
+    <%= form_with model: resource, url: session_path(resource_name), class: "form-stack" do |form| %>
+      <div><%= form.label :email, class: "label" %><%= form.email_field :email, autofocus: true, autocomplete: "email", class: "field" %></div>
+      <div><%= form.label :password, class: "label" %><%= form.password_field :password, autocomplete: "current-password", class: "field" %></div>
+      <% if devise_mapping.rememberable? %><label class="checkbox-row"><%= form.check_box :remember_me %><span>Remember me</span></label><% end %>
+      <div class="actions"><%= form.submit "Sign in", class: "btn-primary" %><%= link_to "Forgot password?", new_user_password_path, class: "btn-secondary" %></div>
+    <% end %>
+  </div>
+</div>

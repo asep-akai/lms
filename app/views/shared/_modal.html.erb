@@ -1,0 +1,12 @@
+<%= turbo_frame_tag "modal" do %>
+  <div class="modal-backdrop" data-controller="modal" data-action="click->modal#backdrop">
+    <dialog class="modal-panel" data-modal-target="dialog">
+      <div class="actions">
+        <button type="button" class="btn-secondary" data-action="modal#close">Close</button>
+      </div>
+      <div>
+        <%= render partial: content_partial, locals: content_locals %>
+      </div>
+    </dialog>
+  </div>
+<% end %>
