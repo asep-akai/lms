@@ -22,7 +22,11 @@ export default class extends Controller {
       selection.removeAllRanges()
       selection.addRange(this.range)
     }
-    document.execCommand(event.currentTarget.dataset.command, false, null)
+    const command = event.currentTarget.dataset.command
+    const value = event.currentTarget.dataset.value || null
+    if (command === "foreColor") document.execCommand("styleWithCSS", false, true)
+    document.execCommand(command, false, value)
+    if (command === "foreColor") document.execCommand("styleWithCSS", false, false)
     this.synchronize()
   }
 

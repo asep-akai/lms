@@ -139,7 +139,14 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     sign_in users(:one)
     assert_difference "Material.count", 1 do
       post organization_course_materials_path(organizations(:one), course), params: {
-        material: { title: "Cell structures", body_html: "<p><strong>Cells</strong> contain organelles.</p>" }
+        material: {
+          title: "Cell structures",
+          description: "An introduction to cell structures.",
+          blocks_attributes: {
+            "0" => { block_type: "text", body_html: "<p><strong>Cells</strong> contain organelles.</p>", position: 1 },
+            "1" => { block_type: "text", body_html: "<p>They perform specialized functions.</p>", position: 2 }
+          }
+        }
       }
     end
 
@@ -151,10 +158,14 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     get organization_course_path(organizations(:one), course)
     assert_response :success
     assert_select "h3", "Cell structures"
+    assert_select "p", "An introduction to cell structures."
+    assert_select "p", { text: "Cells contain organelles.", count: 0 }
+    assert_select "a", text: "View material"
 
     get organization_course_material_path(organizations(:one), course, material)
     assert_response :success
     assert_select "strong", "Cells"
+    assert_select ".rich-content", count: 2
     assert_select "a", text: "Edit material", count: 0
   end
 
@@ -256,6 +267,10 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     sign_in users(:two)
     get organization_course_path(organizations(:one), course)
     assert_response :success
+    assert_select "a", text: "View quiz"
+
+    get organization_course_quiz_path(organizations(:one), course, quiz, from: "course")
+    assert_response :success
     assert_select "a", text: "Start quiz"
   end
 
@@ -316,13 +331,50 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     get organization_course_path(organizations(:one), course)
 
     assert_response :success
-    assert_select "section[aria-labelledby='quizzes-heading']" do
-      assert_select "h2", text: "Quizzes"
+    assert_select "section[aria-labelledby='course-content-heading']" do
+      assert_select "h2", text: "Course content"
+      assert_select "p", text: "Module 1 · Quiz"
       assert_select "h3", text: "Cells check-in"
-      assert_select "a[href='#{attempt_organization_course_quiz_path(organizations(:one), course, quiz)}']", text: "Start quiz"
+      quiz_path = organization_course_quiz_path(organizations(:one), course, quiz, from: "course")
+      assert_select "a[href='#{quiz_path}']", text: "View quiz"
       assert_select ".badge-neutral", text: "Not started"
+      assert_select "button", text: "Move up", count: 0
+      assert_select "button", text: "Move down", count: 0
     end
     assert_select "a", text: "View quizzes", count: 0
+  end
+
+  test "organization administrator arranges materials and quizzes in one module sequence" do
+    course = organizations(:one).courses.create!(name: "Biology", description: "Living systems.")
+    first_material = course.materials.new(title: "Cell structure", description: "Read this first.")
+    first_material.blocks.build(block_type: "text", body_html: "<p>Cell structures.</p>", position: 1)
+    first_material.save!
+    second_material = course.materials.new(title: "Cell function", description: "Read this second.")
+    second_material.blocks.build(block_type: "text", body_html: "<p>Cell functions.</p>", position: 1)
+    second_material.save!
+    quiz = course.quizzes.create!(title: "Cells check-in")
+
+    sign_in users(:one)
+    get organization_course_path(organizations(:one), course)
+
+    assert_response :success
+    assert_operator response.body.index("Cell structure"), :<, response.body.index("Cell function")
+    assert_operator response.body.index("Cell function"), :<, response.body.index("Cells check-in")
+    assert_select "p", text: "Module 1 · Material"
+    assert_select "p", text: "Module 2 · Material"
+    assert_select "p", text: "Module 3 · Quiz"
+    assert_select "button", text: "Move up"
+
+    patch move_content_organization_course_path(
+      organizations(:one),
+      course,
+      content_id: quiz.course_content.id,
+      direction: "up"
+    )
+
+    assert_redirected_to organization_course_path(organizations(:one), course, anchor: "course-content-#{quiz.course_content.id}")
+    assert_equal [ first_material, quiz, second_material ], course.course_contents.reload.map(&:contentable)
+    assert AuditEvent.exists?(action: "course.content_reordered", auditable: course)
   end
 
   test "submitted quiz attempt is shown as in review and cannot be reopened" do
@@ -342,16 +394,22 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
       submit_attempt: "Submit"
     }
 
-    assert_redirected_to organization_course_path(organizations(:one), course)
+    quiz_path = organization_course_quiz_path(organizations(:one), course, quiz, from: "course")
+    assert_redirected_to quiz_path
     attempt = QuizAttempt.find_by!(quiz: quiz, membership: student_membership)
     assert_predicate attempt, :submitted?
 
     get attempt_organization_course_quiz_path(organizations(:one), course, quiz)
-    assert_redirected_to organization_course_path(organizations(:one), course)
+    assert_redirected_to quiz_path
     follow_redirect!
-    assert_select ".badge-suspended", text: "In review"
-    assert_select "button[disabled]", text: "In review"
+    assert_select "h2", text: "Attempt submitted"
+    assert_select "nav[aria-label='Course module navigation']"
     assert_select "a[href='#{attempt_organization_course_quiz_path(organizations(:one), course, quiz)}']", count: 0
+
+    get organization_course_path(organizations(:one), course)
+    assert_response :success
+    assert_select ".badge-suspended", text: "In review"
+    assert_select "a[href='#{quiz_path}']", text: "View quiz"
   end
 
   test "enrolled student saves and resumes quiz answers" do
@@ -407,12 +465,17 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
 
     get organization_course_path(organizations(:one), course)
     assert_response :success
-    course_result_path = organization_evaluation_attempt_path(organizations(:one), attempt, from: "course")
-    assert_select "a[href='#{course_result_path}']", text: "View results"
+    quiz_path = organization_course_quiz_path(organizations(:one), course, quiz, from: "course")
+    assert_select "a[href='#{quiz_path}']", text: "View quiz"
 
-    get course_result_path
+    get quiz_path
     assert_response :success
-    assert_select "a[href='#{organization_course_path(organizations(:one), course)}']", text: "Back to course"
+    quiz_result_path = organization_evaluation_attempt_path(organizations(:one), attempt, from: "quiz")
+    assert_select "a[href='#{quiz_result_path}']", text: "View results"
+
+    get quiz_result_path
+    assert_response :success
+    assert_select "a[href='#{quiz_path}']", text: "Back to quiz"
 
     get organization_evaluation_attempt_path(organizations(:one), waiting_attempt)
     assert_redirected_to root_path

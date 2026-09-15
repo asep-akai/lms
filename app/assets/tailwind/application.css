@@ -46,6 +46,34 @@
   .rich-content li + li {
     margin-top: 0.25rem;
   }
+
+  .rich-editor h2,
+  .rich-content h2 {
+    margin-block: 1.5rem 0.75rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 2rem;
+  }
+
+  .rich-editor h3,
+  .rich-content h3 {
+    margin-block: 1.25rem 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 650;
+    line-height: 1.75rem;
+  }
+
+  .rich-editor h2:first-child,
+  .rich-editor h3:first-child,
+  .rich-content h2:first-child,
+  .rich-content h3:first-child {
+    margin-block-start: 0;
+  }
+
+  .rich-editor p + p,
+  .rich-content p + p {
+    margin-top: 1rem;
+  }
 }
 
 @utility shell { @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8; }
@@ -100,5 +128,10 @@
 @utility modal-panel { @apply card m-auto max-h-[90vh] w-[calc(100%-2rem)] max-w-3xl cursor-default overflow-y-auto p-6; }
 @utility rich-editor-toolbar { @apply flex flex-wrap gap-2 rounded-t-lg border border-b-0 border-slate-300 bg-slate-50 p-2; }
 @utility rich-editor-button { @apply min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-600; }
+@utility rich-editor-group { @apply flex flex-wrap gap-1; }
+@utility rich-editor-separator { @apply mx-1 hidden w-px self-stretch bg-slate-300 sm:block; }
+@utility rich-editor-color { @apply min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-600; }
 @utility rich-editor { @apply min-h-36 rounded-b-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-100; }
 @utility rich-content { @apply leading-7; }
+@utility material-block { @apply overflow-hidden rounded-xl border border-slate-300 bg-white; }
+@utility material-article { @apply mx-auto max-w-3xl space-y-8 rounded-xl border border-slate-200 bg-white px-6 py-8 shadow-sm sm:px-10; }

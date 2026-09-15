@@ -1,0 +1,13 @@
+<nav class="mt-8 flex items-center justify-between gap-4 border-t border-slate-200 pt-6" aria-label="Course module navigation">
+  <% if previous_course_content %>
+    <%= link_to "Previous module", course_module_path(previous_course_content), class: "btn-secondary" %>
+  <% else %>
+    <button type="button" class="btn-disabled" disabled>Previous module</button>
+  <% end %>
+
+  <% if next_course_content %>
+    <%= link_to "Next module", course_module_path(next_course_content), class: "btn-primary" %>
+  <% else %>
+    <button type="button" class="btn-disabled" disabled>Next module</button>
+  <% end %>
+</nav>

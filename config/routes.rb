@@ -28,6 +28,7 @@ Rails.application.routes.draw do
       member do
         get :enrollments
         patch :enrollments, action: :update_enrollments
+        patch "contents/:content_id/move", action: :move_content, as: :move_content
       end
     end
     get "grading", to: "organizations/quiz_attempt_reviews#index", as: :grading

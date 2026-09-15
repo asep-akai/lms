@@ -47,8 +47,9 @@ class QuizEditorTest < ApplicationSystemTestCase
     end
 
     assert_text "Quiz submitted. Your attempt is in review."
-    assert_current_path organization_course_path(organizations(:one), course)
-    assert_text "In review"
+    assert_current_path organization_course_quiz_path(organizations(:one), course, quiz, from: "course")
+    assert_text "Attempt submitted"
+    assert_selector "nav[aria-label='Course module navigation']"
     assert_predicate QuizAttempt.find_by!(quiz: quiz, membership: membership), :submitted?
   end
 

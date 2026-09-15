@@ -13,6 +13,7 @@ class AuditEventPresenter
     "course.updated" => "Updated course",
     "course.deleted" => "Deleted course",
     "course.enrollments_updated" => "Updated course enrollments",
+    "course.content_reordered" => "Reordered course content",
     "quiz.created" => "Created quiz",
     "quiz.updated" => "Updated quiz",
     "quiz.deleted" => "Deleted quiz",

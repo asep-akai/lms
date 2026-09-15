@@ -7,37 +7,82 @@
     <% end %>
   </div>
   <div class="actions">
-    <%= back_link_to "Back to quizzes", organization_course_quizzes_path(current_organization, @course) %>
+    <% if params[:from] == "course" %>
+      <%= back_link_to "Back to course", organization_course_path(current_organization, @course) %>
+    <% else %>
+      <%= back_link_to "Back to quizzes", organization_course_quizzes_path(current_organization, @course) %>
+    <% end %>
     <% if policy(@quiz).update? %>
-      <%= link_to "Edit quiz", edit_organization_course_quiz_path(current_organization, @course, @quiz), class: "btn-primary" %>
+      <%= link_to "Edit quiz", edit_organization_course_quiz_path(current_organization, @course, @quiz, from: params[:from]), class: "btn-primary" %>
     <% end %>
   </div>
 </div>
 
-<div class="mt-8 space-y-4">
-  <% @quiz.questions.each do |question| %>
-    <section class="card card-body">
-      <p class="text-sm font-medium text-slate-500">Question <%= question.position %> · <%= question.question_type.humanize %></p>
-      <div class="rich-content mt-3 text-slate-800"><%= sanitize(question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div>
+<% if policy(@quiz).update? %>
+  <div class="mt-8 space-y-4">
+    <% @quiz.questions.each do |question| %>
+      <section class="card card-body">
+        <p class="text-sm font-medium text-slate-500">Question <%= question.position %> · <%= question.question_type.humanize %></p>
+        <div class="rich-content mt-3 text-slate-800"><%= sanitize(question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div>
 
-      <% if question.multiple_choice? %>
-        <ul class="mt-4 space-y-2">
-          <% question.answer_options.each do |option| %>
-            <li class="rounded-lg border border-slate-200 px-4 py-3 text-sm <%= option.correct? ? "border-emerald-300 bg-emerald-50 text-emerald-900" : "text-slate-700" %>">
-              <%= option.content %>
-              <% if option.correct? %><span class="ml-2 font-medium">Correct</span><% end %>
-            </li>
-          <% end %>
-        </ul>
-      <% else %>
-        <p class="mt-4 text-sm text-slate-600"><span class="font-medium">Expected answer:</span> <%= question.short_answer %></p>
-      <% end %>
-    </section>
-  <% end %>
-</div>
-
-<% if policy(@quiz).destroy? %>
-  <div class="mt-8">
-    <%= button_to "Delete quiz", organization_course_quiz_path(current_organization, @course, @quiz), method: :delete, form: { data: { turbo_confirm: "Delete this quiz and all of its questions?" } }, class: "btn-danger" %>
+        <% if question.multiple_choice? %>
+          <ul class="mt-4 space-y-2">
+            <% question.answer_options.each do |option| %>
+              <li class="rounded-lg border border-slate-200 px-4 py-3 text-sm <%= option.correct? ? "border-emerald-300 bg-emerald-50 text-emerald-900" : "text-slate-700" %>">
+                <%= option.content %>
+                <% if option.correct? %><span class="ml-2 font-medium">Correct</span><% end %>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p class="mt-4 text-sm text-slate-600"><span class="font-medium">Expected answer:</span> <%= question.short_answer %></p>
+        <% end %>
+      </section>
+    <% end %>
   </div>
+
+  <% if policy(@quiz).destroy? %>
+    <div class="mt-8">
+      <%= button_to "Delete quiz", organization_course_quiz_path(current_organization, @course, @quiz, from: params[:from]), method: :delete, form: { data: { turbo_confirm: "Delete this quiz and all of its questions?" } }, class: "btn-danger" %>
+    </div>
+  <% end %>
+<% else %>
+  <section class="card card-body mt-8" aria-labelledby="quiz-status-heading">
+    <% if @attempt&.reviewed? %>
+      <p class="eyebrow">Reviewed</p>
+      <h2 id="quiz-status-heading" class="mt-1">Your result is ready</h2>
+      <p class="subtitle">Your answers have been graded and are available to review.</p>
+      <div class="actions mt-5">
+        <%= link_to "View results", organization_evaluation_attempt_path(current_organization, @attempt, from: "quiz"), class: "btn-primary" %>
+      </div>
+    <% elsif @attempt&.submitted? %>
+      <p class="eyebrow">In review</p>
+      <h2 id="quiz-status-heading" class="mt-1">Attempt submitted</h2>
+      <p class="subtitle">Your answers have been saved and are waiting for review.</p>
+    <% elsif @attempt %>
+      <p class="eyebrow">In progress</p>
+      <h2 id="quiz-status-heading" class="mt-1">Continue your attempt</h2>
+      <p class="subtitle">You will return to the last question you visited.</p>
+      <div class="actions mt-5">
+        <%= link_to "Resume quiz", attempt_organization_course_quiz_path(current_organization, @course, @quiz), class: "btn-primary" %>
+      </div>
+    <% elsif @quiz.questions.any? %>
+      <p class="eyebrow">Not started</p>
+      <h2 id="quiz-status-heading" class="mt-1">Ready to begin?</h2>
+      <p class="subtitle"><%= pluralize(@quiz.questions.size, "question") %>. Your progress is saved as you move through the quiz.</p>
+      <div class="actions mt-5">
+        <%= link_to "Start quiz", attempt_organization_course_quiz_path(current_organization, @course, @quiz), class: "btn-primary" %>
+      </div>
+    <% else %>
+      <p class="eyebrow">Unavailable</p>
+      <h2 id="quiz-status-heading" class="mt-1">This quiz is not ready yet</h2>
+      <p class="subtitle">There are no questions to attempt.</p>
+    <% end %>
+  </section>
+
+  <% unless @attempt&.in_progress? %>
+    <%= render "organizations/courses/module_navigation",
+      previous_course_content: @previous_course_content,
+      next_course_content: @next_course_content %>
+  <% end %>
 <% end %>

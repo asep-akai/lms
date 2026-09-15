@@ -1,41 +1,76 @@
 <div class="page-header">
   <h1 class="title"><%= material.persisted? ? "Edit material" : "New material" %></h1>
-  <%= back_link_to material.persisted? ? "Back to material" : "Back to materials", material.persisted? ? organization_course_material_path(current_organization, @course, material) : organization_course_materials_path(current_organization, @course) %>
+  <% back_path = if material.persisted?
+    organization_course_material_path(current_organization, @course, material, from: params[:from])
+  elsif params[:from] == "course"
+    organization_course_path(current_organization, @course)
+  else
+    organization_course_materials_path(current_organization, @course)
+  end %>
+  <%= back_link_to material.persisted? ? "Back to material" : (params[:from] == "course" ? "Back to course" : "Back to materials"), back_path %>
 </div>
 
 <%= render "shared/errors", record: material %>
 <%= form_with model: [ current_organization, @course, material ], class: "form-stack mt-8" do |form| %>
+  <%= hidden_field_tag :from, params[:from] if params[:from] == "course" %>
   <div>
     <%= form.label :title, class: "label" %>
     <%= form.text_field :title, required: true, maxlength: 160, autofocus: true, class: "field" %>
   </div>
 
   <div>
-    <%= form.label :body_html, "Text", class: "label" %>
-    <div class="mt-2" data-controller="rich-text-editor">
-      <div class="rich-editor-toolbar" aria-label="Text formatting" data-action="mousedown->rich-text-editor#preserveSelection">
-        <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="bold" aria-label="Bold"><strong>B</strong></button>
-        <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="italic" aria-label="Italic"><em>I</em></button>
-        <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="underline" aria-label="Underline"><u>U</u></button>
-        <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="insertUnorderedList">Bulleted list</button>
-        <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="insertOrderedList">Numbered list</button>
-      </div>
-      <div class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" data-rich-text-editor-target="editor" data-action="input->rich-text-editor#synchronize"><%= sanitize(material.body_html, tags: Material::ALLOWED_HTML_TAGS, attributes: []) %></div>
-      <%= form.hidden_field :body_html, data: { rich_text_editor_target: "input" } %>
-    </div>
+    <%= form.label :description, "Card description", class: "label" %>
+    <%= form.text_area :description, maxlength: 500, rows: 3, class: "field" %>
+    <p class="hint">Shown on the course content card. It does not appear in the article body.</p>
   </div>
 
   <div>
-    <%= form.label :images, class: "label" %>
-    <%= form.file_field :images, multiple: true, accept: Material::ALLOWED_IMAGE_TYPES.join(","), class: "field" %>
-    <p class="hint">JPEG, PNG, GIF, or WebP. Maximum 10 MB per image.</p>
-    <% if material.images.attached? %>
-      <p class="mt-2 text-sm text-slate-600"><%= pluralize(material.images.size, "existing image") %>. Selecting new images replaces the current set.</p>
+    <%= form.label :cover_image, "Card cover image", class: "label" %>
+    <% if material.cover_image.attached? %>
+      <div class="mt-2 flex flex-wrap items-center gap-4">
+        <%= image_tag material.cover_image, alt: "", class: "h-24 w-32 rounded-lg object-cover" %>
+        <label class="flex items-center gap-2 text-sm text-slate-700">
+          <%= form.check_box :remove_cover_image, class: "h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-600" %>
+          Remove current cover image
+        </label>
+      </div>
     <% end %>
+    <%= form.file_field :cover_image, accept: Material::ALLOWED_IMAGE_TYPES.join(","), class: "field" %>
+    <p class="hint">Optional. Shown only on the course card. JPEG, PNG, GIF, or WebP, maximum 10 MB.</p>
+  </div>
+
+  <div data-controller="material-editor" data-action="submit->material-editor#synchronize">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h2>Article content</h2>
+        <p class="hint">Build the material from text and image blocks. Their order here is their reading order.</p>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn-secondary" data-action="material-editor#addText">Add text</button>
+        <button type="button" class="btn-secondary" data-action="material-editor#addImage">Add image</button>
+      </div>
+    </div>
+
+    <div class="mt-4 space-y-4" data-material-editor-target="blocks">
+      <%= form.fields_for :blocks do |block| %>
+        <%= render "organizations/materials/block_fields", block: block %>
+      <% end %>
+    </div>
+
+    <template data-material-editor-target="textTemplate">
+      <%= form.fields_for :blocks, MaterialBlock.new(block_type: "text"), child_index: "NEW_BLOCK" do |block| %>
+        <%= render "organizations/materials/block_fields", block: block %>
+      <% end %>
+    </template>
+    <template data-material-editor-target="imageTemplate">
+      <%= form.fields_for :blocks, MaterialBlock.new(block_type: "image"), child_index: "NEW_BLOCK" do |block| %>
+        <%= render "organizations/materials/block_fields", block: block %>
+      <% end %>
+    </template>
   </div>
 
   <div class="actions">
     <%= form.submit class: "btn-primary" %>
-    <%= link_to "Cancel", material.persisted? ? organization_course_material_path(current_organization, @course, material) : organization_course_materials_path(current_organization, @course), class: "btn-secondary" %>
+    <%= link_to "Cancel", back_path, class: "btn-secondary" %>
   </div>
 <% end %>

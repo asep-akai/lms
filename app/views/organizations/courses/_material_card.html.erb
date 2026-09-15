@@ -1,12 +1,29 @@
-<%= link_to organization_course_material_path(current_organization, @course, item), class: "card-link overflow-hidden p-0" do %>
-  <% if item.images.attached? %>
-    <%= image_tag item.images.first, alt: "", class: "h-36 w-full object-cover" %>
-  <% end %>
-  <div class="p-6">
-    <h3 class="font-semibold text-slate-950"><%= item.title %></h3>
-    <p class="mt-2 text-sm text-slate-600"><%= truncate(strip_tags(item.body_html), length: 140) %></p>
-    <% if item.images.attached? %>
-      <p class="mt-4 text-sm text-slate-500"><%= pluralize(item.images.size, "image") %></p>
+<% module_number = local_assigns[:module_number] %>
+<div class="card card-body">
+  <div class="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
+    <div class="min-w-0">
+      <% if module_number %>
+        <p class="text-sm font-medium text-brand-700">Module <%= module_number %> · Material</p>
+      <% end %>
+      <h3 class="<%= module_number ? "mt-1" : "" %> font-semibold text-slate-950"><%= item.title %></h3>
+      <% if item.description.present? %>
+        <p class="mt-2 text-sm text-slate-600"><%= item.description %></p>
+      <% end %>
+    </div>
+    <% if local_assigns[:course_content] %>
+      <%= render "organizations/courses/content_order_controls",
+        course_content: course_content,
+        module_number: module_number,
+        first: first,
+        last: last %>
     <% end %>
   </div>
-<% end %>
+  <% if item.cover_image&.attached? %>
+    <%= image_tag item.cover_image, alt: "", class: "mt-5 h-36 w-full rounded-lg object-cover" %>
+  <% end %>
+  <div class="actions mt-5">
+    <%= link_to "View material",
+      organization_course_material_path(current_organization, @course, item, from: module_number ? "course" : nil),
+      class: policy(item).update? ? "btn-secondary" : "btn-primary" %>
+  </div>
+</div>

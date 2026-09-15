@@ -24,6 +24,9 @@ class Organizations::EvaluationsController < Organizations::BaseController
       if params[:from] == "course"
         @back_label = "Back to course"
         @back_path = organization_course_path(Current.organization, @attempt.quiz.course)
+      elsif params[:from] == "quiz"
+        @back_label = "Back to quiz"
+        @back_path = organization_course_quiz_path(Current.organization, @attempt.quiz.course, @attempt.quiz, from: "course")
       else
         @back_label = "Back to evaluation"
         @back_path = organization_evaluation_path(Current.organization)

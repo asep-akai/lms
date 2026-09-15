@@ -9,7 +9,7 @@ class Organizations::QuizQuestionsController < Organizations::BaseController
 
     if @question.save
       record_question_change("quiz.question_created", 0, 1)
-      redirect_to edit_organization_course_quiz_path(Current.organization, @course, @quiz), notice: "Question added."
+      redirect_to editor_path, notice: "Question added."
     else
       load_editor
       render "organizations/quizzes/edit", status: :unprocessable_entity
@@ -21,7 +21,7 @@ class Organizations::QuizQuestionsController < Organizations::BaseController
 
     if @question.update(question_params)
       record_question_change("quiz.question_updated", 1, 1)
-      redirect_to edit_organization_course_quiz_path(Current.organization, @course, @quiz), notice: "Question updated."
+      redirect_to editor_path, notice: "Question updated."
     else
       load_editor
       render "organizations/quizzes/edit", status: :unprocessable_entity
@@ -32,7 +32,7 @@ class Organizations::QuizQuestionsController < Organizations::BaseController
     authorize @quiz, :update?
     @question.destroy!
     record_question_change("quiz.question_deleted", 1, 0)
-    redirect_to edit_organization_course_quiz_path(Current.organization, @course, @quiz), notice: "Question removed."
+    redirect_to editor_path, notice: "Question removed."
   end
 
   def move
@@ -41,7 +41,7 @@ class Organizations::QuizQuestionsController < Organizations::BaseController
     adjacent_question = direction == "up" ? previous_question : next_question
 
     unless adjacent_question
-      redirect_to edit_organization_course_quiz_path(Current.organization, @course, @quiz), alert: "That question cannot be moved further."
+      redirect_to editor_path, alert: "That question cannot be moved further."
       return
     end
 
@@ -56,7 +56,7 @@ class Organizations::QuizQuestionsController < Organizations::BaseController
       auditable: @quiz,
       metadata: { title: @quiz.title, question_id: @question.id, direction: direction }
     )
-    redirect_to edit_organization_course_quiz_path(Current.organization, @course, @quiz), notice: "Question moved #{direction}."
+    redirect_to editor_path, notice: "Question moved #{direction}."
   end
 
   private
@@ -106,5 +106,9 @@ class Organizations::QuizQuestionsController < Organizations::BaseController
         metadata: { title: @quiz.title },
         changes: { question_count: [ @quiz.questions.count - after_count + before_count, @quiz.questions.count ] }
       )
+    end
+
+    def editor_path
+      edit_organization_course_quiz_path(Current.organization, @course, @quiz, from: params[:from] == "course" ? "course" : nil)
     end
 end

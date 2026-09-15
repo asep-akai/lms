@@ -82,7 +82,7 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
     def redirect_after_answer(question, attempt)
       if params[:submit_attempt].present?
         attempt.submit!
-        redirect_to organization_course_path(Current.organization, @course), notice: "Quiz submitted. Your attempt is in review."
+        redirect_to organization_course_quiz_path(Current.organization, @course, @quiz, from: "course"), notice: "Quiz submitted. Your attempt is in review."
         return
       end
 
@@ -100,7 +100,7 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
     end
 
     def redirect_submitted_attempt
-      redirect_to organization_course_path(Current.organization, @course), alert: "This quiz has been submitted and is in review."
+      redirect_to organization_course_quiz_path(Current.organization, @course, @quiz, from: "course"), alert: "This quiz has already been submitted."
     end
 
     def set_attempt_progress

@@ -1,5 +1,5 @@
 class Organizations::CoursesController < Organizations::BaseController
-  before_action :set_course, only: %i[show edit update destroy enrollments update_enrollments]
+  before_action :set_course, only: %i[show edit update destroy enrollments update_enrollments move_content]
 
   def index
     authorize Course
@@ -8,11 +8,7 @@ class Organizations::CoursesController < Organizations::BaseController
 
   def show
     authorize @course
-    @materials = @course.materials.with_attached_images.order(:created_at, :id) if policy(Material).index?
-    if policy(Quiz).index?
-      @quizzes = @course.quizzes.includes(:questions).order(:created_at, :id)
-      @quiz_attempts = Current.membership.quiz_attempts.where(quiz: @quizzes).index_by(&:quiz_id)
-    end
+    load_course_contents
   end
 
   def new
@@ -88,6 +84,26 @@ class Organizations::CoursesController < Organizations::BaseController
     render :enrollments, status: :unprocessable_entity
   end
 
+  def move_content
+    authorize @course, :arrange_contents?
+    content = @course.course_contents.find(params[:content_id])
+
+    @course.with_lock do
+      contents = @course.course_contents.ordered.lock.to_a
+      current_index = contents.index(content)
+      target_index = params[:direction] == "up" ? current_index - 1 : current_index + 1
+      adjacent = contents[target_index] if target_index.between?(0, contents.length - 1)
+      swap_content_positions(content, adjacent) if adjacent
+    end
+
+    AuditRecorder.record!(
+      action: "course.content_reordered",
+      auditable: @course,
+      metadata: { name: @course.name, content_type: content.contentable_type, content_title: content.contentable.title }
+    )
+    redirect_to organization_course_path(Current.organization, @course, anchor: "course-content-#{content.id}"), notice: "Course content reordered."
+  end
+
   private
     def set_course
       @course = Current.organization.courses.find(params[:id])
@@ -95,6 +111,26 @@ class Organizations::CoursesController < Organizations::BaseController
 
     def course_params
       params.require(:course).permit(:name, :description)
+    end
+
+    def load_course_contents
+      visible_types = []
+      visible_types << "Material" if policy(Material).index?
+      visible_types << "Quiz" if policy(Quiz).index?
+      @course_contents = @course.course_contents.where(contentable_type: visible_types).includes(:contentable).ordered
+
+      materials = @course_contents.filter_map { |content| content.contentable if content.material? }
+      quizzes = @course_contents.filter_map { |content| content.contentable if content.quiz? }
+      material_associations = [ { cover_image_attachment: :blob }, { blocks: { image_attachment: :blob } } ]
+      ActiveRecord::Associations::Preloader.new(records: materials, associations: material_associations).call if materials.any?
+      ActiveRecord::Associations::Preloader.new(records: quizzes, associations: :questions).call if quizzes.any?
+      @quiz_attempts = Current.membership.quiz_attempts.where(quiz: quizzes).index_by(&:quiz_id)
+    end
+
+    def swap_content_positions(content, adjacent)
+      original_position = content.position
+      content.update_columns(position: adjacent.position)
+      adjacent.update_columns(position: original_position)
     end
 
     def enrollment_params

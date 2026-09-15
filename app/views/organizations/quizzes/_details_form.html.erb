@@ -1,4 +1,5 @@
 <%= form_with model: [ current_organization, course, quiz ], class: "form-stack" do |form| %>
+  <%= hidden_field_tag :from, params[:from] if params[:from] == "course" %>
   <div><%= form.label :title, class: "label" %><%= form.text_field :title, required: true, maxlength: 160, class: "field" %></div>
   <div><%= form.label :description, class: "label" %><%= form.text_area :description, maxlength: 5000, rows: 4, class: "field" %></div>
   <div class="actions"><%= form.submit "Save quiz details", class: "btn-primary" %></div>

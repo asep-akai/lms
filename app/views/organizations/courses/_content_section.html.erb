@@ -6,15 +6,30 @@
         <p class="subtitle"><%= description %></p>
       <% end %>
     </div>
-    <% if action %>
-      <%= link_to action[:label], action[:path], class: "btn-secondary" %>
+    <% if actions.any? %>
+      <div class="actions">
+        <% actions.each do |action| %>
+          <%= link_to action[:label], action[:path], class: "btn-secondary" %>
+        <% end %>
+      </div>
     <% end %>
   </div>
 
-  <% if items.any? %>
-    <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <%= render partial: item_partial, collection: items, as: :item %>
-    </div>
+  <% if course_contents.any? %>
+    <ol class="mt-4 space-y-4">
+      <% course_contents.each_with_index do |course_content, index| %>
+        <li id="course-content-<%= course_content.id %>">
+          <%= render(
+            course_content.material? ? "organizations/courses/material_card" : "organizations/courses/quiz_card",
+            item: course_content.contentable,
+            course_content: course_content,
+            module_number: index + 1,
+            first: index.zero?,
+            last: index == course_contents.length - 1
+          ) %>
+        </li>
+      <% end %>
+    </ol>
   <% else %>
     <div class="empty-state"><%= empty_message %></div>
   <% end %>

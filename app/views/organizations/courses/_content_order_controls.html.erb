@@ -1,0 +1,14 @@
+<% if policy(@course).arrange_contents? %>
+  <div class="actions" aria-label="Arrange module <%= module_number %>">
+    <%= button_to "Move up",
+      move_content_organization_course_path(current_organization, @course, content_id: course_content.id, direction: "up"),
+      method: :patch,
+      class: first ? "btn-disabled" : "btn-secondary",
+      disabled: first %>
+    <%= button_to "Move down",
+      move_content_organization_course_path(current_organization, @course, content_id: course_content.id, direction: "down"),
+      method: :patch,
+      class: last ? "btn-disabled" : "btn-secondary",
+      disabled: last %>
+  </div>
+<% end %>

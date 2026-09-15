@@ -20,4 +20,13 @@ module ApplicationHelper
     classes = [ "btn-secondary", options.delete(:class) ].compact.join(" ")
     link_to name, url, **options, class: classes
   end
+
+  def course_module_path(course_content)
+    case course_content.contentable
+    when Material
+      organization_course_material_path(current_organization, course_content.course, course_content.contentable, from: "course")
+    when Quiz
+      organization_course_quiz_path(current_organization, course_content.course, course_content.contentable, from: "course")
+    end
+  end
 end

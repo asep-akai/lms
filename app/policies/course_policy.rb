@@ -10,6 +10,7 @@ class CoursePolicy < ApplicationPolicy
   def destroy? = permitted?("courses.destroy")
   def enrollments? = permitted?("course_enrollments.update")
   def update_enrollments? = enrollments?
+  def arrange_contents? = permitted?("course_contents.update")
 
   class Scope < ApplicationPolicy::Scope
     def resolve

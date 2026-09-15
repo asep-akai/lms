@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_14_121000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_15_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -75,6 +75,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_121000) do
     t.index ["organization_id"], name: "index_audit_events_on_organization_id"
   end
 
+  create_table "course_contents", force: :cascade do |t|
+    t.bigint "contentable_id", null: false
+    t.string "contentable_type", null: false
+    t.bigint "course_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "position", null: false
+    t.datetime "updated_at", null: false
+    t.index ["contentable_type", "contentable_id"], name: "index_course_contents_on_contentable"
+    t.index ["contentable_type", "contentable_id"], name: "index_course_contents_on_contentable_type_and_contentable_id", unique: true
+    t.index ["course_id", "position"], name: "index_course_contents_on_course_id_and_position"
+    t.index ["course_id"], name: "index_course_contents_on_course_id"
+  end
+
   create_table "course_enrollments", force: :cascade do |t|
     t.bigint "course_id", null: false
     t.datetime "created_at", null: false
@@ -95,10 +108,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_121000) do
     t.index ["organization_id"], name: "index_courses_on_organization_id"
   end
 
+  create_table "material_blocks", force: :cascade do |t|
+    t.string "block_type", null: false
+    t.text "body_html"
+    t.datetime "created_at", null: false
+    t.bigint "material_id", null: false
+    t.integer "position", null: false
+    t.datetime "updated_at", null: false
+    t.index ["material_id", "position"], name: "index_material_blocks_on_material_id_and_position"
+    t.index ["material_id"], name: "index_material_blocks_on_material_id"
+  end
+
   create_table "materials", force: :cascade do |t|
-    t.text "body_html", null: false
+    t.text "body_html"
     t.bigint "course_id", null: false
     t.datetime "created_at", null: false
+    t.text "description"
     t.string "title", null: false
     t.datetime "updated_at", null: false
     t.index ["course_id"], name: "index_materials_on_course_id"
@@ -409,9 +434,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_121000) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "audit_events", "organizations"
+  add_foreign_key "course_contents", "courses"
   add_foreign_key "course_enrollments", "courses"
   add_foreign_key "course_enrollments", "memberships"
   add_foreign_key "courses", "organizations"
+  add_foreign_key "material_blocks", "materials"
   add_foreign_key "materials", "courses"
   add_foreign_key "memberships", "organizations"
   add_foreign_key "memberships", "users"

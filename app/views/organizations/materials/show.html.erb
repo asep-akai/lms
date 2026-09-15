@@ -2,35 +2,42 @@
   <div>
     <p class="eyebrow"><%= @course.name %> · Material</p>
     <h1 class="title"><%= @material.title %></h1>
+    <% if @material.description.present? %>
+      <p class="subtitle"><%= @material.description %></p>
+    <% end %>
   </div>
   <div class="actions">
-    <%= back_link_to "Back to course", organization_course_path(current_organization, @course) %>
+    <% if params[:from] == "course" %>
+      <%= back_link_to "Back to course", organization_course_path(current_organization, @course) %>
+    <% else %>
+      <%= back_link_to "Back to materials", organization_course_materials_path(current_organization, @course) %>
+    <% end %>
     <% if policy(@material).update? %>
-      <%= link_to "Edit material", edit_organization_course_material_path(current_organization, @course, @material), class: "btn-primary" %>
+      <%= link_to "Edit material", edit_organization_course_material_path(current_organization, @course, @material, from: params[:from]), class: "btn-primary" %>
     <% end %>
   </div>
 </div>
 
-<article class="card card-body mt-8">
-  <div class="rich-content text-slate-800"><%= sanitize(@material.body_html, tags: Material::ALLOWED_HTML_TAGS, attributes: []) %></div>
+<article class="material-article mt-8">
+  <% @material.blocks.each do |block| %>
+    <% if block.text? %>
+      <div class="rich-content text-slate-800"><%= sanitize(block.body_html, tags: MaterialBlock::ALLOWED_HTML_TAGS, attributes: MaterialBlock::ALLOWED_HTML_ATTRIBUTES) %></div>
+    <% elsif block.image.attached? %>
+      <figure>
+        <%= image_tag block.image, alt: block.image.filename.to_s, class: "mx-auto h-auto max-w-full rounded-lg" %>
+      </figure>
+    <% end %>
+  <% end %>
 </article>
 
-<% if @material.images.attached? %>
-  <section class="mt-8" aria-labelledby="material-images-heading">
-    <h2 id="material-images-heading">Images</h2>
-    <div class="mt-4 grid gap-4 sm:grid-cols-2">
-      <% @material.images.each do |image| %>
-        <figure class="card overflow-hidden">
-          <%= image_tag image, alt: image.filename.to_s, class: "h-auto w-full" %>
-          <figcaption class="px-4 py-3 text-sm text-slate-600"><%= image.filename %></figcaption>
-        </figure>
-      <% end %>
-    </div>
-  </section>
+<% if current_membership&.student? %>
+  <%= render "organizations/courses/module_navigation",
+    previous_course_content: @previous_course_content,
+    next_course_content: @next_course_content %>
 <% end %>
 
 <% if policy(@material).destroy? %>
   <div class="mt-8">
-    <%= button_to "Delete material", organization_course_material_path(current_organization, @course, @material), method: :delete, form: { data: { turbo_confirm: "Delete this material and its images?" } }, class: "btn-danger" %>
+    <%= button_to "Delete material", organization_course_material_path(current_organization, @course, @material, from: params[:from]), method: :delete, form: { data: { turbo_confirm: "Delete this material and its images?" } }, class: "btn-danger" %>
   </div>
 <% end %>

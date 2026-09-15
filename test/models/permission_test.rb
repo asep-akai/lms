@@ -14,7 +14,7 @@ class PermissionTest < ActiveSupport::TestCase
     groups = Permission.organization_assignable.organization_groups
 
     assert_equal %w[Organization Members Courses Roles Audit], groups.map(&:first)
-    assert_equal %w[courses.index courses.create courses.update courses.destroy course_enrollments.update materials.index materials.create materials.update materials.destroy quizzes.index quizzes.create quizzes.update quizzes.destroy quiz_attempts.index quiz_attempts.show quiz_attempts.review quiz_attempts.reset],
+    assert_equal %w[courses.index courses.create courses.update courses.destroy course_enrollments.update course_contents.update materials.index materials.create materials.update materials.destroy quizzes.index quizzes.create quizzes.update quizzes.destroy quiz_attempts.index quiz_attempts.show quiz_attempts.review quiz_attempts.reset],
       groups.to_h.fetch("Courses").map(&:key)
   end
 
@@ -30,5 +30,12 @@ class PermissionTest < ActiveSupport::TestCase
 
     assert_equal Permission.organization_assignable.order(:key).pluck(:key), admin_role.permissions.order(:key).pluck(:key)
     assert_empty admin_role.permissions.where(key: Permission::CONSOLE_ONLY_KEYS)
+  end
+
+  test "course content arrangement is organization-only" do
+    permission = Permission.find_by!(key: "course_contents.update")
+
+    assert_includes Permission.organization_assignable, permission
+    assert_not_includes Permission.console_assignable, permission
   end
 end

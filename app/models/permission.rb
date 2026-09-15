@@ -26,6 +26,7 @@ class Permission < ApplicationRecord
     "courses.update" => [ "Update courses", "Update course names and descriptions." ],
     "courses.destroy" => [ "Delete courses", "Delete courses and their enrollments." ],
     "course_enrollments.update" => [ "Manage course enrollments", "Enroll or remove students from courses." ],
+    "course_contents.update" => [ "Arrange course content", "Change the order of materials and quizzes in a course." ],
     "materials.index" => [ "List materials", "View materials in organization courses." ],
     "materials.create" => [ "Create materials", "Create text and image materials in organization courses." ],
     "materials.update" => [ "Update materials", "Edit course materials and their images." ],
@@ -52,7 +53,7 @@ class Permission < ApplicationRecord
     organization.update
     memberships.index memberships.create memberships.update memberships.destroy
     courses.index courses.create courses.update courses.destroy
-    course_enrollments.update
+    course_enrollments.update course_contents.update
     materials.index materials.create materials.update materials.destroy
     quizzes.index quizzes.create quizzes.update quizzes.destroy
     quiz_attempts.index quiz_attempts.show quiz_attempts.review quiz_attempts.reset
@@ -62,7 +63,7 @@ class Permission < ApplicationRecord
   ORGANIZATION_GROUPS = {
     "Organization" => %w[organization.update],
     "Members" => %w[memberships.index memberships.create memberships.update memberships.destroy],
-    "Courses" => %w[courses.index courses.create courses.update courses.destroy course_enrollments.update materials.index materials.create materials.update materials.destroy quizzes.index quizzes.create quizzes.update quizzes.destroy quiz_attempts.index quiz_attempts.show quiz_attempts.review quiz_attempts.reset],
+    "Courses" => %w[courses.index courses.create courses.update courses.destroy course_enrollments.update course_contents.update materials.index materials.create materials.update materials.destroy quizzes.index quizzes.create quizzes.update quizzes.destroy quiz_attempts.index quiz_attempts.show quiz_attempts.review quiz_attempts.reset],
     "Roles" => %w[roles.index roles.create roles.update roles.destroy],
     "Audit" => %w[audit_events.index]
   }.freeze

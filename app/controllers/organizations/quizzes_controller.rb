@@ -9,7 +9,10 @@ class Organizations::QuizzesController < Organizations::BaseController
 
   def show
     authorize @quiz
-    redirect_to attempt_organization_course_quiz_path(Current.organization, @course, @quiz) unless policy(@quiz).update?
+    return if policy(@quiz).update?
+
+    @attempt = Current.membership.quiz_attempts.find_by(quiz: @quiz)
+    load_module_navigation(@quiz) unless @attempt&.in_progress?
   end
 
   def new
@@ -27,7 +30,7 @@ class Organizations::QuizzesController < Organizations::BaseController
         auditable: @quiz,
         metadata: { title: @quiz.title }
       )
-      redirect_to organization_course_quiz_path(Current.organization, @course, @quiz), notice: "Quiz created."
+      redirect_to organization_course_quiz_path(Current.organization, @course, @quiz, from: navigation_source), notice: "Quiz created."
     else
       render :new, status: :unprocessable_entity
     end
@@ -47,7 +50,7 @@ class Organizations::QuizzesController < Organizations::BaseController
         metadata: { title: @quiz.title },
         changes: @quiz.saved_changes.slice("title", "description")
       )
-      redirect_to organization_course_quiz_path(Current.organization, @course, @quiz), notice: "Quiz updated."
+      redirect_to organization_course_quiz_path(Current.organization, @course, @quiz, from: navigation_source), notice: "Quiz updated."
     else
       render :edit, status: :unprocessable_entity
     end
@@ -58,7 +61,8 @@ class Organizations::QuizzesController < Organizations::BaseController
     title = @quiz.title
     @quiz.destroy!
     AuditRecorder.record!(action: "quiz.deleted", auditable: @quiz, metadata: { title: title })
-    redirect_to organization_course_quizzes_path(Current.organization, @course), notice: "Quiz deleted."
+    destination = navigation_source == "course" ? organization_course_path(Current.organization, @course) : organization_course_quizzes_path(Current.organization, @course)
+    redirect_to destination, notice: "Quiz deleted."
   end
 
   private
@@ -81,5 +85,9 @@ class Organizations::QuizzesController < Organizations::BaseController
     def load_editor
       @questions = @quiz.questions.includes(:answer_options)
       @new_question = @quiz.questions.new(question_type: :multiple_choice)
+    end
+
+    def navigation_source
+      "course" if params[:from] == "course"
     end
 end
