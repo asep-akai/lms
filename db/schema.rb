@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_15_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_15_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -117,6 +117,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_15_100000) do
     t.datetime "updated_at", null: false
     t.index ["material_id", "position"], name: "index_material_blocks_on_material_id_and_position"
     t.index ["material_id"], name: "index_material_blocks_on_material_id"
+  end
+
+  create_table "material_completions", force: :cascade do |t|
+    t.datetime "completed_at", null: false
+    t.datetime "created_at", null: false
+    t.bigint "material_id", null: false
+    t.bigint "membership_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["material_id", "membership_id"], name: "index_material_completions_on_material_id_and_membership_id", unique: true
+    t.index ["material_id"], name: "index_material_completions_on_material_id"
+    t.index ["membership_id"], name: "index_material_completions_on_membership_id"
   end
 
   create_table "materials", force: :cascade do |t|
@@ -439,6 +450,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_15_100000) do
   add_foreign_key "course_enrollments", "memberships"
   add_foreign_key "courses", "organizations"
   add_foreign_key "material_blocks", "materials"
+  add_foreign_key "material_completions", "materials"
+  add_foreign_key "material_completions", "memberships"
   add_foreign_key "materials", "courses"
   add_foreign_key "memberships", "organizations"
   add_foreign_key "memberships", "users"

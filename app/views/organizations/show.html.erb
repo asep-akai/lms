@@ -50,17 +50,17 @@
     <% end %>
   <% end %>
 </div>
-<% if can?("memberships.index") || can?("roles.index") %>
+<% if can?("memberships.index") || can?("students.index") || can?("roles.index") %>
   <div class="stats">
     <% if can?("memberships.index") %>
       <div class="stat">
-        <p class="stat-label">Members</p>
+        <p class="stat-label">Users</p>
         <p class="stat-value">
           <%= @organization.memberships.count %>
         </p>
       </div>
       <div class="stat">
-        <p class="stat-label">Active members</p>
+        <p class="stat-label">Active users</p>
         <p class="stat-value">
           <%= @organization.memberships.active.count %>
         </p>
@@ -83,7 +83,10 @@
   </div>
   <div class="stats">
     <% if can?("memberships.index") %>
-      <%= link_to "Manage members", organization_memberships_path(@organization), class: "card-link" %>
+      <%= link_to "Manage users", organization_memberships_path(@organization), class: "card-link" %>
+    <% end %>
+    <% if can?("students.index") %>
+      <%= link_to "View student progress", organization_students_path(@organization), class: "card-link" %>
     <% end %>
     <% if can?("roles.index") %>
       <%= link_to "Manage roles", organization_roles_path(@organization), class: "card-link" %>

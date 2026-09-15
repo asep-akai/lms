@@ -15,6 +15,11 @@
     <%= link_to organization_course_path(current_organization, course), class: "card-link" do %>
       <h2><%= course.name %></h2>
       <p class="subtitle"><%= truncate(course.description, length: 180) %></p>
+      <% if current_membership&.student? %>
+        <%= render "progress",
+          progress: @course_progress.fetch([ course.id, current_membership.id ]),
+          class: "mt-5" %>
+      <% end %>
     <% end %>
   <% end %>
 </div>

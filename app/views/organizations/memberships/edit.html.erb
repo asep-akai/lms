@@ -3,7 +3,7 @@
     <h1 class="title">Edit membership</h1>
     <p class="subtitle"><%= @membership.user.name %> · <%= @membership.user.email %></p>
   </div>
-  <%= back_link_to "Back to members", organization_memberships_path(current_organization) %>
+  <%= back_link_to "Back to users", organization_memberships_path(current_organization) %>
 </div>
 <%= render "shared/errors", record: @membership %>
 <%= form_with model: [ current_organization, @membership ], class: "form-stack" do |form| %>

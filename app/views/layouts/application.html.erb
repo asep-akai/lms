@@ -34,7 +34,10 @@
                   <%= link_to "Evaluation", organization_evaluation_path(current_organization), class: "nav-link" %>
                 <% end %>
                 <% if can?("memberships.index") %>
-                  <%= link_to "Members", organization_memberships_path(current_organization), class: "nav-link" %>
+                  <%= link_to "Users", organization_memberships_path(current_organization), class: "nav-link" %>
+                <% end %>
+                <% if can?("students.index") %>
+                  <%= link_to "Students", organization_students_path(current_organization), class: "nav-link" %>
                 <% end %>
                 <% if can?("roles.index") %>
                   <%= link_to "Roles", organization_roles_path(current_organization), class: "nav-link" %>

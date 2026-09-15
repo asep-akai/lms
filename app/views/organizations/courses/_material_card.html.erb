@@ -11,11 +11,16 @@
       <% end %>
     </div>
     <% if local_assigns[:course_content] %>
-      <%= render "organizations/courses/content_order_controls",
-        course_content: course_content,
-        module_number: module_number,
-        first: first,
-        last: last %>
+      <div class="flex flex-col items-end gap-3">
+        <% if current_membership&.student? %>
+          <span class="<%= local_assigns[:completed] ? "badge-active" : "badge-neutral" %>"><%= local_assigns[:completed] ? "Complete" : "Incomplete" %></span>
+        <% end %>
+        <%= render "organizations/courses/content_order_controls",
+          course_content: course_content,
+          module_number: module_number,
+          first: first,
+          last: last %>
+      </div>
     <% end %>
   </div>
   <% if item.cover_image&.attached? %>

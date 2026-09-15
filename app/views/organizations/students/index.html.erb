@@ -1,0 +1,41 @@
+<div class="page-header">
+  <div>
+    <h1 class="title">Students</h1>
+    <p class="subtitle">Course enrollment and completion tracking for <%= current_organization.name %>.</p>
+  </div>
+  <%= back_link_to "Back to organization", organization_path(current_organization) %>
+</div>
+
+<% if @students.any? %>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="th">Student</th>
+          <th class="th">Status</th>
+          <th class="th">Courses</th>
+          <th class="th">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @students.each do |student| %>
+          <tr>
+            <td class="td">
+              <strong><%= student.user.name %></strong><br>
+              <%= student.user.email %>
+            </td>
+            <td class="td"><span class="<%= status_badge_class(student.status) %>"><%= student.status.titleize %></span></td>
+            <td class="td"><%= pluralize(student.course_enrollments.size, "course") %></td>
+            <td class="td">
+              <% if StudentPolicy.new(current_user, student).show? %>
+                <%= link_to "View progress", organization_student_path(current_organization, student), class: "text-link" %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% else %>
+  <div class="empty-state">No students have been added yet. Add a user with the Student role from User management.</div>
+<% end %>

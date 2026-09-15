@@ -5,6 +5,13 @@
     <button type="button" class="btn-disabled" disabled>Previous module</button>
   <% end %>
 
+  <% if local_assigns[:material] %>
+    <%= button_to local_assigns[:material_completed] ? "Mark incomplete" : "Finish",
+      toggle_completion_organization_course_material_path(current_organization, material.course, material),
+      method: :patch,
+      class: local_assigns[:material_completed] ? "btn-secondary" : "btn-primary" %>
+  <% end %>
+
   <% if next_course_content %>
     <%= link_to "Next module", course_module_path(next_course_content), class: "btn-primary" %>
   <% else %>

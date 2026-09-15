@@ -1,6 +1,6 @@
 class Organizations::MaterialsController < Organizations::BaseController
   before_action :set_course
-  before_action :set_material, only: %i[show edit update destroy]
+  before_action :set_material, only: %i[show edit update destroy toggle_completion]
 
   def index
     authorize Material
@@ -12,6 +12,22 @@ class Organizations::MaterialsController < Organizations::BaseController
   def show
     authorize @material
     load_module_navigation(@material)
+    @material_completed = Current.membership.material_completions.exists?(material: @material) if Current.membership&.student?
+  end
+
+  def toggle_completion
+    authorize @material, :show?
+    raise Pundit::NotAuthorizedError unless Current.membership&.student?
+
+    completion = Current.membership.material_completions.find_by(material: @material)
+    if completion
+      completion.destroy!
+      notice = "Material marked incomplete."
+    else
+      Current.membership.material_completions.create!(material: @material, completed_at: Time.current)
+      notice = "Material finished."
+    end
+    redirect_to organization_course_material_path(Current.organization, @course, @material, from: "course"), notice: notice
   end
 
   def new

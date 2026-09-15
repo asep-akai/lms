@@ -10,6 +10,7 @@
     </div>
     <div class="flex flex-col items-end gap-3">
       <% unless policy(item).update? %>
+        <span class="<%= local_assigns[:completed] ? "badge-active" : "badge-neutral" %>"><%= local_assigns[:completed] ? "Complete" : "Incomplete" %></span>
         <% if attempt&.reviewed? %>
           <span class="badge-neutral">Reviewed</span>
         <% elsif attempt&.submitted? %>

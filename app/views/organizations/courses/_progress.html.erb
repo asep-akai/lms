@@ -1,0 +1,20 @@
+<% label = local_assigns.fetch(:label, "Course progress") %>
+<div class="<%= local_assigns[:class] %>">
+  <div class="flex items-center justify-between gap-4 text-sm">
+    <span class="font-medium text-slate-700"><%= label %></span>
+    <span class="font-semibold text-slate-950"><%= progress.percentage %>%</span>
+  </div>
+  <div
+    class="mt-2 h-2 overflow-hidden rounded-full bg-slate-200"
+    role="progressbar"
+    aria-label="<%= label %>"
+    aria-valuemin="0"
+    aria-valuemax="100"
+    aria-valuenow="<%= progress.percentage %>"
+  >
+    <div class="h-full rounded-full bg-brand-600" style="width: <%= progress.percentage %>%"></div>
+  </div>
+  <% if local_assigns.fetch(:show_count, true) %>
+    <p class="mt-2 text-xs text-slate-500"><%= progress.completed_modules %> of <%= pluralize(progress.total_modules, "module") %> completed</p>
+  <% end %>
+</div>

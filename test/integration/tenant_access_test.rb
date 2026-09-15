@@ -344,6 +344,66 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     assert_select "a", text: "View quizzes", count: 0
   end
 
+  test "student progress and both administrator progress views use module completion" do
+    student_membership = organizations(:one).memberships.create!(user: users(:two), status: "active")
+    student_membership.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]
+    course = organizations(:one).courses.create!(name: "Biology progress", description: "Living systems.")
+    course.course_enrollments.create!(membership: student_membership)
+    material = course.materials.new(title: "Cell structure")
+    material.blocks.build(block_type: "text", body_html: "<p>Cell structures.</p>", position: 1)
+    material.save!
+    quiz = course.quizzes.create!(title: "Cells check-in")
+
+    sign_in users(:two)
+    get organization_courses_path(organizations(:one))
+    assert_response :success
+    assert_select "a[href='#{organization_course_path(organizations(:one), course)}'] [role='progressbar'][aria-valuenow='0']"
+
+    patch toggle_completion_organization_course_material_path(organizations(:one), course, material)
+    assert_redirected_to organization_course_material_path(organizations(:one), course, material, from: "course")
+    assert MaterialCompletion.exists?(membership: student_membership, material: material)
+
+    patch toggle_completion_organization_course_material_path(organizations(:one), course, material)
+    assert_redirected_to organization_course_material_path(organizations(:one), course, material, from: "course")
+    assert_not MaterialCompletion.exists?(membership: student_membership, material: material)
+
+    patch toggle_completion_organization_course_material_path(organizations(:one), course, material)
+    assert MaterialCompletion.exists?(membership: student_membership, material: material)
+
+    QuizAttempt.create!(
+      quiz: quiz,
+      membership: student_membership,
+      started_at: Time.current,
+      last_activity_at: Time.current,
+      submitted_at: Time.current
+    )
+    get organization_course_path(organizations(:one), course)
+    assert_response :success
+    assert_select "[role='progressbar'][aria-label='Course completion'][aria-valuenow='100']"
+    assert_select "p", text: "2 of 2 modules completed"
+    assert_select "#course-content-#{material.course_content.id}", text: /Complete/
+    assert_select "#course-content-#{quiz.course_content.id}", text: /Complete/
+
+    sign_out :user
+    sign_in users(:one)
+    get organization_course_path(organizations(:one), course)
+    assert_response :success
+    assert_select "#student-progress-heading", text: "Student progress"
+    assert_select "tr", text: /Student User.*100%.*2 \/ 2/m
+
+    get organization_students_path(organizations(:one))
+    assert_response :success
+    assert_select "h1", text: "Students"
+    assert_select "a[href='#{organization_student_path(organizations(:one), student_membership)}']", text: "View progress"
+
+    get organization_student_path(organizations(:one), student_membership)
+    assert_response :success
+    assert_select "h1", text: "Student User"
+    assert_select "section", text: /Biology progress.*2 of 2 modules completed.*100%/m
+    assert_select "li", text: /Module 1 · Material.*Cell structure.*Complete/m
+    assert_select "li", text: /Module 2 · Quiz.*Cells check-in.*Complete/m
+  end
+
   test "organization administrator arranges materials and quizzes in one module sequence" do
     course = organizations(:one).courses.create!(name: "Biology", description: "Living systems.")
     first_material = course.materials.new(title: "Cell structure", description: "Read this first.")
@@ -570,8 +630,8 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h2", "Your roles"
     assert_select "p", "Student"
-    assert_select "a", text: "Manage members", count: 0
-    assert_select ".stat-label", text: "Members", count: 0
+    assert_select "a", text: "Manage users", count: 0
+    assert_select ".stat-label", text: "Users", count: 0
   end
 
   test "organization dashboard identifies an administrator's role and management controls" do
@@ -580,8 +640,9 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "section[aria-labelledby='your-roles-heading']", text: /Organization administrator/
-    assert_select "a", text: "Manage members"
-    assert_select ".stat-label", text: "Members"
+    assert_select "a", text: "Manage users"
+    assert_select "a", text: "View student progress"
+    assert_select ".stat-label", text: "Users"
   end
 
   test "member cannot access another organization" do
@@ -732,6 +793,33 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     delete organization_membership_path(organizations(:one), memberships(:one))
     assert_redirected_to root_path
     assert Membership.exists?(memberships(:one).id)
+  end
+
+  test "student tracking permissions are separate from user management" do
+    viewer = User.create!(
+      name: "Progress Viewer",
+      email: "progress-viewer@example.com",
+      password: "password",
+      password_confirmation: "password"
+    )
+    viewer_membership = organizations(:one).memberships.create!(user: viewer, status: "active")
+    viewer_role = organizations(:one).roles.create!(name: "Progress viewer", key: "progress_viewer")
+    viewer_role.permissions = Permission.where(key: %w[students.index students.show])
+    viewer_membership.role_ids = [ viewer_role.id ]
+    student = organizations(:one).memberships.create!(user: users(:two), status: "active")
+    student.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]
+
+    sign_in viewer
+    get organization_students_path(organizations(:one))
+    assert_response :success
+    assert_select "a[href='#{organization_student_path(organizations(:one), student)}']", text: "View progress"
+    assert_select "a[href='#{organization_memberships_path(organizations(:one))}']", count: 0
+
+    get organization_student_path(organizations(:one), student)
+    assert_response :success
+
+    get organization_memberships_path(organizations(:one))
+    assert_redirected_to root_path
   end
 
   test "organization cannot lose its final active administrator" do

@@ -63,6 +63,19 @@ class CourseContentOrderingTest < ApplicationSystemTestCase
     visit organization_course_material_path(organizations(:one), course, first_material, from: "course")
     within "nav[aria-label='Course module navigation']" do
       assert_button "Previous module", disabled: true
+      controls = all("a, button", minimum: 3).map(&:text)
+      assert_equal [ "Previous module", "Finish", "Next module" ], controls
+      click_button "Finish"
+    end
+
+    assert_text "Material finished."
+    within "nav[aria-label='Course module navigation']" do
+      click_button "Mark incomplete"
+    end
+    assert_text "Material marked incomplete."
+    assert_button "Finish"
+
+    within "nav[aria-label='Course module navigation']" do
       click_link "Next module"
     end
 

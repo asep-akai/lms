@@ -4,11 +4,14 @@ class Organizations::CoursesController < Organizations::BaseController
   def index
     authorize Course
     @courses = policy_scope(Course).ordered
+    load_course_progress(@courses) if Current.membership&.student?
   end
 
   def show
     authorize @course
     load_course_contents
+    load_course_progress([ @course ]) if Current.membership&.student?
+    load_student_progress if policy(:student).index?
   end
 
   def new
@@ -140,6 +143,21 @@ class Organizations::CoursesController < Organizations::BaseController
     def load_students
       @students = eligible_students.includes(:user).joins(:user).order("users.name")
       @enrolled_membership_ids = @course.course_enrollments.pluck(:membership_id)
+    end
+
+    def load_course_progress(courses)
+      @course_progress = CourseProgress.for(courses: courses, memberships: [ Current.membership ])
+    end
+
+    def load_student_progress
+      @progress_students = @course.enrolled_memberships
+        .joins(user: { role_assignments: :role })
+        .where(roles: { organization_id: Current.organization.id, key: "student" })
+        .distinct
+        .includes(:user)
+        .joins(:user)
+        .order("users.name")
+      @student_progress = CourseProgress.for(courses: [ @course ], memberships: @progress_students)
     end
 
     def eligible_students

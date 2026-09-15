@@ -18,12 +18,14 @@
   <% if course_contents.any? %>
     <ol class="mt-4 space-y-4">
       <% course_contents.each_with_index do |course_content, index| %>
+        <% student_progress = @course_progress&.fetch([ course_content.course_id, current_membership.id ], nil) if current_membership&.student? %>
         <li id="course-content-<%= course_content.id %>">
           <%= render(
             course_content.material? ? "organizations/courses/material_card" : "organizations/courses/quiz_card",
             item: course_content.contentable,
             course_content: course_content,
             module_number: index + 1,
+            completed: student_progress&.completed?(course_content),
             first: index.zero?,
             last: index == course_contents.length - 1
           ) %>

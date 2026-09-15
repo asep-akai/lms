@@ -2,6 +2,9 @@ class Membership < ApplicationRecord
   belongs_to :user
   belongs_to :organization
   has_many :quiz_attempts, dependent: :destroy
+  has_many :material_completions, dependent: :destroy
+  has_many :course_enrollments, dependent: :destroy
+  has_many :enrolled_courses, through: :course_enrollments, source: :course
   validates :user_id, uniqueness: { scope: :organization_id }
   validates :status, inclusion: { in: %w[active suspended] }
 

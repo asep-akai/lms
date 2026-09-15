@@ -1,0 +1,47 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Student progress</p>
+    <h1 class="title"><%= @student.user.name %></h1>
+    <p class="subtitle"><%= @student.user.email %></p>
+  </div>
+  <%= back_link_to "Back to students", organization_students_path(current_organization) %>
+</div>
+
+<% if @courses.any? %>
+  <div class="mt-8 space-y-6">
+    <% @courses.each do |course| %>
+      <% progress = @course_progress.fetch([ course.id, @student.id ]) %>
+      <section class="card card-body" aria-labelledby="student-course-<%= course.id %>">
+        <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+          <div>
+            <h2 id="student-course-<%= course.id %>"><%= link_to course.name, organization_course_path(current_organization, course), class: "text-link" %></h2>
+            <p class="subtitle"><%= progress.completed_modules %> of <%= pluralize(progress.total_modules, "module") %> completed</p>
+          </div>
+          <div class="w-full sm:max-w-xs">
+            <%= render "organizations/courses/progress", progress: progress, label: "#{course.name} completion", show_count: false %>
+          </div>
+        </div>
+
+        <% if course.course_contents.any? %>
+          <ol class="mt-6 divide-y divide-slate-200 border-y border-slate-200">
+            <% course.course_contents.each_with_index do |course_content, index| %>
+              <li class="flex items-center justify-between gap-4 py-4">
+                <div>
+                  <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Module <%= index + 1 %> · <%= course_content.contentable_type %></p>
+                  <p class="mt-1 font-medium text-slate-900"><%= course_content.contentable.title %></p>
+                </div>
+                <span class="<%= progress.completed?(course_content) ? "badge-active" : "badge-neutral" %>">
+                  <%= progress.completed?(course_content) ? "Complete" : "Incomplete" %>
+                </span>
+              </li>
+            <% end %>
+          </ol>
+        <% else %>
+          <p class="mt-6 text-sm text-slate-500">This course has no modules yet.</p>
+        <% end %>
+      </section>
+    <% end %>
+  </div>
+<% else %>
+  <div class="empty-state">This student is not enrolled in any courses yet.</div>
+<% end %>

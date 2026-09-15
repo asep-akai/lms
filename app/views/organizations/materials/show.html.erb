@@ -33,7 +33,9 @@
 <% if current_membership&.student? %>
   <%= render "organizations/courses/module_navigation",
     previous_course_content: @previous_course_content,
-    next_course_content: @next_course_content %>
+    next_course_content: @next_course_content,
+    material: @material,
+    material_completed: @material_completed %>
 <% end %>
 
 <% if policy(@material).destroy? %>

@@ -1,12 +1,12 @@
 <div class="page-header">
   <div>
-    <h1 class="title">Members</h1>
-    <p class="subtitle">Membership and role assignments for <%= current_organization.name %>.</p>
+    <h1 class="title">Users</h1>
+    <p class="subtitle">User accounts, membership status, and role assignments for <%= current_organization.name %>.</p>
   </div>
   <div class="actions">
     <%= back_link_to "Back to organization", organization_path(current_organization) %>
     <% if can?("memberships.create") %>
-      <%= link_to "Add member", new_organization_membership_path(current_organization), class: "btn-primary" %>
+      <%= link_to "Add user", new_organization_membership_path(current_organization), class: "btn-primary" %>
     <% end %>
   </div>
 </div>

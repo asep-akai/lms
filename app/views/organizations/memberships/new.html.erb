@@ -1,9 +1,9 @@
 <div class="page-header">
   <div>
-    <h1 class="title">Add member</h1>
+    <h1 class="title">Add user</h1>
     <p class="subtitle">Set an initial password when the email belongs to a new LMS user.</p>
   </div>
-  <%= back_link_to "Back to members", organization_memberships_path(current_organization) %>
+  <%= back_link_to "Back to users", organization_memberships_path(current_organization) %>
 </div>
 <%= render "shared/errors", record: @membership %>
 <%= form_with scope: :membership, url: organization_memberships_path(current_organization), class: "form-stack" do |form| %>
@@ -28,7 +28,7 @@
   </div>
   <%= render "role_fields", membership: @membership %>
   <div class="actions">
-    <%= form.submit "Add member", class: "btn-primary" %>
+    <%= form.submit "Add user", class: "btn-primary" %>
     <%= link_to "Cancel", organization_memberships_path(current_organization), class: "btn-secondary" %>
   </div>
 <% end %>

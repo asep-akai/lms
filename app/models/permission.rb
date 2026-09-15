@@ -21,6 +21,8 @@ class Permission < ApplicationRecord
     "memberships.create" => [ "Add members", "Invite members to an organization." ],
     "memberships.update" => [ "Update members", "Update member status and role assignments." ],
     "memberships.destroy" => [ "Remove members", "Remove members from an organization." ],
+    "students.index" => [ "List students", "View students and their course completion summaries." ],
+    "students.show" => [ "View student progress", "Inspect a student's course and module completion." ],
     "courses.index" => [ "List courses", "View every course in the organization." ],
     "courses.create" => [ "Create courses", "Create courses in the organization." ],
     "courses.update" => [ "Update courses", "Update course names and descriptions." ],
@@ -52,6 +54,7 @@ class Permission < ApplicationRecord
   ORGANIZATION_ONLY_KEYS = %w[
     organization.update
     memberships.index memberships.create memberships.update memberships.destroy
+    students.index students.show
     courses.index courses.create courses.update courses.destroy
     course_enrollments.update course_contents.update
     materials.index materials.create materials.update materials.destroy
@@ -63,6 +66,7 @@ class Permission < ApplicationRecord
   ORGANIZATION_GROUPS = {
     "Organization" => %w[organization.update],
     "Members" => %w[memberships.index memberships.create memberships.update memberships.destroy],
+    "Students" => %w[students.index students.show],
     "Courses" => %w[courses.index courses.create courses.update courses.destroy course_enrollments.update course_contents.update materials.index materials.create materials.update materials.destroy quizzes.index quizzes.create quizzes.update quizzes.destroy quiz_attempts.index quiz_attempts.show quiz_attempts.review quiz_attempts.reset],
     "Roles" => %w[roles.index roles.create roles.update roles.destroy],
     "Audit" => %w[audit_events.index]

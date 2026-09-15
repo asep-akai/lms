@@ -6,6 +6,7 @@ class Material < ApplicationRecord
   has_one :course_content, as: :contentable, dependent: :destroy, inverse_of: :contentable
   has_one_attached :cover_image
   has_many :blocks, -> { order(:position) }, class_name: "MaterialBlock", dependent: :destroy, inverse_of: :material
+  has_many :material_completions, dependent: :destroy
   accepts_nested_attributes_for :blocks, allow_destroy: true
   attr_accessor :remove_cover_image
 

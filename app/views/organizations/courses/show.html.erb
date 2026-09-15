@@ -13,6 +13,15 @@
     <% end %>
   </div>
 </div>
+<% if current_membership&.student? %>
+  <section class="card card-body mt-8" aria-labelledby="course-progress-heading">
+    <h2 id="course-progress-heading">Your progress</h2>
+    <%= render "progress",
+      progress: @course_progress.fetch([ @course.id, current_membership.id ]),
+      label: "Course completion",
+      class: "mt-4" %>
+  </section>
+<% end %>
 <section class="card card-body mt-8">
   <h2>About this course</h2>
   <div class="mt-4 whitespace-pre-wrap text-slate-700"><%= @course.description %></div>
@@ -27,6 +36,49 @@
       (policy(Material).create? ? { label: "Manage materials", path: organization_course_materials_path(current_organization, @course) } : nil),
       (policy(Quiz).create? ? { label: "Manage quizzes", path: organization_course_quizzes_path(current_organization, @course) } : nil)
     ].compact %>
+<% end %>
+<% if policy(:student).index? %>
+  <section class="mt-8" aria-labelledby="student-progress-heading">
+    <div>
+      <h2 id="student-progress-heading">Student progress</h2>
+      <p class="subtitle">Completion across the materials and quizzes in this course.</p>
+    </div>
+    <% if @progress_students.any? %>
+      <div class="table-wrap mt-4">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="th">Student</th>
+              <th class="th">Completion</th>
+              <th class="th">Modules</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @progress_students.each do |membership| %>
+              <% progress = @student_progress.fetch([ @course.id, membership.id ]) %>
+              <tr>
+                <td class="td">
+                  <% if StudentPolicy.new(current_user, membership).show? %>
+                    <%= link_to membership.user.name, organization_student_path(current_organization, membership), class: "text-link" %>
+                  <% else %>
+                    <%= membership.user.name %>
+                  <% end %>
+                  <br>
+                  <span class="text-slate-500"><%= membership.user.email %></span>
+                </td>
+                <td class="td min-w-64">
+                  <%= render "progress", progress: progress, label: "#{membership.user.name}'s course progress", show_count: false %>
+                </td>
+                <td class="td"><%= progress.completed_modules %> / <%= progress.total_modules %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="empty-state">No students are enrolled in this course yet. Use Manage students to add them.</div>
+    <% end %>
+  </section>
 <% end %>
 <% if policy(@course).destroy? %>
   <div class="mt-8">
