@@ -1,4 +1,6 @@
 class RbacSeeder
+  TEACHER_PERMISSION_KEYS = %w[assignments.index assignments.create assignments.review].freeze
+
   def self.call!
     Permission::CATALOG.each do |key, (name, description)|
       Permission.find_or_initialize_by(key: key).tap do |permission|
@@ -7,6 +9,7 @@ class RbacSeeder
     end
 
     sync_organization_admin_roles!
+    sync_teacher_roles!
   end
 
   def self.provision_console_role!
@@ -21,6 +24,13 @@ class RbacSeeder
     permissions = Permission.organization_assignable
     Role.where.not(organization_id: nil).where(key: "admin").find_each do |role|
       role.permissions = permissions
+    end
+  end
+
+  def self.sync_teacher_roles!
+    permissions = Permission.where(key: TEACHER_PERMISSION_KEYS)
+    Role.where.not(organization_id: nil).where(key: "teacher").find_each do |role|
+      role.permissions = (role.permissions.to_a + permissions.to_a).uniq
     end
   end
 end

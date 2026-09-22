@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_15_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_21_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -56,6 +56,41 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_15_120000) do
     t.index ["reset_password_token"], name: "index_admins_on_reset_password_token", unique: true
   end
 
+  create_table "assignment_recipients", force: :cascade do |t|
+    t.bigint "assignment_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "student_membership_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["assignment_id", "student_membership_id"], name: "idx_on_assignment_id_student_membership_id_fa7710ba70", unique: true
+    t.index ["assignment_id"], name: "index_assignment_recipients_on_assignment_id"
+    t.index ["student_membership_id"], name: "index_assignment_recipients_on_student_membership_id"
+  end
+
+  create_table "assignment_submissions", force: :cascade do |t|
+    t.bigint "assignment_recipient_id", null: false
+    t.text "body"
+    t.datetime "commented_at"
+    t.datetime "created_at", null: false
+    t.datetime "submitted_at"
+    t.text "teacher_comment"
+    t.datetime "updated_at", null: false
+    t.index ["assignment_recipient_id"], name: "index_assignment_submissions_on_assignment_recipient_id", unique: true
+  end
+
+  create_table "assignments", force: :cascade do |t|
+    t.datetime "cancelled_at"
+    t.datetime "created_at", null: false
+    t.datetime "deadline", null: false
+    t.text "description", null: false
+    t.bigint "organization_id", null: false
+    t.bigint "teacher_membership_id", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["cancelled_at"], name: "index_assignments_on_cancelled_at"
+    t.index ["organization_id"], name: "index_assignments_on_organization_id"
+    t.index ["teacher_membership_id"], name: "index_assignments_on_teacher_membership_id"
+  end
+
   create_table "audit_events", force: :cascade do |t|
     t.string "action", null: false
     t.bigint "actor_id"
@@ -75,17 +110,87 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_15_120000) do
     t.index ["organization_id"], name: "index_audit_events_on_organization_id"
   end
 
+  create_table "certificates", force: :cascade do |t|
+    t.string "certificate_type", null: false
+    t.datetime "created_at", null: false
+    t.jsonb "data", default: {}, null: false
+    t.datetime "generated_at", null: false
+    t.bigint "issued_by_membership_id"
+    t.bigint "organization_id", null: false
+    t.bigint "recipient_membership_id", null: false
+    t.bigint "source_id", null: false
+    t.string "source_type", null: false
+    t.datetime "unpublished_at"
+    t.bigint "unpublished_by_membership_id"
+    t.datetime "updated_at", null: false
+    t.index ["issued_by_membership_id"], name: "index_certificates_on_issued_by_membership_id"
+    t.index ["organization_id"], name: "index_certificates_on_organization_id"
+    t.index ["recipient_membership_id"], name: "index_certificates_on_recipient_membership_id"
+    t.index ["source_type", "source_id", "recipient_membership_id", "certificate_type"], name: "index_certificates_on_published_source_and_recipient", unique: true, where: "(unpublished_at IS NULL)"
+    t.index ["source_type", "source_id"], name: "index_certificates_on_source"
+    t.index ["unpublished_at"], name: "index_certificates_on_unpublished_at"
+    t.index ["unpublished_by_membership_id"], name: "index_certificates_on_unpublished_by_membership_id"
+  end
+
+  create_table "class_meeting_feedbacks", force: :cascade do |t|
+    t.bigint "author_membership_id", null: false
+    t.string "author_role", null: false
+    t.bigint "class_meeting_id", null: false
+    t.text "comment"
+    t.datetime "created_at", null: false
+    t.text "feedback_to_student"
+    t.text "internal_feedback"
+    t.text "next_topics"
+    t.integer "rating", null: false
+    t.text "topics_discussed"
+    t.datetime "updated_at", null: false
+    t.index ["author_membership_id"], name: "index_class_meeting_feedbacks_on_author_membership_id"
+    t.index ["class_meeting_id", "author_membership_id"], name: "index_class_feedbacks_on_meeting_and_author", unique: true
+    t.index ["class_meeting_id"], name: "index_class_meeting_feedbacks_on_class_meeting_id"
+    t.check_constraint "author_role::text = ANY (ARRAY['teacher'::character varying, 'student'::character varying]::text[])", name: "class_meeting_feedbacks_author_role"
+    t.check_constraint "rating >= 1 AND rating <= 5", name: "class_meeting_feedbacks_rating_range"
+  end
+
+  create_table "class_meeting_students", force: :cascade do |t|
+    t.bigint "class_meeting_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "membership_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["class_meeting_id", "membership_id"], name: "index_class_meeting_students_on_meeting_and_membership", unique: true
+    t.index ["class_meeting_id"], name: "index_class_meeting_students_on_class_meeting_id"
+    t.index ["membership_id"], name: "index_class_meeting_students_on_membership_id"
+  end
+
+  create_table "class_meetings", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "delivery_mode", null: false
+    t.integer "meeting_number", null: false
+    t.string "meeting_url"
+    t.bigint "organization_id", null: false
+    t.datetime "starts_at", null: false
+    t.string "subject", null: false
+    t.string "subject_key", null: false
+    t.bigint "teacher_membership_id", null: false
+    t.string "topic", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id", "subject_key", "meeting_number"], name: "index_class_meetings_on_subject_sequence", unique: true
+    t.index ["organization_id"], name: "index_class_meetings_on_organization_id"
+    t.index ["teacher_membership_id"], name: "index_class_meetings_on_teacher_membership_id"
+  end
+
   create_table "course_contents", force: :cascade do |t|
     t.bigint "contentable_id", null: false
     t.string "contentable_type", null: false
     t.bigint "course_id", null: false
+    t.bigint "course_section_id", null: false
     t.datetime "created_at", null: false
     t.integer "position", null: false
     t.datetime "updated_at", null: false
     t.index ["contentable_type", "contentable_id"], name: "index_course_contents_on_contentable"
     t.index ["contentable_type", "contentable_id"], name: "index_course_contents_on_contentable_type_and_contentable_id", unique: true
-    t.index ["course_id", "position"], name: "index_course_contents_on_course_id_and_position"
     t.index ["course_id"], name: "index_course_contents_on_course_id"
+    t.index ["course_section_id", "position"], name: "index_course_contents_on_course_section_id_and_position", unique: true
+    t.index ["course_section_id"], name: "index_course_contents_on_course_section_id"
   end
 
   create_table "course_enrollments", force: :cascade do |t|
@@ -96,6 +201,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_15_120000) do
     t.index ["course_id", "membership_id"], name: "index_course_enrollments_on_course_id_and_membership_id", unique: true
     t.index ["course_id"], name: "index_course_enrollments_on_course_id"
     t.index ["membership_id"], name: "index_course_enrollments_on_membership_id"
+  end
+
+  create_table "course_sections", force: :cascade do |t|
+    t.bigint "course_id", null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.integer "position", null: false
+    t.datetime "updated_at", null: false
+    t.index ["course_id", "position"], name: "index_course_sections_on_course_id_and_position", unique: true
+    t.index ["course_id"], name: "index_course_sections_on_course_id"
   end
 
   create_table "courses", force: :cascade do |t|
@@ -115,6 +230,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_15_120000) do
     t.bigint "material_id", null: false
     t.integer "position", null: false
     t.datetime "updated_at", null: false
+    t.string "video_url"
     t.index ["material_id", "position"], name: "index_material_blocks_on_material_id_and_position"
     t.index ["material_id"], name: "index_material_blocks_on_material_id"
   end
@@ -158,7 +274,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_15_120000) do
     t.string "name", null: false
     t.string "slug", null: false
     t.string "status", default: "active", null: false
-    t.string "timezone", default: "UTC", null: false
+    t.string "timezone", default: "Jakarta", null: false
     t.datetime "updated_at", null: false
     t.index ["slug"], name: "index_organizations_on_slug", unique: true
     t.index ["status"], name: "index_organizations_on_status"
@@ -207,18 +323,37 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_15_120000) do
   end
 
   create_table "quiz_attempts", force: :cascade do |t|
+    t.datetime "ai_analysis_generated_at"
+    t.string "ai_model"
+    t.string "ai_response_id"
+    t.integer "attempt_number", default: 1, null: false
+    t.datetime "cancelled_at"
+    t.string "cancelled_reason"
     t.datetime "created_at", null: false
+    t.datetime "expires_at"
+    t.string "grading_mode"
     t.datetime "last_activity_at", null: false
     t.integer "last_question_position"
     t.bigint "membership_id", null: false
+    t.text "performance_analysis"
     t.bigint "quiz_id", null: false
+    t.text "recommendations"
     t.datetime "reviewed_at"
     t.datetime "started_at", null: false
+    t.text "strengths"
     t.datetime "submitted_at"
+    t.bigint "superseded_by_attempt_id"
+    t.datetime "timed_out_at"
     t.datetime "updated_at", null: false
+    t.text "weaknesses"
+    t.index ["ai_analysis_generated_at"], name: "index_quiz_attempts_on_ai_analysis_generated_at"
+    t.index ["cancelled_at"], name: "index_quiz_attempts_on_cancelled_at"
+    t.index ["expires_at"], name: "index_quiz_attempts_on_expires_at"
     t.index ["membership_id"], name: "index_quiz_attempts_on_membership_id"
-    t.index ["quiz_id", "membership_id"], name: "index_quiz_attempts_on_quiz_id_and_membership_id", unique: true
+    t.index ["quiz_id", "membership_id", "attempt_number"], name: "index_quiz_attempts_on_quiz_membership_and_number", unique: true
+    t.index ["quiz_id", "membership_id"], name: "index_quiz_attempts_on_active_quiz_and_membership", unique: true, where: "(cancelled_at IS NULL)"
     t.index ["quiz_id"], name: "index_quiz_attempts_on_quiz_id"
+    t.index ["superseded_by_attempt_id"], name: "index_quiz_attempts_on_superseded_by_attempt_id"
   end
 
   create_table "quiz_questions", force: :cascade do |t|
@@ -237,6 +372,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_15_120000) do
     t.bigint "course_id", null: false
     t.datetime "created_at", null: false
     t.text "description"
+    t.integer "retake_limit"
+    t.integer "time_limit_minutes"
     t.string "title", null: false
     t.datetime "updated_at", null: false
     t.index ["course_id", "title"], name: "index_quizzes_on_course_id_and_title"
@@ -444,10 +581,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_15_120000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "assignment_recipients", "assignments"
+  add_foreign_key "assignment_recipients", "memberships", column: "student_membership_id"
+  add_foreign_key "assignment_submissions", "assignment_recipients"
+  add_foreign_key "assignments", "memberships", column: "teacher_membership_id"
+  add_foreign_key "assignments", "organizations"
   add_foreign_key "audit_events", "organizations"
+  add_foreign_key "certificates", "memberships", column: "issued_by_membership_id"
+  add_foreign_key "certificates", "memberships", column: "recipient_membership_id"
+  add_foreign_key "certificates", "memberships", column: "unpublished_by_membership_id", on_delete: :nullify
+  add_foreign_key "certificates", "organizations"
+  add_foreign_key "class_meeting_feedbacks", "class_meetings"
+  add_foreign_key "class_meeting_feedbacks", "memberships", column: "author_membership_id"
+  add_foreign_key "class_meeting_students", "class_meetings"
+  add_foreign_key "class_meeting_students", "memberships"
+  add_foreign_key "class_meetings", "memberships", column: "teacher_membership_id"
+  add_foreign_key "class_meetings", "organizations"
+  add_foreign_key "course_contents", "course_sections"
   add_foreign_key "course_contents", "courses"
   add_foreign_key "course_enrollments", "courses"
   add_foreign_key "course_enrollments", "memberships"
+  add_foreign_key "course_sections", "courses"
   add_foreign_key "courses", "organizations"
   add_foreign_key "material_blocks", "materials"
   add_foreign_key "material_completions", "materials"
@@ -462,6 +616,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_15_120000) do
   add_foreign_key "quiz_answers", "quiz_attempts"
   add_foreign_key "quiz_answers", "quiz_questions"
   add_foreign_key "quiz_attempts", "memberships"
+  add_foreign_key "quiz_attempts", "quiz_attempts", column: "superseded_by_attempt_id"
   add_foreign_key "quiz_attempts", "quizzes"
   add_foreign_key "quiz_questions", "quizzes"
   add_foreign_key "quizzes", "courses"

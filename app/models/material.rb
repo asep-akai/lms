@@ -9,6 +9,7 @@ class Material < ApplicationRecord
   has_many :material_completions, dependent: :destroy
   accepts_nested_attributes_for :blocks, allow_destroy: true
   attr_accessor :remove_cover_image
+  attr_accessor :course_section_id
 
   delegate :organization, to: :course
 
@@ -21,11 +22,15 @@ class Material < ApplicationRecord
 
   private
     def append_to_course_contents
-      CourseContent.append!(self)
+      CourseContent.append!(self, course_section: selected_course_section)
+    end
+
+    def selected_course_section
+      course.course_sections.find_by(id: course_section_id) || course.default_section
     end
 
     def has_content
-      errors.add(:blocks, "must include at least one text or image block") if blocks.reject(&:marked_for_destruction?).empty?
+      errors.add(:blocks, "must include at least one text, image, or video block") if blocks.reject(&:marked_for_destruction?).empty?
     end
 
     def cover_image_is_supported

@@ -1,0 +1,20 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow"><%= @course.name %></p>
+    <h1 class="title"><%= section.persisted? ? "Edit section" : "New section" %></h1>
+  </div>
+  <%= back_link_to "Back to course", organization_course_path(current_organization, @course) %>
+</div>
+
+<%= render "shared/errors", record: section %>
+<% form_url = section.persisted? ? organization_course_section_path(current_organization, @course, section) : organization_course_sections_path(current_organization, @course) %>
+<%= form_with model: section, url: form_url, class: "form-stack mt-8" do |form| %>
+  <div>
+    <%= form.label :name, class: "label" %>
+    <%= form.text_field :name, required: true, maxlength: 160, autofocus: true, class: "field" %>
+  </div>
+  <div class="actions">
+    <%= form.submit class: "btn-primary" %>
+    <%= link_to "Cancel", organization_course_path(current_organization, @course), class: "btn-secondary" %>
+  </div>
+<% end %>

@@ -1,0 +1,8 @@
+Assignment updated
+
+Hello <%= @student.name %>,
+
+<%= @assignment.teacher_membership.user.name %> updated <%= @assignment.title %>.
+Deadline: <%= @deadline.strftime("%-d %B %Y at %H:%M %Z") %>
+
+View assignment: <%= organization_assignment_url(@assignment.organization, @assignment) %>

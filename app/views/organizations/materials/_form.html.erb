@@ -25,6 +25,12 @@
   </div>
 
   <div>
+    <%= form.label :course_section_id, "Section", class: "label" %>
+    <%= form.collection_select :course_section_id, @course.course_sections.ordered, :id, :name, {}, class: "field" %>
+    <p class="hint">Choose where this material appears in the course.</p>
+  </div>
+
+  <div>
     <%= form.label :cover_image, "Card cover image", class: "label" %>
     <% if material.cover_image.attached? %>
       <div class="mt-2 flex flex-wrap items-center gap-4">
@@ -43,11 +49,12 @@
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <h2>Article content</h2>
-        <p class="hint">Build the material from text and image blocks. Their order here is their reading order.</p>
+        <p class="hint">Build the material from text, image, and video blocks. Their order here is their reading order.</p>
       </div>
       <div class="actions">
         <button type="button" class="btn-secondary" data-action="material-editor#addText">Add text</button>
         <button type="button" class="btn-secondary" data-action="material-editor#addImage">Add image</button>
+        <button type="button" class="btn-secondary" data-action="material-editor#addVideo">Add video</button>
       </div>
     </div>
 
@@ -64,6 +71,11 @@
     </template>
     <template data-material-editor-target="imageTemplate">
       <%= form.fields_for :blocks, MaterialBlock.new(block_type: "image"), child_index: "NEW_BLOCK" do |block| %>
+        <%= render "organizations/materials/block_fields", block: block %>
+      <% end %>
+    </template>
+    <template data-material-editor-target="videoTemplate">
+      <%= form.fields_for :blocks, MaterialBlock.new(block_type: "video"), child_index: "NEW_BLOCK" do |block| %>
         <%= render "organizations/materials/block_fields", block: block %>
       <% end %>
     </template>

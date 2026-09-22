@@ -1,0 +1,83 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Organization</p>
+    <h1 class="title">Assignments</h1>
+    <p class="subtitle"><%= current_membership.student? ? "Work assigned to you." : "Create assignments and review student submissions." %></p>
+  </div>
+  <div class="actions">
+    <%= back_link_to "Back to organization", organization_path(current_organization) %>
+    <% if policy(Assignment.new(organization: current_organization, teacher_membership: current_membership)).create? %>
+      <%= link_to "Create assignment", new_organization_assignment_path(current_organization), class: "btn-primary" %>
+    <% end %>
+  </div>
+</div>
+
+<%= render "shared/table_search",
+  url: organization_assignments_path(current_organization),
+  query: @query,
+  label: "Search assignments",
+  placeholder: "Search by title or description" %>
+
+<% if @assignments.any? %>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="th">Assignment</th>
+          <% if current_membership.student? %>
+            <th class="th">Teacher</th>
+          <% else %>
+            <th class="th">Students</th>
+          <% end %>
+          <th class="th">Deadline</th>
+          <th class="th">Status</th>
+          <th class="th">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @assignments.each do |assignment| %>
+          <% recipient = assignment.recipients.find { |item| item.student_membership_id == current_membership.id } if current_membership.student? %>
+          <tr data-assignment-id="<%= assignment.id %>">
+            <td class="td"><strong class="text-slate-950"><%= assignment.title %></strong></td>
+            <td class="td">
+              <% if assignment.cancelled? %>
+                <span class="badge-neutral">Cancelled</span>
+              <% elsif current_membership.student? %>
+                <%= assignment.teacher_membership.user.name %>
+              <% else %>
+                <%= pluralize(assignment.recipients.size, "student") %>
+              <% end %>
+            </td>
+            <td class="td">
+              <strong class="<%= "text-red-700" if assignment.overdue? && !recipient&.submitted? %>">
+                <%= assignment.deadline.in_time_zone(current_organization.timezone).strftime("%-d %b %Y, %H:%M %Z") %>
+              </strong>
+            </td>
+            <td class="td">
+              <% if current_membership.student? %>
+                <% if recipient&.late? %>
+                  <span class="badge-suspended">Submitted late</span>
+                <% elsif recipient&.submitted? %>
+                  <span class="badge-active">Submitted</span>
+                <% elsif recipient&.overdue? %>
+                  <span class="badge-suspended">Late</span>
+                <% else %>
+                  <span class="badge-neutral">Not submitted</span>
+                <% end %>
+              <% else %>
+                <%= assignment.recipients.count(&:submitted?) %>/<%= assignment.recipients.size %> submitted
+              <% end %>
+            </td>
+            <td class="td"><%= link_to "View assignment", organization_assignment_path(current_organization, assignment), class: "btn-secondary" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% else %>
+  <% if @query.present? %>
+    <div class="empty-state">No assignments match “<%= @query %>”. Try another search or clear it.</div>
+  <% else %>
+    <div class="empty-state"><%= current_membership.student? ? "You have no assignments yet." : "No assignments have been created yet." %></div>
+  <% end %>
+<% end %>

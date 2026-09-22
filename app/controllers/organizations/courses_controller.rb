@@ -1,5 +1,5 @@
 class Organizations::CoursesController < Organizations::BaseController
-  before_action :set_course, only: %i[show edit update destroy enrollments update_enrollments move_content]
+  before_action :set_course, only: %i[show edit update destroy enrollments update_enrollments move_content move_content_to_section]
 
   def index
     authorize Course
@@ -92,7 +92,7 @@ class Organizations::CoursesController < Organizations::BaseController
     content = @course.course_contents.find(params[:content_id])
 
     @course.with_lock do
-      contents = @course.course_contents.ordered.lock.to_a
+      contents = content.course_section.course_contents.ordered_within_section.lock.to_a
       current_index = contents.index(content)
       target_index = params[:direction] == "up" ? current_index - 1 : current_index + 1
       adjacent = contents[target_index] if target_index.between?(0, contents.length - 1)
@@ -105,6 +105,20 @@ class Organizations::CoursesController < Organizations::BaseController
       metadata: { name: @course.name, content_type: content.contentable_type, content_title: content.contentable.title }
     )
     redirect_to organization_course_path(Current.organization, @course, anchor: "course-content-#{content.id}"), notice: "Course content reordered."
+  end
+
+  def move_content_to_section
+    authorize @course, :arrange_contents?
+    content = @course.course_contents.find(params[:content_id])
+    target_section = @course.course_sections.find(params[:course_section_id])
+
+    @course.with_lock do
+      source_section = content.course_section
+      content.update!(course_section: target_section, position: target_section.course_contents.maximum(:position).to_i + 1)
+      resequence_contents(source_section)
+    end
+
+    redirect_to organization_course_path(Current.organization, @course, anchor: "course-content-#{content.id}"), notice: "Module moved to #{target_section.name}."
   end
 
   private
@@ -121,19 +135,28 @@ class Organizations::CoursesController < Organizations::BaseController
       visible_types << "Material" if policy(Material).index?
       visible_types << "Quiz" if policy(Quiz).index?
       @course_contents = @course.course_contents.where(contentable_type: visible_types).includes(:contentable).ordered
+      @course_sections = @course.course_sections.includes(course_contents: :contentable).ordered
 
       materials = @course_contents.filter_map { |content| content.contentable if content.material? }
       quizzes = @course_contents.filter_map { |content| content.contentable if content.quiz? }
       material_associations = [ { cover_image_attachment: :blob }, { blocks: { image_attachment: :blob } } ]
       ActiveRecord::Associations::Preloader.new(records: materials, associations: material_associations).call if materials.any?
       ActiveRecord::Associations::Preloader.new(records: quizzes, associations: :questions).call if quizzes.any?
-      @quiz_attempts = Current.membership.quiz_attempts.where(quiz: quizzes).index_by(&:quiz_id)
+      @quiz_attempts = Current.membership.quiz_attempts.active.where(quiz: quizzes).order(:attempt_number, :id).index_by(&:quiz_id)
     end
 
     def swap_content_positions(content, adjacent)
       original_position = content.position
-      content.update_columns(position: adjacent.position)
+      adjacent_position = adjacent.position
+      content.update_columns(position: -content.id)
       adjacent.update_columns(position: original_position)
+      content.update_columns(position: adjacent_position)
+    end
+
+    def resequence_contents(section)
+      section.course_contents.ordered_within_section.each_with_index do |content, index|
+        content.update_columns(position: index + 1)
+      end
     end
 
     def enrollment_params

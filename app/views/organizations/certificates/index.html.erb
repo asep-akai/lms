@@ -1,0 +1,74 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Organization</p>
+    <h1 class="title">Certificates</h1>
+    <p class="subtitle">Published records generated from completed assessments.</p>
+  </div>
+  <%= back_link_to "Back to organization", organization_path(current_organization) %>
+</div>
+
+<%= render "shared/table_search",
+  url: organization_certificates_path(current_organization),
+  query: @query,
+  label: "Search certificates",
+  placeholder: "Search by exam, student, or email" %>
+
+<section class="mt-8" aria-labelledby="certificate-list-heading">
+  <div>
+    <p class="eyebrow"><%= pluralize(@certificates.size, "certificate") %></p>
+    <h2 id="certificate-list-heading" class="mt-1">Issued certificates</h2>
+  </div>
+
+  <% if @certificates.any? %>
+    <ol class="card mt-5 divide-y divide-slate-200 overflow-hidden">
+      <% @certificates.each do |certificate| %>
+        <% presenter = Certificates::Presenter.for(certificate) %>
+        <li>
+          <article class="grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center" data-certificate-id="<%= certificate.id %>">
+            <div class="min-w-0">
+              <p class="eyebrow"><%= presenter.heading %></p>
+              <div class="mt-1 flex flex-wrap items-center gap-3">
+                <h3 class="text-lg font-semibold text-slate-950"><%= presenter.exam_name %></h3>
+                <% if certificate.unpublished? %>
+                  <span class="badge-suspended">Unpublished</span>
+                <% else %>
+                  <span class="badge-active">Active</span>
+                <% end %>
+              </div>
+              <dl class="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                <div>
+                  <dt class="inline font-medium text-slate-500">Student:</dt>
+                  <dd class="inline text-slate-950"><%= presenter.student_name %></dd>
+                </div>
+                <div>
+                  <dt class="inline font-medium text-slate-500">Score:</dt>
+                  <dd class="inline text-slate-950"><%= presenter.score %> (<%= presenter.percentage %>%)</dd>
+                </div>
+                <div>
+                  <dt class="inline font-medium text-slate-500">Test date:</dt>
+                  <dd class="inline text-slate-950"><%= presenter.test_date.strftime("%-d %B %Y") %></dd>
+                </div>
+              </dl>
+            </div>
+            <div class="actions md:justify-end">
+              <%= link_to "View certificate", organization_certificate_path(current_organization, certificate), class: "btn-secondary" %>
+              <% unless certificate.unpublished? %>
+                <%= link_to "Download PDF",
+                  organization_certificate_path(current_organization, certificate, format: :pdf, download: 1),
+                  class: "btn-primary",
+                  download: presenter.filename,
+                  data: { turbo: false } %>
+              <% end %>
+            </div>
+          </article>
+        </li>
+      <% end %>
+    </ol>
+  <% elsif @query.present? %>
+    <div class="empty-state">No certificates match “<%= @query %>”. Try another search or clear it.</div>
+  <% elsif current_membership.student? %>
+    <div class="empty-state">No certificates have been generated for your published results yet.</div>
+  <% else %>
+    <div class="empty-state">No certificates have been generated in this organization yet.</div>
+  <% end %>
+</section>

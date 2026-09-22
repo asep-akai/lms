@@ -1,0 +1,7 @@
+Assignment submitted
+
+Hello <%= @teacher.name %>,
+
+<%= @student.name %> submitted <%= @assignment.title %><%= " after the deadline" if @submission.late? %>.
+
+Review submission: <%= organization_assignment_url(@assignment.organization, @assignment) %>

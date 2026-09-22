@@ -1,0 +1,51 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Assignment</p>
+    <h1 class="title"><%= @assignment.title %></h1>
+    <p class="subtitle">Assigned by <%= @assignment.teacher_membership.user.name %></p>
+  </div>
+  <div class="actions">
+    <%= back_link_to "Back to assignments", organization_assignments_path(current_organization) %>
+    <% if policy(@assignment).update? %>
+      <%= link_to "Edit assignment", edit_organization_assignment_path(current_organization, @assignment), class: "btn-secondary" %>
+      <%= button_to "Cancel assignment",
+        cancel_organization_assignment_path(current_organization, @assignment),
+        method: :patch,
+        class: "btn-danger",
+        data: { turbo_confirm: "Cancel this assignment? Students will no longer be able to submit work." } %>
+    <% end %>
+  </div>
+</div>
+
+<% if @assignment.cancelled? %>
+  <div class="alert-error mt-8">This assignment was cancelled. Existing student work is preserved, but students cannot submit or change their work.</div>
+<% end %>
+
+<section class="card card-body mt-8" aria-labelledby="assignment-details-heading">
+  <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+    <div>
+      <h2 id="assignment-details-heading">Instructions</h2>
+      <p class="mt-4 whitespace-pre-wrap leading-7 text-slate-800"><%= @assignment.description %></p>
+    </div>
+    <div class="shrink-0 rounded-lg border <%= @assignment.overdue? ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50" %> px-4 py-3">
+      <p class="text-sm font-medium text-slate-600">Deadline</p>
+      <p class="mt-1 font-semibold <%= @assignment.overdue? ? "text-red-800" : "text-slate-950" %>"><%= @assignment.deadline.in_time_zone(current_organization.timezone).strftime("%-d %B %Y at %H:%M %Z") %></p>
+      <% if @assignment.cancelled? %><p class="mt-2 badge-neutral">Cancelled</p><% end %>
+    </div>
+  </div>
+  <% if @assignment.document.attached? %>
+    <div class="mt-6 border-t border-slate-200 pt-5">
+      <p class="label">Assignment document</p>
+      <%= link_to @assignment.document.filename,
+        document_organization_assignment_path(current_organization, @assignment),
+        class: "text-link",
+        data: { turbo: false } %>
+    </div>
+  <% end %>
+</section>
+
+<% if current_membership.student? %>
+  <%= render "organizations/assignments/student_submission", assignment: @assignment, recipient: @recipient, submission: @submission %>
+<% else %>
+  <%= render "organizations/assignments/teacher_submissions", assignment: @assignment, recipients: @recipients %>
+<% end %>

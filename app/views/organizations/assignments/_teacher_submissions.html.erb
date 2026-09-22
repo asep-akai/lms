@@ -1,0 +1,35 @@
+<section class="mt-10" aria-labelledby="student-submissions-heading">
+  <div>
+    <p class="eyebrow"><%= pluralize(recipients.size, "student") %></p>
+    <h2 id="student-submissions-heading" class="mt-1">Student submissions</h2>
+  </div>
+  <div class="mt-5 space-y-5">
+    <% recipients.each do |recipient| %>
+      <% submission = recipient.submission %>
+      <article class="card card-body" data-recipient-id="<%= recipient.id %>">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div><h3><%= recipient.student_membership.user.name %></h3><p class="subtitle"><%= recipient.student_membership.user.email %></p></div>
+          <% if recipient.late? %><span class="badge-suspended">Submitted late</span>
+          <% elsif recipient.submitted? %><span class="badge-active">Submitted</span>
+          <% elsif recipient.overdue? %><span class="badge-suspended">Late</span>
+          <% else %><span class="badge-neutral">Not submitted</span><% end %>
+        </div>
+        <% if submission&.submitted? %>
+          <p class="mt-4 text-sm text-slate-600">Submitted <%= submission.submitted_at.in_time_zone(current_organization.timezone).strftime("%-d %B %Y at %H:%M %Z") %></p>
+          <% if submission.body.present? %><p class="mt-4 whitespace-pre-wrap text-slate-800"><%= submission.body %></p><% end %>
+          <%= render "organizations/assignments/submission_documents", assignment: assignment, submission: submission %>
+          <%= form_with model: submission,
+            url: organization_assignment_recipient_comment_path(current_organization, assignment, recipient_id: recipient.id),
+            method: :patch,
+            class: "mt-6 space-y-3" do |form| %>
+            <%= form.label :teacher_comment, "Comment to student", class: "label" %>
+            <%= form.text_area :teacher_comment, rows: 4, class: "field", required: true, maxlength: 20_000 %>
+            <%= form.submit submission.teacher_comment.present? ? "Update comment" : "Send comment", class: "btn-primary" %>
+          <% end %>
+        <% else %>
+          <p class="mt-4 text-sm text-slate-600">No submission yet.</p>
+        <% end %>
+      </article>
+    <% end %>
+  </div>
+</section>

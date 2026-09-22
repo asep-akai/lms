@@ -1,0 +1,7 @@
+<div class="page-header">
+  <div></div>
+  <%= back_link_to @back_label, @back_path %>
+</div>
+<div class="card card-body mt-8">
+  <%= render "list", class_meeting: @class_meeting, feedbacks: @feedbacks %>
+</div>

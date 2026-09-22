@@ -10,5 +10,12 @@
       method: :patch,
       class: last ? "btn-disabled" : "btn-secondary",
       disabled: last %>
+    <% if @course_sections.size > 1 %>
+      <%= form_with url: move_content_to_section_organization_course_path(current_organization, @course, content_id: course_content.id), method: :patch, class: "flex flex-wrap gap-2" do |form| %>
+        <%= form.label :course_section_id, "Move to section", class: "sr-only" %>
+        <%= form.collection_select :course_section_id, @course_sections, :id, :name, { selected: course_content.course_section_id }, class: "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" %>
+        <%= form.submit "Move", class: "btn-secondary" %>
+      <% end %>
+    <% end %>
   </div>
 <% end %>

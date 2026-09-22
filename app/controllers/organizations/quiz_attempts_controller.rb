@@ -4,7 +4,9 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
 
   def attempt
     authorize @quiz, :show?
-    @attempt = find_or_start_attempt
+    @attempt = params[:attempt_id].present? ? requested_attempt : find_or_start_attempt
+    return redirect_reset_attempt if @attempt.nil?
+    return redirect_timed_out_attempt if @attempt.submit_due_to_timeout!
     return redirect_submitted_attempt if @attempt.submitted?
 
     @questions = @quiz.questions.includes(:answer_options)
@@ -17,8 +19,13 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
 
   def update_answer
     authorize @quiz, :show?
-    attempt = find_or_start_attempt
-    return redirect_submitted_attempt if attempt.submitted?
+    attempt = current_attempt
+    return redirect_reset_attempt if attempt.nil?
+    return redirect_submitted_attempt(attempt) if attempt.submitted?
+    if attempt.expired? && !timeout_submission_allowed?(attempt)
+      attempt.submit_due_to_timeout!
+      return redirect_timed_out_attempt
+    end
 
     question = @quiz.questions.find(params[:question_id])
     answer = attempt.answers.find_or_initialize_by(quiz_question: question)
@@ -33,6 +40,9 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
     if answer.save
       attempt.update_column(:last_activity_at, Time.current)
       redirect_after_answer(question, attempt)
+    elsif timeout_submission_allowed?(attempt)
+      attempt.submit_due_to_timeout!
+      redirect_timed_out_attempt
     else
       @attempt = attempt
       @questions = @quiz.questions.includes(:answer_options)
@@ -41,6 +51,30 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
       set_attempt_progress
       render :show, status: :unprocessable_entity
     end
+  end
+
+  def retake
+    authorize @quiz, :show?
+    result = QuizAttemptStarter.call(quiz: @quiz, membership: Current.membership, retake: true)
+    AuditRecorder.record!(
+      action: "quiz_attempt.cancelled_for_retake",
+      auditable: result.previous_attempt,
+      metadata: {
+        quiz: @quiz.title,
+        cancelled_attempt_number: result.previous_attempt.attempt_number,
+        replacement_attempt_id: result.attempt.id,
+        replacement_attempt_number: result.attempt.attempt_number,
+        removed_certificate_count: result.removed_certificate_count
+      }
+    )
+    redirect_to attempt_organization_course_quiz_path(
+      Current.organization,
+      @course,
+      @quiz,
+      attempt_id: result.attempt.id
+    ), notice: "Retake started. Your previous attempt is no longer active."
+  rescue QuizAttemptStarter::RetakeUnavailable => error
+    redirect_to organization_course_quiz_path(Current.organization, @course, @quiz, from: "course"), alert: error.message
   end
 
   private
@@ -54,10 +88,20 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
     end
 
     def find_or_start_attempt
-      QuizAttempt.find_or_create_by!(quiz: @quiz, membership: Current.membership) do |attempt|
-        attempt.started_at = Time.current
-        attempt.last_activity_at = Time.current
-      end
+      QuizAttemptStarter.call(quiz: @quiz, membership: Current.membership).attempt
+    end
+
+    def requested_attempt
+      return unless params[:attempt_id].present?
+
+      Current.membership.quiz_attempts.active.find_by(id: params[:attempt_id], quiz: @quiz)
+    end
+
+    def current_attempt
+      attempts = Current.membership.quiz_attempts.active.where(quiz: @quiz)
+      return attempts.find_by(id: params[:quiz_attempt_id]) if params[:quiz_attempt_id].present?
+
+      attempts.order(:attempt_number, :id).last
     end
 
     def answer_params(question)
@@ -80,6 +124,12 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
     end
 
     def redirect_after_answer(question, attempt)
+      if params[:time_expired].present?
+        attempt.submit_due_to_timeout!
+        redirect_timed_out_attempt
+        return
+      end
+
       if params[:submit_attempt].present?
         attempt.submit!
         redirect_to organization_course_quiz_path(Current.organization, @course, @quiz, from: "course"), notice: "Quiz submitted. Your attempt is in review."
@@ -99,12 +149,25 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
       end
     end
 
-    def redirect_submitted_attempt
-      redirect_to organization_course_quiz_path(Current.organization, @course, @quiz, from: "course"), alert: "This quiz has already been submitted."
+    def redirect_submitted_attempt(attempt = @attempt)
+      message = attempt&.timed_out? ? "The time limit was reached and this attempt was submitted automatically." : "This quiz has already been submitted."
+      redirect_to organization_course_quiz_path(Current.organization, @course, @quiz, from: "course"), alert: message
+    end
+
+    def redirect_timed_out_attempt
+      redirect_to organization_course_quiz_path(Current.organization, @course, @quiz, from: "course"), notice: "Time is up. Your saved answers were submitted automatically."
+    end
+
+    def redirect_reset_attempt
+      redirect_to organization_course_quiz_path(Current.organization, @course, @quiz, from: "course"), alert: "This attempt was reset. Start a new attempt to continue."
     end
 
     def set_attempt_progress
       @unanswered_questions_count = @questions.size - @attempt.answers.count
       @current_answer_saved = @answer.persisted?
+    end
+
+    def timeout_submission_allowed?(attempt)
+      params[:time_expired].present? && attempt.expires_at && attempt.expires_at >= 30.seconds.ago
     end
 end

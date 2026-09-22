@@ -1,0 +1,59 @@
+<section class="mt-8" aria-labelledby="course-content-heading">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h2 id="course-content-heading">Course content</h2>
+      <p class="subtitle">Work through each section's materials and quizzes in order.</p>
+    </div>
+    <% if policy(@course).arrange_contents? %>
+      <%= link_to "New section", new_organization_course_section_path(current_organization, @course), class: "btn-primary" %>
+    <% end %>
+  </div>
+
+  <div class="mt-5 space-y-5">
+    <% @course_sections.each_with_index do |section, section_index| %>
+      <% section_contents = @course_contents.select { |content| content.course_section_id == section.id } %>
+      <% if current_membership&.student? %>
+        <details id="course-section-<%= section.id %>" class="card overflow-hidden" <%= "open" if section_index.zero? %>>
+          <summary class="flex min-h-14 items-center justify-between gap-4 px-6 py-4 font-semibold text-slate-950">
+            <span>Section <%= section_index + 1 %> · <%= section.name %></span>
+            <span class="text-sm font-normal text-slate-500"><%= pluralize(section_contents.size, "module") %></span>
+          </summary>
+          <div class="border-t border-slate-200 bg-slate-50 p-4 sm:p-6">
+            <%= render "section_modules", course_contents: section_contents %>
+          </div>
+        </details>
+      <% else %>
+        <details id="course-section-<%= section.id %>" class="card overflow-hidden" open>
+          <summary class="flex min-h-14 items-center justify-between gap-4 px-6 py-4 text-slate-950">
+            <span>
+              <span class="block text-sm font-medium text-brand-700">Section <%= section_index + 1 %></span>
+              <span class="mt-1 block text-lg font-semibold"><%= section.name %></span>
+            </span>
+            <span class="text-sm font-normal text-slate-500"><%= pluralize(section_contents.size, "module") %></span>
+          </summary>
+          <div class="border-t border-slate-200 p-4 sm:p-6">
+            <% if policy(@course).arrange_contents? %>
+              <div class="actions mb-5">
+                <%= button_to "Move section up", move_organization_course_section_path(current_organization, @course, section, direction: "up"), method: :patch, class: section_index.zero? ? "btn-disabled" : "btn-secondary", disabled: section_index.zero? %>
+                <%= button_to "Move section down", move_organization_course_section_path(current_organization, @course, section, direction: "down"), method: :patch, class: section_index == @course_sections.length - 1 ? "btn-disabled" : "btn-secondary", disabled: section_index == @course_sections.length - 1 %>
+                <%= link_to "Edit section", edit_organization_course_section_path(current_organization, @course, section), class: "btn-secondary" %>
+                <% if policy(Material).create? %>
+                  <%= link_to "Add material", new_organization_course_material_path(current_organization, @course, course_section_id: section.id, from: "course"), class: "btn-secondary" %>
+                <% end %>
+                <% if policy(Quiz).create? %>
+                  <%= link_to "Add quiz", new_organization_course_quiz_path(current_organization, @course, course_section_id: section.id, from: "course"), class: "btn-secondary" %>
+                <% end %>
+              </div>
+            <% end %>
+            <%= render "section_modules", course_contents: section_contents %>
+            <% if policy(@course).arrange_contents? %>
+              <div class="mt-5 border-t border-slate-200 pt-5">
+                <%= button_to "Delete section", organization_course_section_path(current_organization, @course, section), method: :delete, form: { data: { turbo_confirm: "Delete this empty section?" } }, class: "danger-link" %>
+              </div>
+            <% end %>
+          </div>
+        </details>
+      <% end %>
+    <% end %>
+  </div>
+</section>

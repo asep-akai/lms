@@ -13,10 +13,14 @@ class PermissionTest < ActiveSupport::TestCase
   test "organization permissions are grouped by focus in a stable order" do
     groups = Permission.organization_assignable.organization_groups
 
-    assert_equal %w[Organization Members Students Courses Roles Audit], groups.map(&:first)
+    assert_equal %w[Organization Members Students Courses Classes Certificates Assignments Roles Audit], groups.map(&:first)
     assert_equal %w[students.index students.show], groups.to_h.fetch("Students").map(&:key)
-    assert_equal %w[courses.index courses.create courses.update courses.destroy course_enrollments.update course_contents.update materials.index materials.create materials.update materials.destroy quizzes.index quizzes.create quizzes.update quizzes.destroy quiz_attempts.index quiz_attempts.show quiz_attempts.review quiz_attempts.reset],
+    assert_equal %w[courses.index courses.create courses.update courses.destroy course_enrollments.update course_contents.update materials.index materials.create materials.update materials.destroy quizzes.index quizzes.create quizzes.update quizzes.destroy quiz_attempts.index quiz_attempts.show quiz_attempts.review quiz_attempts.ai_analyze quiz_attempts.reset],
       groups.to_h.fetch("Courses").map(&:key)
+    assert_equal %w[class_meetings.index class_meetings.create class_meetings.update class_meetings.destroy class_meeting_feedbacks.index],
+      groups.to_h.fetch("Classes").map(&:key)
+    assert_equal %w[certificates.index certificates.create], groups.to_h.fetch("Certificates").map(&:key)
+    assert_equal %w[assignments.index assignments.create assignments.review], groups.to_h.fetch("Assignments").map(&:key)
   end
 
   test "console permissions are grouped by focus in a stable order" do

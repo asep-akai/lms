@@ -1,0 +1,10 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow"><%= @class_meeting.subject %> · Meeting <%= @class_meeting.meeting_number %></p>
+    <h1 class="title">Edit class</h1>
+    <p class="subtitle">Update the schedule or assigned participants.</p>
+  </div>
+  <%= back_link_to "Back to class", organization_class_meeting_path(current_organization, @class_meeting, **@navigation_params) %>
+</div>
+
+<%= render "form", class_meeting: @class_meeting %>

@@ -32,7 +32,7 @@ docker compose up --build
 
 Open:
 
-- Application: <http://localhost:3000>
+- Application: <http://localhost:3001>
 - Development email: <http://localhost:8025>
 
 The development console administrator and example organization owner are created automatically:
@@ -41,11 +41,11 @@ The development console administrator and example organization owner are created
 Email: admin@example.com
 Password: change-me-in-development
 
-Application: http://localhost:3000/users/sign_in
+Application: http://localhost:3001/users/sign_in
 Email: owner@example.com
 Password: change-me-in-development
 
-Console: http://localhost:3000/console/login
+Console: http://localhost:3001/console/login
 Email: admin@example.com
 Password: change-me-in-development
 ```
@@ -69,6 +69,23 @@ Production requires these secrets or equivalent Rails/Kamal configuration:
 - SMTP host and credentials
 
 Never commit a populated `.env` file or `config/master.key`.
+
+### Gemini analysis
+
+Automatic quiz analysis uses the Gemini API. Copy `.env.example` to `.env`, then add your key:
+
+```text
+GEMINI_API_KEY=your-key-here
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+Recreate the web container after changing these values so Compose passes them into Rails:
+
+```bash
+docker compose up -d --force-recreate web
+```
+
+The application calculates quiz correctness from its own answer key. Gemini receives that grading data and writes an unpublished performance-analysis draft; an authorized reviewer must check and publish it before the student can see it.
 
 ## Useful commands
 

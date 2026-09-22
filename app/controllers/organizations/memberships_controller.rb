@@ -3,7 +3,13 @@ class Organizations::MembershipsController < Organizations::BaseController
 
   def index
     authorize Membership
-    @memberships = policy_scope(Membership).includes(:user).joins(:user).order("users.name")
+    @query = TableSearch.normalize(params[:query])
+    memberships = policy_scope(Membership).includes(:user).joins(:user)
+    @memberships = TableSearch.call(
+      memberships,
+      query: @query,
+      columns: %w[users.name users.email memberships.status]
+    ).order("users.name")
   end
 
   def new
@@ -83,6 +89,9 @@ class Organizations::MembershipsController < Organizations::BaseController
     authorize @membership
     if last_active_admin?(@membership)
       return redirect_to organization_memberships_path(Current.organization), alert: "The organization must keep at least one active administrator."
+    end
+    if @membership.teaching_class_meetings.exists? || @membership.attending_class_meetings.exists?
+      return redirect_to organization_memberships_path(Current.organization), alert: "Reassign or delete this member's scheduled classes before removing them."
     end
 
     email = @membership.user.email

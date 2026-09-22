@@ -4,7 +4,13 @@ module Console
 
     def index
       authorize Role
-      @roles = policy_scope(Role).includes(:permissions, :role_assignments).ordered
+      @query = TableSearch.normalize(params[:query])
+      roles = TableSearch.call(
+        policy_scope(Role),
+        query: @query,
+        columns: %w[roles.name roles.key roles.description]
+      )
+      @roles = roles.includes(:permissions, :role_assignments).ordered
     end
 
     def new

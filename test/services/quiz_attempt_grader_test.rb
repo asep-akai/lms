@@ -20,4 +20,19 @@ class QuizAttemptGraderTest < ActiveSupport::TestCase
     assert grading.results.first.correct
     assert_not grading.results.second.correct
   end
+
+  test "can ignore manual overrides when a fresh automatic grade is required" do
+    membership = organizations(:one).memberships.create!(user: users(:two), status: "active")
+    membership.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]
+    course = organizations(:one).courses.create!(name: "Biology", description: "Living systems.")
+    course.course_enrollments.create!(membership: membership)
+    quiz = course.quizzes.create!(title: "Cells")
+    question = quiz.questions.create!(question_type: "short_answer", content_html: "<p>Name an organelle.</p>", short_answer: "Mitochondrion", position: 1)
+    attempt = QuizAttempt.create!(quiz: quiz, membership: membership, started_at: Time.current, last_activity_at: Time.current, submitted_at: Time.current)
+    attempt.answers.create!(quiz_question: question, short_answer_response: "Mitochondrion")
+    attempt.answer_overrides.create!(quiz_question: question, correct: false)
+
+    assert_equal 0, QuizAttemptGrader.new(attempt).correct_count
+    assert_equal 1, QuizAttemptGrader.new(attempt, use_overrides: false).correct_count
+  end
 end

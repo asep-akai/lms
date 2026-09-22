@@ -1,0 +1,36 @@
+<h1 class="title"><%= current_membership.id == class_meeting.teacher_membership_id ? "Student feedback" : "Teacher feedback" %></h1>
+<p class="subtitle"><%= class_meeting.subject %> · <%= class_meeting.topic %></p>
+
+<% if feedbacks.any? %>
+  <div class="mt-6 space-y-5">
+    <% feedbacks.each do |feedback| %>
+      <section class="rounded-lg border border-slate-200 p-5" aria-labelledby="feedback-<%= feedback.id %>-heading">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 id="feedback-<%= feedback.id %>-heading"><%= feedback.author_membership.user.name %></h2>
+            <p class="mt-1 text-sm text-slate-500"><%= feedback.created_at.in_time_zone(current_organization.timezone).strftime("%-d %b %Y, %H:%M %Z") %></p>
+          </div>
+          <span class="badge-neutral"><%= feedback.rating %>/5</span>
+        </div>
+
+        <% if feedback.student_feedback? %>
+          <p class="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700"><%= feedback.comment.presence || "No comment was added." %></p>
+        <% else %>
+          <p class="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700"><%= feedback.feedback_to_student %></p>
+          <dl class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <dt class="text-sm font-medium text-slate-500">Topics discussed</dt>
+              <dd class="mt-1 whitespace-pre-wrap text-sm text-slate-700"><%= feedback.topics_discussed %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-500">Next topics</dt>
+              <dd class="mt-1 whitespace-pre-wrap text-sm text-slate-700"><%= feedback.next_topics %></dd>
+            </div>
+          </dl>
+        <% end %>
+      </section>
+    <% end %>
+  </div>
+<% else %>
+  <div class="empty-state">No feedback has been submitted for this class.</div>
+<% end %>

@@ -1,0 +1,50 @@
+<% meeting = feedback.class_meeting %>
+<article>
+  <p class="eyebrow"><%= feedback.teacher_feedback? ? "Teacher feedback" : "Student feedback" %></p>
+  <h1 class="title"><%= meeting.subject %> · Meeting <%= meeting.meeting_number %></h1>
+  <p class="subtitle"><%= meeting.topic %></p>
+
+  <dl class="mt-6 grid gap-5 sm:grid-cols-2">
+    <div>
+      <dt class="text-sm font-medium text-slate-500">From</dt>
+      <dd class="mt-1 text-slate-950"><%= feedback.author_membership.user.name %></dd>
+    </div>
+    <div>
+      <dt class="text-sm font-medium text-slate-500">Rating</dt>
+      <dd class="mt-1 font-semibold text-slate-950"><%= feedback.rating %>/5</dd>
+    </div>
+  </dl>
+
+  <% if feedback.teacher_feedback? %>
+    <div class="mt-6 space-y-6">
+      <section aria-labelledby="student-feedback-heading">
+        <h2 id="student-feedback-heading">Feedback to students</h2>
+        <p class="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700"><%= feedback.feedback_to_student %></p>
+      </section>
+      <section aria-labelledby="topics-discussed-heading">
+        <h2 id="topics-discussed-heading">Topics discussed</h2>
+        <p class="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700"><%= feedback.topics_discussed %></p>
+      </section>
+      <section aria-labelledby="next-topics-heading">
+        <h2 id="next-topics-heading">Next topics</h2>
+        <p class="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700"><%= feedback.next_topics %></p>
+      </section>
+      <% if policy(feedback).view_internal? %>
+        <section class="rounded-lg border border-slate-200 bg-slate-50 p-4" aria-labelledby="internal-feedback-heading">
+          <p class="eyebrow">Private</p>
+          <h2 id="internal-feedback-heading" class="mt-1">Internal feedback</h2>
+          <p class="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700"><%= feedback.internal_feedback %></p>
+        </section>
+      <% end %>
+    </div>
+  <% else %>
+    <section class="mt-6" aria-labelledby="student-comment-heading">
+      <h2 id="student-comment-heading">Comment</h2>
+      <% if feedback.comment.present? %>
+        <p class="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700"><%= feedback.comment %></p>
+      <% else %>
+        <p class="mt-2 text-sm text-slate-500">No comment was added.</p>
+      <% end %>
+    </section>
+  <% end %>
+</article>

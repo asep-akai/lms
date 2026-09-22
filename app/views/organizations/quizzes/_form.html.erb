@@ -9,5 +9,7 @@
 <%= form_with model: [ current_organization, course, quiz ], class: "form-stack mt-8" do |form| %>
   <div><%= form.label :title, class: "label" %><%= form.text_field :title, required: true, maxlength: 160, autofocus: true, class: "field" %></div>
   <div><%= form.label :description, class: "label" %><%= form.text_area :description, maxlength: 5000, rows: 4, class: "field" %></div>
+  <%= render "organizations/quizzes/settings_fields", form: form %>
+  <div><%= form.label :course_section_id, "Section", class: "label" %><%= form.collection_select :course_section_id, course.course_sections.ordered, :id, :name, {}, class: "field" %><p class="hint">Choose where this quiz appears in the course.</p></div>
   <div class="actions"><%= form.submit "Create quiz", class: "btn-primary" %><%= link_to "Cancel", organization_course_quizzes_path(current_organization, course), class: "btn-secondary" %></div>
 <% end %>

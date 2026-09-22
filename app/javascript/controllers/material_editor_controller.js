@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["blocks", "block", "position", "destroy", "textTemplate", "imageTemplate"]
+  static targets = ["blocks", "block", "position", "destroy", "textTemplate", "imageTemplate", "videoTemplate"]
 
   connect() {
     this.updatePositions()
@@ -13,6 +13,10 @@ export default class extends Controller {
 
   addImage() {
     this.addFrom(this.imageTemplateTarget)
+  }
+
+  addVideo() {
+    this.addFrom(this.videoTemplateTarget)
   }
 
   moveUp(event) {
@@ -49,7 +53,7 @@ export default class extends Controller {
     const identifier = `${Date.now()}${Math.floor(Math.random() * 1000)}`
     this.blocksTarget.insertAdjacentHTML("beforeend", template.innerHTML.replaceAll("NEW_BLOCK", identifier))
     this.updatePositions()
-    this.blockTargets.at(-1)?.querySelector("[contenteditable], input[type='file']")?.focus()
+    this.blockTargets.at(-1)?.querySelector("[contenteditable], input[type='file'], input[type='url']")?.focus()
   }
 
   visibleBlocks() {

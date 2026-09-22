@@ -14,7 +14,7 @@
 
 <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
   <% @quizzes.each do |quiz| %>
-    <%= link_to(policy(quiz).update? ? organization_course_quiz_path(current_organization, @course, quiz) : attempt_organization_course_quiz_path(current_organization, @course, quiz), class: "card-link") do %>
+    <%= link_to organization_course_quiz_path(current_organization, @course, quiz), class: "card-link" do %>
       <h2><%= quiz.title %></h2>
       <% if quiz.description.present? %>
         <p class="subtitle"><%= truncate(quiz.description, length: 180) %></p>

@@ -5,7 +5,7 @@
   <%= block.hidden_field :_destroy, value: "0", data: { material_editor_target: "destroy" } %>
 
   <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
-    <p class="text-sm font-semibold text-slate-700"><%= block.object.text? ? "Text" : "Image" %></p>
+    <p class="text-sm font-semibold text-slate-700"><%= block.object.block_type.titleize %></p>
     <div class="actions">
       <button type="button" class="btn-secondary" data-action="material-editor#moveUp">Move up</button>
       <button type="button" class="btn-secondary" data-action="material-editor#moveDown">Move down</button>
@@ -39,7 +39,7 @@
         <div class="rich-editor" contenteditable="true" role="textbox" aria-label="Material text" aria-multiline="true" data-rich-text-editor-target="editor" data-action="input->rich-text-editor#synchronize"><%= sanitize(block.object.body_html, tags: MaterialBlock::ALLOWED_HTML_TAGS, attributes: MaterialBlock::ALLOWED_HTML_ATTRIBUTES) %></div>
         <%= block.hidden_field :body_html, data: { rich_text_editor_target: "input" } %>
       </div>
-    <% else %>
+    <% elsif block.object.image? %>
       <% if block.object.image.attached? %>
         <div class="mb-4 flex items-center gap-4">
           <%= image_tag block.object.image, alt: "", class: "h-24 w-32 rounded-lg object-cover" %>
@@ -49,6 +49,14 @@
       <%= block.label :image, block.object.image.attached? ? "Replace image" : "Choose image", class: "label" %>
       <%= block.file_field :image, accept: Material::ALLOWED_IMAGE_TYPES.join(","), class: "field", required: !block.object.image.attached? %>
       <p class="hint">JPEG, PNG, GIF, or WebP. Maximum 10 MB.</p>
+    <% else %>
+      <%= block.label :video_url, "YouTube URL", class: "label" %>
+      <%= block.url_field :video_url,
+        class: "field",
+        required: true,
+        maxlength: 2_000,
+        placeholder: "https://www.youtube.com/watch?v=…" %>
+      <p class="hint">Paste a YouTube watch, share, Shorts, or embed link.</p>
     <% end %>
   </div>
 </section>

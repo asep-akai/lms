@@ -20,6 +20,30 @@
 @layer components {
   dialog.dismissible-modal::backdrop { @apply cursor-pointer; }
 
+  dialog.blocking-dialog {
+    @apply m-auto w-[calc(100%-2rem)] max-w-md border-0 bg-transparent p-0;
+  }
+
+  dialog.blocking-dialog::backdrop {
+    @apply cursor-wait bg-slate-950/60;
+  }
+
+  dialog.quiz-connection-dialog {
+    @apply m-auto max-h-[90vh] w-[calc(100%-2rem)] max-w-xl rounded-xl border border-slate-200 bg-white p-6 shadow-xl;
+  }
+
+  dialog.quiz-connection-dialog::backdrop {
+    @apply bg-slate-950/50;
+  }
+
+  .blocking-panel {
+    @apply rounded-xl border border-slate-200 bg-white p-8 text-center shadow-xl;
+  }
+
+  .loading-spinner {
+    @apply mx-auto mb-5 size-10 animate-spin rounded-full border-4 border-slate-200 border-t-brand-600;
+  }
+
   .rich-editor ul,
   .rich-content ul {
     list-style-type: disc;
@@ -94,7 +118,7 @@
 @utility stat { @apply card p-5; }
 @utility stat-label { @apply text-sm text-slate-500; }
 @utility stat-value { @apply mt-2 text-3xl font-semibold; }
-@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold; }
+@utility btn { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold; }
 @utility btn-primary { @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700; }
 @utility btn-secondary { @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50; }
 @utility btn-danger { @apply btn bg-red-600 text-white hover:bg-red-500; }
@@ -110,7 +134,7 @@
 @utility badge-active { @apply badge bg-emerald-50 text-emerald-700 ring-emerald-600/20; }
 @utility badge-suspended { @apply badge bg-amber-50 text-amber-700 ring-amber-600/20; }
 @utility badge-neutral { @apply badge bg-slate-100 text-slate-600 ring-slate-500/20; }
-@utility table-wrap { @apply mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm; }
+@utility table-wrap { @apply mt-8 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm; }
 @utility data-table { @apply min-w-full divide-y divide-slate-200; }
 @utility th { @apply bg-slate-50 px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500; }
 @utility td { @apply px-5 py-4 text-sm text-slate-600; }
@@ -119,6 +143,9 @@
 @utility empty-state { @apply mt-8 rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500; }
 @utility checkbox-grid { @apply mt-3 grid gap-3 sm:grid-cols-2; }
 @utility checkbox-row { @apply flex gap-3 rounded-lg border border-slate-200 bg-white p-4; }
+@utility select-picker-trigger { @apply flex min-h-11 w-full items-center justify-between gap-4 rounded-lg border border-slate-300 bg-white px-3 py-2 text-left text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-600; }
+@utility select-picker-panel { @apply absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-slate-300 bg-white shadow-lg; }
+@utility select-picker-row { @apply flex min-h-11 items-center gap-3 border-b border-slate-200 px-3 py-2 last:border-b-0 hover:bg-slate-50; }
 @utility alert { @apply mb-6 rounded-lg border px-4 py-3 text-sm; }
 @utility alert-error { @apply alert border-red-200 bg-red-50 text-red-700; }
 @utility alert-success { @apply alert border-emerald-200 bg-emerald-50 text-emerald-700; }

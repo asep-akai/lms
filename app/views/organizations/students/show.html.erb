@@ -1,11 +1,22 @@
 <div class="page-header">
   <div>
-    <p class="eyebrow">Student progress</p>
+    <p class="eyebrow">Student overview</p>
     <h1 class="title"><%= @student.user.name %></h1>
     <p class="subtitle"><%= @student.user.email %></p>
   </div>
-  <%= back_link_to "Back to students", organization_students_path(current_organization) %>
+  <div class="actions">
+    <%= back_link_to "Back to students", organization_students_path(current_organization) %>
+    <% if policy(Assignment.new(organization: current_organization, teacher_membership: current_membership)).create? %>
+      <%= link_to "Give assignment", new_organization_assignment_path(current_organization, student_id: @student.id), class: "btn-primary" %>
+    <% end %>
+  </div>
 </div>
+
+<section class="mt-8" aria-labelledby="course-progress-heading">
+  <div>
+    <p class="eyebrow"><%= pluralize(@courses.size, "course") %></p>
+    <h2 id="course-progress-heading" class="mt-1">Course progress</h2>
+  </div>
 
 <% if @courses.any? %>
   <div class="mt-8 space-y-6">
@@ -14,7 +25,13 @@
       <section class="card card-body" aria-labelledby="student-course-<%= course.id %>">
         <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
           <div>
-            <h2 id="student-course-<%= course.id %>"><%= link_to course.name, organization_course_path(current_organization, course), class: "text-link" %></h2>
+            <h2 id="student-course-<%= course.id %>">
+              <% if policy(course).show? %>
+                <%= link_to course.name, organization_course_path(current_organization, course), class: "text-link" %>
+              <% else %>
+                <%= course.name %>
+              <% end %>
+            </h2>
             <p class="subtitle"><%= progress.completed_modules %> of <%= pluralize(progress.total_modules, "module") %> completed</p>
           </div>
           <div class="w-full sm:max-w-xs">
@@ -45,3 +62,107 @@
 <% else %>
   <div class="empty-state">This student is not enrolled in any courses yet.</div>
 <% end %>
+</section>
+
+<section class="mt-10" aria-labelledby="quiz-attempts-heading">
+  <div>
+    <p class="eyebrow"><%= pluralize(@quiz_attempts.size, "attempt") %></p>
+    <h2 id="quiz-attempts-heading" class="mt-1">Quiz attempts</h2>
+  </div>
+
+  <% if @quiz_attempts.any? %>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="th">Quiz</th>
+            <th class="th">Course</th>
+            <th class="th">Status</th>
+            <th class="th">Score</th>
+            <th class="th">Activity</th>
+            <th class="th">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @quiz_attempts.each do |attempt| %>
+            <% activity_at = attempt.reviewed_at || attempt.submitted_at || attempt.last_activity_at || attempt.started_at %>
+            <tr data-quiz-attempt-id="<%= attempt.id %>">
+              <td class="td"><strong class="text-slate-950"><%= attempt.quiz.title %></strong></td>
+              <td class="td"><%= attempt.quiz.course.name %></td>
+              <td class="td">
+                <% if attempt.cancelled? %>
+                  <span class="badge-neutral">Cancelled for retake</span>
+                <% elsif attempt.reviewed? %>
+                  <span class="badge-neutral">Reviewed</span>
+                <% elsif attempt.submitted? %>
+                  <span class="badge-suspended">Waiting for review</span>
+                <% else %>
+                  <span class="badge-active">In progress</span>
+                <% end %>
+              </td>
+              <td class="td">
+                <% if (grading = @gradings_by_attempt_id[attempt.id]) %>
+                  <strong class="text-slate-950"><%= grading.correct_count %>/<%= grading.total_count %></strong><br>
+                  <%= grading.percentage %>%
+                <% else %>
+                  <span class="text-slate-500">Not scored</span>
+                <% end %>
+              </td>
+              <td class="td">
+                <% if activity_at %>
+                  <time datetime="<%= activity_at.iso8601 %>"><%= l(activity_at, format: :short) %></time>
+                <% else %>
+                  <span class="text-slate-500">Not available</span>
+                <% end %>
+              </td>
+              <td class="td">
+                <% if attempt.cancelled? && policy(attempt).show? %>
+                  <%= link_to "View audit record", organization_grading_attempt_path(current_organization, attempt), class: "text-link" %>
+                <% elsif attempt.reviewed? && policy(attempt).result? %>
+                  <%= link_to "View results",
+                    organization_evaluation_attempt_path(current_organization, attempt, from: "student"),
+                    class: "text-link" %>
+                <% else %>
+                  <span class="text-slate-500">Not available</span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <div class="empty-state">This student has not started any quizzes yet.</div>
+  <% end %>
+</section>
+
+<section class="mt-10" aria-labelledby="student-certificates-heading">
+  <div>
+    <p class="eyebrow"><%= pluralize(@certificates.size, "certificate") %></p>
+    <h2 id="student-certificates-heading" class="mt-1">Certificates</h2>
+  </div>
+
+  <% if @certificates.any? %>
+    <ol class="card mt-5 divide-y divide-slate-200 overflow-hidden">
+      <% @certificates.each do |certificate| %>
+        <% presenter = Certificates::Presenter.for(certificate) %>
+        <li>
+          <article class="grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center" data-certificate-id="<%= certificate.id %>">
+            <div class="min-w-0">
+              <p class="eyebrow"><%= presenter.heading %></p>
+              <h3 class="mt-1 text-lg font-semibold text-slate-950"><%= presenter.exam_name %></h3>
+              <p class="mt-2 text-sm text-slate-600">
+                <%= presenter.score %> (<%= presenter.percentage %>%) · <%= presenter.test_date.strftime("%-d %B %Y") %>
+              </p>
+            </div>
+            <%= link_to "View certificate",
+              organization_certificate_path(current_organization, certificate, from: "student"),
+              class: "btn-secondary" %>
+          </article>
+        </li>
+      <% end %>
+    </ol>
+  <% else %>
+    <div class="empty-state">This student has no published certificates yet.</div>
+  <% end %>
+</section>

@@ -1,0 +1,13 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Assignments</p>
+    <h1 class="title">Create assignment</h1>
+    <p class="subtitle">Assign work to students from your classes.</p>
+  </div>
+  <%= back_link_to "Back to assignments", organization_assignments_path(current_organization) %>
+</div>
+
+<%= render "form",
+  assignment: @assignment,
+  submit_label: "Create assignment",
+  cancel_path: organization_assignments_path(current_organization) %>

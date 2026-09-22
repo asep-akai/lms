@@ -1,0 +1,65 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Organization</p>
+    <h1 class="title">Classes</h1>
+    <p class="subtitle">Scheduled class meetings available to you in <%= current_organization.name %>.</p>
+  </div>
+  <div class="actions">
+    <%= back_link_to "Back to organization", organization_path(current_organization) %>
+    <% if policy(ClassMeeting).create? %>
+      <%= link_to "Schedule class", new_organization_class_meeting_path(current_organization), class: "btn-primary" %>
+    <% end %>
+  </div>
+</div>
+
+<%= render "tabs", active: :schedule %>
+
+<%= render "calendar",
+  calendar: @calendar,
+  month_path: ->(month) { organization_class_meetings_path(current_organization, month: month) } %>
+
+<section class="mt-10" aria-labelledby="class-list-heading">
+  <div>
+    <p class="eyebrow">Upcoming</p>
+    <h2 id="class-list-heading" class="mt-1">Scheduled classes</h2>
+  </div>
+  <div class="mt-5 grid gap-4 lg:grid-cols-2">
+  <% @class_meetings.each do |class_meeting| %>
+    <article class="card card-body flex flex-col">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p class="eyebrow"><%= class_meeting.subject %> · Meeting <%= class_meeting.meeting_number %></p>
+          <h2 class="mt-1"><%= class_meeting.topic %></h2>
+        </div>
+        <span class="<%= class_meeting.online? ? "badge-active" : "badge-neutral" %>"><%= class_meeting.delivery_mode.humanize %></span>
+      </div>
+      <dl class="mt-5 grid gap-4 text-sm sm:grid-cols-2">
+        <div>
+          <dt class="font-medium text-slate-500">Date and time</dt>
+          <dd class="mt-1 text-slate-950"><%= class_meeting.starts_at.in_time_zone(current_organization.timezone).strftime("%-d %b %Y, %H:%M %Z") %></dd>
+        </div>
+        <div>
+          <dt class="font-medium text-slate-500">Teacher</dt>
+          <dd class="mt-1 text-slate-950"><%= class_meeting.teacher_membership.user.name %></dd>
+        </div>
+        <div>
+          <dt class="font-medium text-slate-500">Students</dt>
+          <dd class="mt-1 text-slate-950"><%= pluralize(class_meeting.student_memberships.size, "student") %></dd>
+        </div>
+      </dl>
+      <div class="actions mt-auto pt-6">
+        <%= link_to "View class",
+          organization_class_meeting_path(current_organization, class_meeting, month: @calendar.month_key),
+          class: "btn-secondary" %>
+        <% if policy(class_meeting).update? %>
+          <%= link_to "Edit class", edit_organization_class_meeting_path(current_organization, class_meeting), class: "text-link self-center" %>
+        <% end %>
+      </div>
+    </article>
+  <% end %>
+  </div>
+</section>
+
+<% if @class_meetings.empty? %>
+  <div class="empty-state">No class meetings are scheduled for you.</div>
+<% end %>

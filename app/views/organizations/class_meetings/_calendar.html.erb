@@ -1,0 +1,78 @@
+<%= turbo_frame_tag "class-meeting-calendar" do %>
+  <section class="card mt-8 overflow-hidden" aria-labelledby="class-calendar-heading">
+    <div class="flex flex-col gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div>
+        <p class="eyebrow"><%= pluralize(calendar.total_count, "class") %> on this calendar</p>
+        <h2 id="class-calendar-heading" class="mt-1"><%= calendar.month_label %></h2>
+      </div>
+      <nav class="actions" aria-label="Calendar month navigation">
+        <%= link_to "← Previous",
+          month_path.call(calendar.previous_month_key),
+          class: "btn-secondary",
+          aria: { label: "Previous month" },
+          data: { turbo_frame: "class-meeting-calendar" } %>
+        <% if calendar.current_month? %>
+          <button type="button" class="btn-disabled" disabled aria-current="date">Today</button>
+        <% else %>
+          <%= link_to "Today",
+            month_path.call(nil),
+            class: "btn-secondary",
+            data: { turbo_frame: "class-meeting-calendar" } %>
+        <% end %>
+        <%= link_to "Next →",
+          month_path.call(calendar.next_month_key),
+          class: "btn-secondary",
+          aria: { label: "Next month" },
+          data: { turbo_frame: "class-meeting-calendar" } %>
+      </nav>
+    </div>
+
+    <div class="overflow-x-auto p-4 sm:p-6" tabindex="0" aria-label="Scrollable monthly class calendar">
+      <div class="min-w-[48rem] overflow-hidden rounded-xl border border-slate-200">
+        <div class="grid grid-cols-7 border-b border-slate-200 bg-slate-50" role="row">
+          <% %w[Monday Tuesday Wednesday Thursday Friday Saturday Sunday].each do |weekday| %>
+            <div class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-500" role="columnheader">
+              <span class="sm:hidden"><%= weekday.first(3) %></span>
+              <span class="hidden sm:inline"><%= weekday %></span>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="grid grid-cols-7 bg-slate-200 gap-px" role="grid" aria-label="<%= calendar.month_label %>">
+          <% calendar.weeks.flatten.each do |date| %>
+            <% meetings = calendar.meetings_on(date) %>
+            <%= link_to calendar_day_organization_class_meetings_path(current_organization, date: date.iso8601, modal: 1),
+              class: [
+                "group min-h-32 bg-white p-2.5 text-left transition hover:bg-brand-50 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-600",
+                ("bg-slate-50 text-slate-400" unless calendar.in_month?(date)),
+                ("ring-2 ring-inset ring-brand-600" if calendar.today?(date))
+              ],
+              aria: { label: "View classes on #{date.strftime('%-d %B %Y')}" },
+              data: { turbo_frame: "modal" },
+              role: "gridcell" do %>
+              <div class="flex items-center justify-between gap-2">
+                <time datetime="<%= date.iso8601 %>" class="text-xs font-semibold <%= calendar.today?(date) ? "rounded-full bg-brand-600 px-2 py-1 text-white" : "text-inherit" %>">
+                  <%= date.day %>
+                </time>
+                <% if meetings.any? %>
+                  <span class="text-xs text-slate-500"><%= meetings.size %></span>
+                <% end %>
+              </div>
+              <div class="mt-2 space-y-1.5">
+                <% meetings.first(3).each do |class_meeting| %>
+                  <span class="block truncate rounded-md bg-brand-100 px-2 py-1.5 text-xs font-medium text-brand-900">
+                    <%= class_meeting.starts_at.in_time_zone(current_organization.timezone).strftime("%H:%M") %>
+                    · <%= class_meeting.subject %>
+                  </span>
+                <% end %>
+                <% if meetings.size > 3 %>
+                  <span class="block px-1 text-xs font-medium text-brand-700">+<%= meetings.size - 3 %> more</span>
+                <% end %>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </section>
+<% end %>

@@ -7,6 +7,13 @@
   <%= back_link_to "Back to organization", organization_path(current_organization) %>
 </div>
 
+<%= render "shared/table_search",
+  url: organization_evaluation_path(current_organization),
+  query: @query,
+  label: "Search results",
+  placeholder: "Search by quiz or course" %>
+
+<% if @attempts.any? %>
 <div class="table-wrap">
   <table class="data-table">
     <thead>
@@ -26,13 +33,23 @@
           <td class="td"><%= attempt.quiz.course.name %></td>
           <td class="td"><strong class="text-slate-950"><%= grading.correct_count %>/<%= grading.total_count %></strong><br><%= grading.percentage %>%</td>
           <td class="td"><time datetime="<%= attempt.reviewed_at.iso8601 %>"><%= l(attempt.reviewed_at, format: :short) %></time></td>
-          <td class="td"><%= link_to "View results", organization_evaluation_attempt_path(current_organization, attempt), class: "text-link" %></td>
+          <td class="td">
+            <div class="flex flex-wrap gap-3">
+              <%= link_to "View results", organization_evaluation_attempt_path(current_organization, attempt), class: "text-link" %>
+              <% if (certificate = attempt.result_certificate) %>
+                <%= link_to "View certificate",
+                  organization_certificate_path(current_organization, certificate, from: "evaluation"),
+                  class: "text-link" %>
+              <% end %>
+            </div>
+          </td>
         </tr>
       <% end %>
     </tbody>
   </table>
 </div>
-
-<% if @attempts.empty? %>
-  <div class="empty-state">You do not have any reviewed quiz results yet.</div>
+<% elsif @query.present? %>
+  <div class="empty-state">No published results match “<%= @query %>”. Try another search or clear it.</div>
+<% else %>
+  <div class="empty-state">You do not have any published quiz results yet.</div>
 <% end %>

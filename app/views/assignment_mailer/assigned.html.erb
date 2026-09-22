@@ -1,0 +1,10 @@
+<h1>New assignment</h1>
+<p>Hello <%= @student.name %>,</p>
+<p><%= @assignment.teacher_membership.user.name %> assigned you new work.</p>
+<dl>
+  <dt><strong>Assignment</strong></dt>
+  <dd><%= @assignment.title %></dd>
+  <dt><strong>Deadline</strong></dt>
+  <dd><%= @deadline.strftime("%-d %B %Y at %H:%M %Z") %></dd>
+</dl>
+<p><%= link_to "View assignment", organization_assignment_url(@assignment.organization, @assignment) %></p>

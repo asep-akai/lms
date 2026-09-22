@@ -1,0 +1,15 @@
+Class scheduled
+
+Hello <%= @recipient.name %>,
+
+You have been assigned to the following class meeting as a <%= @recipient_role.downcase %>:
+
+Subject: <%= @class_meeting.subject %>
+Meeting: <%= @class_meeting.meeting_number %>
+Topic: <%= @class_meeting.topic %>
+Date and time: <%= @starts_at.strftime("%-d %B %Y at %H:%M %Z") %>
+Delivery: <%= @class_meeting.delivery_mode.humanize %>
+<% if @class_meeting.online? && @class_meeting.meeting_url.present? %>Online meeting: <%= @class_meeting.meeting_url %>
+<% end %>
+
+Please contact your organization administrator if these details are incorrect.

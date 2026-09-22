@@ -1,0 +1,14 @@
+<% if quiz.time_limited? || quiz.retake_limit.to_i.positive? %>
+  <div class="mt-5 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+    <h3 class="font-semibold">Before you begin</h3>
+    <ul class="mt-2 list-disc space-y-1 pl-5">
+      <% if quiz.time_limited? %>
+        <li>You have <%= pluralize(quiz.time_limit_minutes, "minute") %>. The timer starts when the first question opens and continues if you leave or close the quiz.</li>
+        <li>When time runs out, your saved answers are submitted automatically.</li>
+      <% end %>
+      <% if quiz.retake_limit.to_i.positive? %>
+        <li>This quiz allows <%= pluralize(quiz.retake_limit, "retake") %>. Starting one cancels the previous attempt and its published result.</li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>

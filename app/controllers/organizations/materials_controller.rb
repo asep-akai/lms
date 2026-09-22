@@ -32,6 +32,7 @@ class Organizations::MaterialsController < Organizations::BaseController
 
   def new
     @material = @course.materials.new
+    @material.course_section_id = params[:course_section_id]
     @material.blocks.build(block_type: "text", position: 1)
     authorize @material
   end
@@ -50,12 +51,14 @@ class Organizations::MaterialsController < Organizations::BaseController
 
   def edit
     authorize @material
+    @material.course_section_id = @material.course_content.course_section_id
   end
 
   def update
     authorize @material
 
     if @material.update(material_params)
+      move_to_selected_section(@material)
       record_audit("material.updated", changes: @material.saved_changes.slice("title", "description"))
       redirect_to organization_course_material_path(Current.organization, @course, @material, from: navigation_source), notice: "Material updated."
     else
@@ -83,8 +86,8 @@ class Organizations::MaterialsController < Organizations::BaseController
 
     def material_params
       permitted = params.require(:material).permit(
-        :title, :description, :cover_image, :remove_cover_image,
-        blocks_attributes: %i[id block_type body_html position image _destroy]
+        :title, :description, :cover_image, :remove_cover_image, :course_section_id,
+        blocks_attributes: %i[id block_type body_html position image video_url _destroy]
       )
       normalize_block_positions(permitted)
       permitted.delete(:cover_image) if permitted[:cover_image].blank?
@@ -107,6 +110,23 @@ class Organizations::MaterialsController < Organizations::BaseController
 
     def record_audit(action, changes: {})
       AuditRecorder.record!(action: action, auditable: @material, metadata: { title: @material.title }, changes: changes)
+    end
+
+    def move_to_selected_section(material)
+      return if material.course_section_id.blank?
+
+      target_section = @course.course_sections.find(material.course_section_id)
+      return if material.course_content.course_section == target_section
+
+      move_content_to_section(material.course_content, target_section)
+    end
+
+    def move_content_to_section(content, target_section)
+      source_section = content.course_section
+      content.update!(course_section: target_section, position: target_section.course_contents.maximum(:position).to_i + 1)
+      source_section.course_contents.ordered_within_section.each_with_index do |source_content, index|
+        source_content.update_columns(position: index + 1)
+      end
     end
 
     def navigation_source

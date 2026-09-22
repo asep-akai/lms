@@ -1,0 +1,69 @@
+<% selected_ids = Array(selected_student_ids).map(&:to_i) %>
+<fieldset data-controller="searchable-multiselect"
+  data-action="click@window->searchable-multiselect#closeOnOutside keydown@window->searchable-multiselect#closeOnEscape">
+  <legend class="label"><%= legend %></legend>
+  <% if local_assigns[:hint].present? %>
+    <p class="hint"><%= hint %></p>
+  <% end %>
+
+  <%= hidden_field_tag "#{field_name}[]", "" %>
+  <% if students.any? %>
+    <div class="relative mt-2">
+      <button type="button"
+        class="select-picker-trigger"
+        aria-controls="<%= id_prefix %>-student-options"
+        aria-expanded="false"
+        data-searchable-multiselect-target="button"
+        data-action="searchable-multiselect#toggle">
+        <span data-searchable-multiselect-target="summary">Select students</span>
+        <span class="shrink-0 text-xs font-medium text-brand-700" data-searchable-multiselect-target="toggleLabel">Open list</span>
+      </button>
+
+      <div id="<%= id_prefix %>-student-options"
+        class="select-picker-panel"
+        data-searchable-multiselect-target="panel"
+        hidden>
+        <div class="border-b border-slate-200 p-3">
+          <label for="<%= id_prefix %>-student-search" class="label">Search students</label>
+          <input id="<%= id_prefix %>-student-search"
+            type="search"
+            class="field"
+            placeholder="Search by name or email"
+            autocomplete="off"
+            data-searchable-multiselect-target="search"
+            data-action="input->searchable-multiselect#filter">
+        </div>
+        <div class="max-h-64 overflow-y-auto" aria-label="Available students">
+          <% students.each do |student| %>
+            <label class="select-picker-row"
+              data-searchable-multiselect-target="row"
+              data-search="<%= "#{student.user.name} #{student.user.email}".downcase %>">
+              <%= check_box_tag "#{field_name}[]",
+                student.id,
+                selected_ids.include?(student.id),
+                class: "size-4 rounded border-slate-300 text-brand-600 focus:ring-brand-600",
+                data: {
+                  searchable_multiselect_target: "checkbox",
+                  label: student.user.name,
+                  action: "change->searchable-multiselect#updateSummary"
+                } %>
+              <span class="min-w-0">
+                <strong class="block truncate text-sm text-slate-950"><%= student.user.name %></strong>
+                <span class="block truncate text-xs text-slate-600"><%= student.user.email %></span>
+              </span>
+            </label>
+          <% end %>
+          <p class="p-4 text-sm text-slate-600" data-searchable-multiselect-target="empty" hidden>No students match this search.</p>
+        </div>
+        <div class="flex justify-end border-t border-slate-200 bg-slate-50 p-3">
+          <button type="button" class="btn-secondary" data-action="searchable-multiselect#close">Done</button>
+        </div>
+      </div>
+    </div>
+    <p class="hint" aria-live="polite" data-searchable-multiselect-target="count">
+      <%= pluralize(selected_ids.size, "student") %> selected
+    </p>
+  <% else %>
+    <div class="<%= local_assigns.fetch(:empty_class, "empty-state") %>"><%= empty_message %></div>
+  <% end %>
+</fieldset>

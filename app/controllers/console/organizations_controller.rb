@@ -4,11 +4,17 @@ module Console
 
     def index
       authorize Organization
-      @organizations = policy_scope(Organization).order(:name)
+      @query = TableSearch.normalize(params[:query])
+      organizations = TableSearch.call(
+        policy_scope(Organization),
+        query: @query,
+        columns: %w[organizations.name organizations.slug organizations.status organizations.timezone]
+      )
+      @organizations = organizations.order(:name)
     end
 
     def new
-      @organization = Organization.new(timezone: "UTC", locale: "en")
+      @organization = Organization.new(timezone: "Jakarta", locale: "en")
       authorize @organization
     end
 

@@ -14,7 +14,7 @@
       <p class="hint">
         <%= organization.slug %>
       </p>
-      <% roles = @roles_by_organization_id.fetch(organization.id, []) %>
+      <% roles = @roles_by_organization_id.to_h.fetch(organization.id, []) %>
       <p class="subtitle">
         <%= roles.any? ? roles.map(&:name).to_sentence : "No role assigned" %>
       </p>

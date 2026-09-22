@@ -4,9 +4,16 @@
   <div>
     <p class="eyebrow"><%= course.name %> · <%= quiz.title %></p>
     <h1 class="title">Quiz results</h1>
-    <p class="subtitle">Reviewed <%= l(@attempt.reviewed_at, format: :short) %></p>
+    <p class="subtitle">Published <%= l(@attempt.reviewed_at, format: :short) %></p>
   </div>
-  <%= back_link_to @back_label, @back_path %>
+  <div class="actions">
+    <%= back_link_to @back_label, @back_path %>
+    <% if (certificate = @attempt.result_certificate) %>
+      <%= link_to "View certificate",
+        organization_certificate_path(current_organization, certificate, from: "evaluation"),
+        class: "btn-primary" %>
+    <% end %>
+  </div>
 </div>
 
 <section class="card card-body mt-8" aria-labelledby="evaluation-score-heading">
@@ -14,6 +21,23 @@
   <h2 id="evaluation-score-heading" class="mt-1"><%= @grading.correct_count %>/<%= @grading.total_count %></h2>
   <p class="mt-1 text-2xl font-semibold text-slate-950"><%= @grading.percentage %>%</p>
 </section>
+
+<% if QuizAttempt::FEEDBACK_FIELDS.any? { |field| @attempt.public_send(field).present? } %>
+  <section class="card card-body mt-8" aria-labelledby="feedback-heading">
+    <p class="eyebrow">Reviewer feedback</p>
+    <h2 id="feedback-heading" class="mt-1">Performance analysis</h2>
+    <div class="mt-5 grid gap-5 lg:grid-cols-2">
+      <% [ [ "Analysis", :performance_analysis ], [ "Strengths", :strengths ], [ "Areas to improve", :weaknesses ], [ "Recommendations", :recommendations ] ].each do |label, field| %>
+        <% if @attempt.public_send(field).present? %>
+          <div>
+            <h3 class="text-sm font-semibold text-slate-700"><%= label %></h3>
+            <p class="mt-2 whitespace-pre-wrap text-slate-800"><%= @attempt.public_send(field) %></p>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+<% end %>
 
 <div class="mt-8 space-y-4">
   <% @grading.results.each do |result| %>
@@ -27,7 +51,7 @@
       <div class="rich-content mt-3 text-slate-800"><%= sanitize(question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div>
       <div class="mt-5 grid gap-5 border-t border-slate-200 pt-4 sm:grid-cols-2">
         <div>
-          <p class="text-sm font-medium text-slate-700">Your answer</p>
+          <p class="text-sm font-medium text-slate-700"><%= current_membership.student? ? "Your answer" : "Student answer" %></p>
           <% if answer %>
             <p class="mt-2 whitespace-pre-wrap text-slate-950"><%= question.multiple_choice? ? answer.quiz_answer_option&.content : answer.short_answer_response %></p>
           <% else %>

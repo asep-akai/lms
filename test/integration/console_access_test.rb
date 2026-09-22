@@ -60,6 +60,20 @@ class ConsoleAccessTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "administrator searches users by organization" do
+    matching_user = User.create!(name: "Searchable User", email: "searchable@example.com", password: "password", status: "active")
+    organizations(:two).memberships.create!(user: matching_user, status: "active")
+    other_user = User.create!(name: "Other User", email: "other-search@example.com", password: "password", status: "active")
+
+    sign_in admins(:one), scope: :admin
+    get console_users_path(query: organizations(:two).slug)
+
+    assert_response :success
+    assert_select "input[type='search'][name='query'][value='#{organizations(:two).slug}']"
+    assert_select "tr", text: /#{Regexp.escape(matching_user.email)}/
+    assert_select "tr", { text: /#{Regexp.escape(other_user.email)}/, count: 0 }
+  end
+
   test "console role management excludes organization permissions" do
     role = Role.create!(name: "Support administrator", key: "support_admin", organization: nil)
     console_permission = Permission.find_by!(key: "users.index")

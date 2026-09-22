@@ -1,0 +1,21 @@
+<h1 class="title">Enroll <%= student.user.name %></h1>
+<p class="subtitle">Choose a course this student has not joined yet.</p>
+
+<% if @available_courses.any? %>
+  <%= form_with url: enroll_organization_student_path(current_organization, student), class: "form-stack mt-6", data: { turbo_frame: "_top" } do |form| %>
+    <%= hidden_field_tag :modal, "1" if modal_request? %>
+    <div>
+      <%= form.label :course_id, "Course", class: "label" %>
+      <%= form.collection_select :course_id, @available_courses, :id, :name, {}, class: "field" %>
+    </div>
+    <div class="actions">
+      <%= form.submit "Enroll student", class: "btn-primary" %>
+      <%= link_to "Cancel", organization_students_path(current_organization), class: "btn-secondary", data: { turbo_frame: "_top" } %>
+    </div>
+  <% end %>
+<% else %>
+  <div class="empty-state">This student is already enrolled in every available course.</div>
+  <div class="actions mt-4">
+    <%= link_to "Back to students", organization_students_path(current_organization), class: "btn-secondary", data: { turbo_frame: "_top" } %>
+  </div>
+<% end %>

@@ -8,14 +8,23 @@
 </div>
 
 <nav class="actions mt-6" aria-label="Filter attempts">
-  <% [ [ "All", nil ], [ "In progress", "in_progress" ], [ "Waiting for review", "waiting_for_review" ], [ "Reviewed", "reviewed" ] ].each do |label, status| %>
+  <% [ [ "All", nil ], [ "In progress", "in_progress" ], [ "Waiting for review", "waiting_for_review" ], [ "Waiting for confirmation", "waiting_for_confirmation" ], [ "Published", "reviewed" ], [ "Cancelled", "cancelled" ] ].each do |label, status| %>
     <%= link_to label,
-      organization_grading_path(current_organization, status: status),
+      organization_grading_path(current_organization, status: status, query: @query.presence),
       class: @status == status ? "btn-primary" : "btn-secondary",
       aria: (@status == status ? { current: "page" } : {}) %>
   <% end %>
 </nav>
 
+<%= render "shared/table_search",
+  url: organization_grading_path(current_organization),
+  query: @query,
+  label: "Search attempts",
+  placeholder: "Search by quiz, course, student, or email",
+  hidden_params: { status: @status },
+  clear_url: organization_grading_path(current_organization, status: @status) %>
+
+<% if @attempts.any? %>
 <div class="table-wrap">
   <table class="data-table">
     <thead>
@@ -36,8 +45,14 @@
           <td class="td"><%= attempt.quiz.course.name %></td>
           <td class="td"><strong class="text-slate-950"><%= attempt.membership.user.name %></strong><br><%= attempt.membership.user.email %></td>
           <td class="td">
-            <% if attempt.reviewed? %>
-              <span class="badge-neutral">Reviewed</span>
+            <% if attempt.cancelled? %>
+              <span class="badge-neutral">Cancelled for retake</span>
+            <% elsif attempt.reviewed? %>
+              <span class="badge-neutral">Published</span>
+            <% elsif attempt.timed_out? %>
+              <span class="badge-suspended">Timed out, waiting for review</span>
+            <% elsif attempt.waiting_for_confirmation? %>
+              <span class="badge-suspended">Waiting for confirmation</span>
             <% elsif attempt.waiting_for_review? %>
               <span class="badge-suspended">Waiting for review</span>
             <% else %>
@@ -49,7 +64,7 @@
               <% grading = @gradings_by_attempt_id.fetch(attempt.id) %>
               <strong class="text-slate-950"><%= grading.correct_count %>/<%= grading.total_count %></strong><br><%= grading.percentage %>%
             <% else %>
-              <span class="text-slate-400">—</span>
+              <span class="text-slate-500">Not published</span>
             <% end %>
           </td>
           <td class="td">
@@ -57,8 +72,27 @@
             <time datetime="<%= activity_at.iso8601 %>"><%= l(activity_at, format: :short) %></time>
           </td>
           <td class="td">
-            <% if policy(attempt).show? %>
-              <%= link_to "View attempt", organization_grading_attempt_path(current_organization, attempt), class: "text-link" %>
+            <% if attempt.cancelled? %>
+              <%= link_to "View audit record", organization_grading_attempt_path(current_organization, attempt), class: "text-link" %>
+            <% elsif attempt.submitted? && !attempt.reviewed? %>
+              <div class="flex flex-wrap gap-2">
+                <% if policy(attempt).show? %>
+                  <%= link_to "Manual grading", organization_grading_attempt_path(current_organization, attempt), class: "btn-secondary" %>
+                <% end %>
+                <% if policy(attempt).ai_analyze? %>
+                  <%= button_to "Automatic grading",
+                    organization_automatic_grade_attempt_path(current_organization, attempt),
+                    method: :post,
+                    form: { data: {
+                      controller: "blocking-submit",
+                      action: "turbo:submit-start->blocking-submit#start turbo:submit-end->blocking-submit#finish",
+                      turbo_confirm: ("Replace the current AI analysis with a newly generated draft?" if attempt.ai_analysis_generated_at?)
+                    }.compact },
+                    class: "btn-primary" %>
+                <% end %>
+              </div>
+            <% elsif policy(attempt).show? %>
+              <%= link_to attempt.reviewed? ? "View grading" : "View attempt", organization_grading_attempt_path(current_organization, attempt), class: "text-link" %>
             <% else %>
               <span class="text-slate-400">No access</span>
             <% end %>
@@ -68,7 +102,8 @@
     </tbody>
   </table>
 </div>
-
-<% if @attempts.empty? %>
-  <div class="empty-state">No attempts match this filter.</div>
+<% elsif @query.present? %>
+  <div class="empty-state">No attempts match “<%= @query %>” with this status filter. Try another search or clear it.</div>
+<% else %>
+  <div class="empty-state">No attempts match this status filter.</div>
 <% end %>

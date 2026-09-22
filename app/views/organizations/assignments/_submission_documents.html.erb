@@ -1,0 +1,13 @@
+<% if submission.documents.attached? %>
+  <div class="mt-5">
+    <p class="label">Submitted documents</p>
+    <ul class="mt-2 space-y-2">
+      <% submission.documents_attachments.each do |attachment| %>
+        <li><%= link_to attachment.filename,
+          organization_assignment_submission_document_path(current_organization, assignment, submission_id: submission.id, attachment_id: attachment.id),
+          class: "text-link",
+          data: { turbo: false } %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>

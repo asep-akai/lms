@@ -5,6 +5,14 @@
   </div>
   <%= link_to "New role", new_console_role_path, class: "btn-primary" %>
 </div>
+
+<%= render "shared/table_search",
+  url: console_roles_path,
+  query: @query,
+  label: "Search console roles",
+  placeholder: "Search by name, key, or description" %>
+
+<% if @roles.any? %>
 <div class="table-wrap">
   <table class="data-table">
     <thead>
@@ -42,3 +50,8 @@
     </tbody>
   </table>
 </div>
+<% elsif @query.present? %>
+  <div class="empty-state">No console roles match “<%= @query %>”. Try another search or clear it.</div>
+<% else %>
+  <div class="empty-state">No console roles are available.</div>
+<% end %>

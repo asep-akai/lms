@@ -26,6 +26,18 @@
       <figure>
         <%= image_tag block.image, alt: block.image.filename.to_s, class: "mx-auto h-auto max-w-full rounded-lg" %>
       </figure>
+    <% elsif block.video? %>
+      <div class="aspect-video overflow-hidden rounded-lg bg-slate-950">
+        <iframe
+          src="<%= block.youtube_embed_url %>"
+          title="YouTube video: <%= @material.title %>"
+          class="h-full w-full"
+          loading="lazy"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen
+        ></iframe>
+      </div>
     <% end %>
   <% end %>
 </article>

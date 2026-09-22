@@ -1,0 +1,9 @@
+New assignment comment
+
+Hello <%= @student.name %>,
+
+<%= @teacher.name %> commented on <%= @assignment.title %>:
+
+<%= @submission.teacher_comment %>
+
+View assignment: <%= organization_assignment_url(@assignment.organization, @assignment) %>

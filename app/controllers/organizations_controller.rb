@@ -3,12 +3,13 @@ class OrganizationsController < AppController
 
   def index
     authorize Organization
-    @organizations = policy_scope(Organization).order(:name)
+    load_organization_directory
   end
 
   def show
     authorize @organization
-    @roles = Current.membership.roles.ordered
+    @roles = Current.membership.roles.ordered unless Current.membership.student? || Current.membership.teacher?
+    load_class_calendar if Current.membership.student? || Current.membership.teacher?
   end
 
   def edit
@@ -39,5 +40,13 @@ class OrganizationsController < AppController
 
     def organization_params
       params.require(:organization).permit(:name, :slug, :timezone, :locale)
+    end
+
+    def load_class_calendar
+      @class_calendar = ClassMeetingCalendar.new(
+        scope: @organization.class_meetings.assigned_to(Current.membership),
+        month: params[:month],
+        time_zone: @organization.timezone
+      )
     end
 end

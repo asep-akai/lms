@@ -1,0 +1,25 @@
+<nav class="mt-8 flex gap-2 border-b border-slate-200" aria-label="Class views">
+  <%= link_to "Schedule",
+    organization_class_meetings_path(current_organization),
+    class: [
+      "border-b-2 px-4 py-3 text-sm font-semibold",
+      active == :schedule ? "border-brand-600 text-brand-700" : "border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-950"
+    ],
+    aria: { current: ("page" if active == :schedule) } %>
+  <%= link_to "Class history",
+    history_organization_class_meetings_path(current_organization),
+    class: [
+      "border-b-2 px-4 py-3 text-sm font-semibold",
+      active == :history ? "border-brand-600 text-brand-700" : "border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-950"
+    ],
+    aria: { current: ("page" if active == :history) } %>
+  <% if can?("class_meeting_feedbacks.index") %>
+    <%= link_to "Feedback",
+      organization_class_feedback_path(current_organization),
+      class: [
+        "border-b-2 px-4 py-3 text-sm font-semibold",
+        active == :feedback ? "border-brand-600 text-brand-700" : "border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-950"
+      ],
+      aria: { current: ("page" if active == :feedback) } %>
+  <% end %>
+</nav>

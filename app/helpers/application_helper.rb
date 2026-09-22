@@ -10,6 +10,10 @@ module ApplicationHelper
     status == "active" ? "badge-active" : "badge-suspended"
   end
 
+  def time_zone_label(time_zone)
+    Time.current.in_time_zone(time_zone).strftime("%Z")
+  end
+
   def modal_link_to(name, url, **options)
     modal_url = url_for(url).include?("?") ? "#{url_for(url)}&modal=1" : "#{url_for(url)}?modal=1"
     data = options.delete(:data).to_h.merge(turbo_frame: "modal")

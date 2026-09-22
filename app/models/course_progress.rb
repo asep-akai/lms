@@ -42,6 +42,7 @@ class CourseProgress
       end
 
     QuizAttempt.joins(quiz: :course)
+      .active
       .where(membership_id: membership_ids, quizzes: { course_id: course_ids })
       .where.not(submitted_at: nil)
       .pluck("quizzes.course_id", :membership_id, :quiz_id)

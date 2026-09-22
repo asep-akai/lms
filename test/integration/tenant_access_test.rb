@@ -184,6 +184,7 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     question = quiz.questions.create!(question_type: "short_answer", content_html: "<p>Name an organelle.</p>", short_answer: "Mitochondrion", position: 1)
     attempt = QuizAttempt.create!(quiz: quiz, membership: student_membership, started_at: 1.hour.ago, last_activity_at: Time.current, submitted_at: Time.current)
     attempt.answers.create!(quiz_question: question, short_answer_response: "Mitochondrion")
+    attempt.answer_overrides.create!(quiz_question: question, correct: false)
     older_quiz = course.quizzes.create!(title: "Earlier assessment")
     QuizAttempt.create!(quiz: older_quiz, membership: student_membership, started_at: 3.hours.ago, last_activity_at: 2.hours.ago)
 
@@ -193,9 +194,17 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     assert_select "tr", text: /Cells check-in.*Biology.*Student User.*Waiting for review/m
     assert_operator response.body.index("Cells check-in"), :<, response.body.index("Earlier assessment")
     assert_select "tr", text: /Cells check-in/ do
-      assert_select ".attempt-score", text: "—"
+      assert_select ".attempt-score", text: "Not published"
     end
     assert_select "a", text: "View attempt", count: 0
+
+    get organization_grading_path(organizations(:one), status: "waiting_for_review", query: "Cells")
+    assert_response :success
+    assert_select "input[type='hidden'][name='status'][value='waiting_for_review']"
+    assert_select "input[type='search'][name='query'][value='Cells']"
+    assert_select "tr", text: /Cells check-in/
+    assert_select "td", text: "Earlier assessment", count: 0
+    assert_select "nav[aria-label='Filter attempts'] a[href*='query=Cells']", minimum: 1
 
     get organization_grading_path(organizations(:one), status: "in_progress")
     assert_response :success
@@ -240,7 +249,7 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
 
     get organization_grading_path(organizations(:one), status: "reviewed")
     assert_response :success
-    assert_select "tr", text: /Cells check-in.*Biology.*Student User.*Reviewed/m
+    assert_select "tr", text: /Cells check-in.*Biology.*Student User.*Published/m
     assert_select "tr", text: /Cells check-in/ do
       assert_select ".attempt-score", text: /1\/1.*100%/m
     end
@@ -268,10 +277,121 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     get organization_course_path(organizations(:one), course)
     assert_response :success
     assert_select "a", text: "View quiz"
+    assert_select "#course-content-#{quiz.course_content.id}" do
+      assert_select ".badge-neutral", text: "Not started"
+      assert_select ".badge-active", text: "In progress", count: 0
+    end
 
     get organization_course_quiz_path(organizations(:one), course, quiz, from: "course")
     assert_response :success
     assert_select "a", text: "Start quiz"
+  end
+
+  test "a reset attempt cannot be recreated by an already open quiz player" do
+    student_membership = organizations(:one).memberships.create!(user: users(:two), status: "active")
+    student_membership.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]
+    course = organizations(:one).courses.create!(name: "Biology", description: "Living systems.")
+    course.course_enrollments.create!(membership: student_membership)
+    quiz = course.quizzes.create!(title: "Cells check-in")
+    question = quiz.questions.create!(question_type: "short_answer", content_html: "<p>Name an organelle.</p>", short_answer: "Mitochondrion", position: 1)
+    attempt = QuizAttempt.create!(quiz: quiz, membership: student_membership, started_at: 1.hour.ago, last_activity_at: Time.current)
+
+    sign_in users(:one)
+    delete organization_reset_grading_attempt_path(organizations(:one), attempt)
+    assert_not QuizAttempt.exists?(attempt.id)
+
+    sign_in users(:two)
+    assert_no_difference "QuizAttempt.count" do
+      patch organization_course_quiz_attempt_answer_path(organizations(:one), course, quiz, question_id: question.id), params: {
+        quiz_attempt_id: attempt.id,
+        quiz_answer: { short_answer_response: "Mitochondrion" }
+      }
+    end
+    assert_redirected_to organization_course_quiz_path(organizations(:one), course, quiz, from: "course")
+
+    assert_no_difference "QuizAttempt.count" do
+      get attempt_organization_course_quiz_path(organizations(:one), course, quiz, attempt_id: attempt.id)
+    end
+    assert_redirected_to organization_course_quiz_path(organizations(:one), course, quiz, from: "course")
+  end
+
+  test "AI grading creates an unpublished draft that an administrator confirms before students can see it" do
+    student_membership = organizations(:one).memberships.create!(user: users(:two), status: "active")
+    student_membership.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]
+    course = organizations(:one).courses.create!(name: "Biology", description: "Living systems.")
+    course.course_enrollments.create!(membership: student_membership)
+    quiz = course.quizzes.create!(title: "Cells check-in")
+    question = quiz.questions.create!(question_type: "short_answer", content_html: "<p>Name an organelle.</p>", short_answer: "Mitochondrion", position: 1)
+    attempt = QuizAttempt.create!(quiz: quiz, membership: student_membership, started_at: 1.hour.ago, last_activity_at: Time.current, submitted_at: Time.current)
+    attempt.answers.create!(quiz_question: question, short_answer_response: "Mitochondrion")
+    attempt.answer_overrides.create!(quiz_question: question, correct: false)
+    sign_in users(:one)
+    get organization_grading_path(organizations(:one))
+    assert_response :success
+    assert_select "a", text: "Manual grading"
+    assert_select "button", text: "Automatic grading"
+    assert_select "form[data-controller='blocking-submit'][data-action*='turbo:submit-start']"
+
+    previous_api_key = ENV["GEMINI_API_KEY"]
+    previous_model = ENV["GEMINI_MODEL"]
+    ENV["GEMINI_API_KEY"] = "test-key"
+    ENV["GEMINI_MODEL"] = "gemini-test"
+    request = stub_request(:post, "https://generativelanguage.googleapis.com/v1beta/models/gemini-test:generateContent")
+      .to_return(
+        status: 200,
+        headers: { "Content-Type" => "application/json" },
+        body: {
+          responseId: "response-123",
+          candidates: [ {
+            content: {
+              parts: [ { text: {
+                performance_analysis: "The answer demonstrates sound recall.",
+                strengths: "Correctly identified the organelle.",
+                weaknesses: "The response does not explain its function.",
+                recommendations: "Review how mitochondria produce energy."
+              }.to_json } ]
+            }
+          } ]
+        }.to_json
+      )
+    begin
+      post organization_automatic_grade_attempt_path(organizations(:one), attempt)
+    ensure
+      ENV["GEMINI_API_KEY"] = previous_api_key
+      ENV["GEMINI_MODEL"] = previous_model
+    end
+
+    assert_redirected_to organization_grading_attempt_path(organizations(:one), attempt)
+    assert_requested request
+    assert_predicate attempt.reload, :waiting_for_confirmation?
+    assert_not attempt.reviewed?
+    assert_equal "ai", attempt.grading_mode
+    assert_equal "The answer demonstrates sound recall.", attempt.performance_analysis
+    assert_empty attempt.answer_overrides
+    assert_equal 1, QuizAttemptGrader.new(attempt).correct_count
+
+    get organization_grading_path(organizations(:one), status: "waiting_for_confirmation")
+    assert_response :success
+    assert_select "tr", text: /Cells check-in.*Waiting for confirmation/m
+
+    sign_in users(:two)
+    get organization_evaluation_attempt_path(organizations(:one), attempt)
+    assert_redirected_to root_path
+
+    sign_in users(:one)
+    patch organization_review_grading_attempt_path(organizations(:one), attempt), params: {
+      quiz_attempt: {
+        performance_analysis: "Confirmed analysis.",
+        recommendations: "Continue reviewing cell functions."
+      }
+    }
+    assert_predicate attempt.reload, :reviewed?
+
+    sign_in users(:two)
+    get organization_evaluation_attempt_path(organizations(:one), attempt)
+    assert_response :success
+    assert_select "p", text: "Confirmed analysis."
+    assert_select "p", text: "Continue reviewing cell functions."
   end
 
   test "organization administrator moves a quiz question between adjacent slots" do
@@ -394,7 +514,9 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     get organization_students_path(organizations(:one))
     assert_response :success
     assert_select "h1", text: "Students"
-    assert_select "a[href='#{organization_student_path(organizations(:one), student_membership)}']", text: "View progress"
+    assert_select "a[href='#{organization_student_path(organizations(:one), student_membership)}']", text: "View student"
+    enrollment_path = enrollment_organization_student_path(organizations(:one), student_membership, modal: 1)
+    assert_select "a[href='#{enrollment_path}']", text: "Enroll in course"
 
     get organization_student_path(organizations(:one), student_membership)
     assert_response :success
@@ -435,6 +557,58 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     assert_redirected_to organization_course_path(organizations(:one), course, anchor: "course-content-#{quiz.course_content.id}")
     assert_equal [ first_material, quiz, second_material ], course.course_contents.reload.map(&:contentable)
     assert AuditEvent.exists?(action: "course.content_reordered", auditable: course)
+  end
+
+  test "organization administrator manages sections and moves modules between them" do
+    course = organizations(:one).courses.create!(name: "Sectioned biology", description: "Living systems.")
+    first_section = course.default_section
+    first_section.update!(name: "Foundations")
+    material = course.materials.new(title: "Cell structure")
+    material.blocks.build(block_type: "text", body_html: "<p>Cell structures.</p>", position: 1)
+    material.save!
+
+    sign_in users(:one)
+    get new_organization_course_section_path(organizations(:one), course)
+    assert_response :success
+    assert_select "form[action='#{organization_course_sections_path(organizations(:one), course)}']"
+
+    assert_difference "CourseSection.count", 1 do
+      post organization_course_sections_path(organizations(:one), course), params: {
+        course_section: { name: "Cell division" }
+      }
+    end
+    second_section = course.course_sections.find_by!(name: "Cell division")
+    assert_redirected_to organization_course_path(organizations(:one), course)
+
+    get edit_organization_course_section_path(organizations(:one), course, second_section)
+    assert_response :success
+    assert_select "form[action='#{organization_course_section_path(organizations(:one), course, second_section)}']"
+
+    patch organization_course_section_path(organizations(:one), course, second_section), params: {
+      course_section: { name: "Cell reproduction" }
+    }
+    assert_redirected_to organization_course_path(organizations(:one), course, anchor: "course-section-#{second_section.id}")
+    assert_equal "Cell reproduction", second_section.reload.name
+
+    assert_difference "Quiz.count", 1 do
+      post organization_course_quizzes_path(organizations(:one), course, from: "course"), params: {
+        quiz: { title: "Mitosis check-in", description: "Review mitosis.", course_section_id: second_section.id }
+      }
+    end
+    quiz = course.quizzes.find_by!(title: "Mitosis check-in")
+    assert_equal second_section, quiz.course_content.course_section
+
+    patch move_content_to_section_organization_course_path(
+      organizations(:one),
+      course,
+      content_id: material.course_content.id
+    ), params: { course_section_id: second_section.id }
+    assert_redirected_to organization_course_path(organizations(:one), course, anchor: "course-content-#{material.course_content.id}")
+    assert_equal second_section, material.course_content.reload.course_section
+    assert_equal [ quiz, material ], second_section.course_contents.reload.map(&:contentable)
+
+    patch move_organization_course_section_path(organizations(:one), course, second_section, direction: "up")
+    assert_equal [ second_section, first_section ], course.course_sections.reload
   end
 
   test "submitted quiz attempt is shown as in review and cannot be reopened" do
@@ -583,6 +757,9 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     multiple_choice.save!
 
     sign_in users(:two)
+    get attempt_organization_course_quiz_path(organizations(:one), course, quiz)
+    assert_response :success
+
     patch organization_course_quiz_attempt_answer_path(organizations(:one), course, quiz, question_id: multiple_choice.id, next_question: first_question.position), params: {
       quiz_answer: {}
     }
@@ -623,15 +800,43 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     assert_select ".card-link", text: /Teacher/
   end
 
-  test "organization dashboard identifies a student's role without management controls" do
+  test "organization directory works as a direct entry URL" do
+    membership = organizations(:two).memberships.create!(user: users(:one), status: "active")
+    membership.role_ids = [ organizations(:two).roles.find_by!(key: "teacher").id ]
+
+    sign_in users(:one)
+    host! "0.0.0.0:3001"
+    get organizations_path
+
+    assert_response :success
+    assert_select "h2", text: organizations(:one).name
+    assert_select "h2", text: organizations(:two).name
+    assert_select ".card-link", text: /Organization administrator/
+    assert_select ".card-link", text: /Teacher/
+  end
+
+  test "organization dashboard hides a student's role and management controls" do
     sign_in users(:two)
     get organization_path(organizations(:two))
 
     assert_response :success
-    assert_select "h2", "Your roles"
-    assert_select "p", "Student"
+    assert_select "h2", { text: "Your roles", count: 0 }
+    assert_select "p", { text: "Student", count: 0 }
     assert_select "a", text: "Manage users", count: 0
     assert_select ".stat-label", text: "Users", count: 0
+  end
+
+  test "organization dashboard hides a teacher's role" do
+    teacher = User.create!(name: "Dashboard Teacher", email: "dashboard-teacher@example.com", password: "password", status: "active")
+    membership = organizations(:one).memberships.create!(user: teacher, status: "active")
+    membership.role_ids = [ organizations(:one).roles.find_by!(key: "teacher").id ]
+
+    sign_in teacher
+    get organization_path(organizations(:one))
+
+    assert_response :success
+    assert_select "h2", { text: "Your roles", count: 0 }
+    assert_select "p", { text: "Teacher", count: 0 }
   end
 
   test "organization dashboard identifies an administrator's role and management controls" do
@@ -666,12 +871,12 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     assert_select ".alert-error", "This organization is suspended and cannot be accessed."
   end
 
-  test "organization pages opt out of Turbo preview caching" do
+  test "organization pages opt out of Turbo caching" do
     sign_in users(:one)
     get organization_path(organizations(:one))
 
     assert_response :success
-    assert_select "meta[name='turbo-cache-control'][content='no-preview']", count: 1
+    assert_select "meta[name='turbo-cache-control'][content='no-cache']", count: 1
   end
 
   test "member without permission cannot manage roles" do
@@ -812,14 +1017,52 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     sign_in viewer
     get organization_students_path(organizations(:one))
     assert_response :success
-    assert_select "a[href='#{organization_student_path(organizations(:one), student)}']", text: "View progress"
+    assert_select "a[href='#{organization_student_path(organizations(:one), student)}']", text: "View student"
+    assert_select "a", text: "Enroll in course", count: 0
     assert_select "a[href='#{organization_memberships_path(organizations(:one))}']", count: 0
 
     get organization_student_path(organizations(:one), student)
     assert_response :success
+    assert_select "form[action='#{enroll_organization_student_path(organizations(:one), student)}']", count: 0
+
+    post enroll_organization_student_path(organizations(:one), student), params: { course_id: organizations(:one).courses.create!(name: "Private", description: "Private course.").id }
+    assert_redirected_to root_path
 
     get organization_memberships_path(organizations(:one))
     assert_redirected_to root_path
+  end
+
+  test "organization administrator enrolls a student from a dedicated modal" do
+    student = organizations(:one).memberships.create!(user: users(:two), status: "active")
+    student.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]
+    existing_course = organizations(:one).courses.create!(name: "Existing course", description: "Already enrolled.")
+    available_course = organizations(:one).courses.create!(name: "Available course", description: "Open for enrollment.")
+    existing_course.course_enrollments.create!(membership: student)
+
+    sign_in users(:one)
+    get organization_student_path(organizations(:one), student)
+    assert_response :success
+    assert_select "form[action='#{enroll_organization_student_path(organizations(:one), student)}']", count: 0
+
+    get enrollment_organization_student_path(organizations(:one), student, modal: 1), headers: { "Turbo-Frame" => "modal" }
+    assert_response :success
+    assert_select "turbo-frame#modal"
+    assert_select "select[name='course_id'] option[value='#{existing_course.id}']", count: 0
+    assert_select "select[name='course_id'] option[value='#{available_course.id}']", text: "Available course"
+
+    assert_difference "CourseEnrollment.count", 1 do
+      post enroll_organization_student_path(organizations(:one), student), params: { course_id: available_course.id }
+    end
+
+    assert_redirected_to organization_students_path(organizations(:one))
+    assert available_course.course_enrollments.exists?(membership: student)
+    event = AuditEvent.find_by!(action: "course.enrollments_updated", auditable: available_course)
+    assert_equal 1, event.metadata["enrollment_count"]
+
+    get enrollment_organization_student_path(organizations(:one), student)
+    assert_response :success
+    assert_select "select[name='course_id']", count: 0
+    assert_select ".empty-state", text: "This student is already enrolled in every available course."
   end
 
   test "organization cannot lose its final active administrator" do

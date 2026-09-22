@@ -10,50 +10,54 @@
     <% end %>
   </div>
 </div>
-<div class="table-wrap">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th class="th">Member</th>
-        <th class="th">Roles</th>
-        <th class="th">Status</th>
-        <th class="th">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @memberships.each do |membership| %>
+
+<%= render "shared/table_search",
+  url: organization_memberships_path(current_organization),
+  query: @query,
+  label: "Search users",
+  placeholder: "Search by name, email, or status" %>
+
+<% if @memberships.any? %>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
         <tr>
-          <td class="td">
-            <strong>
-              <%= membership.user.name %>
-            </strong>
-            <br>
-            <%= membership.user.email %>
-          </td>
-          <td class="td">
-            <%= membership.roles.map(&:name).to_sentence.presence || "No role" %>
-          </td>
-          <td class="td">
-            <span class="<%= status_badge_class(membership.status) %>">
-              <%= membership.status.titleize %>
-            </span>
-          </td>
-          <td class="td">
-            <% if policy(membership).update? %>
-              <%= link_to "Edit", edit_organization_membership_path(current_organization, membership), class: "text-link" %>
-            <% end %>
-            <% if policy(membership).destroy? %>
-              <%= button_to(
-                "Remove",
-                organization_membership_path(current_organization, membership),
-                method: :delete,
-                form: { data: { turbo_confirm: "Remove this member?" } },
-                class: "danger-link"
-              ) %>
-            <% end %>
-          </td>
+          <th class="th">Member</th>
+          <th class="th">Roles</th>
+          <th class="th">Status</th>
+          <th class="th">Actions</th>
         </tr>
-      <% end %>
-    </tbody>
-  </table>
-</div>
+      </thead>
+      <tbody>
+        <% @memberships.each do |membership| %>
+          <tr>
+            <td class="td">
+              <strong><%= membership.user.name %></strong><br>
+              <%= membership.user.email %>
+            </td>
+            <td class="td"><%= membership.roles.map(&:name).to_sentence.presence || "No role" %></td>
+            <td class="td"><span class="<%= status_badge_class(membership.status) %>"><%= membership.status.titleize %></span></td>
+            <td class="td">
+              <% if policy(membership).update? %>
+                <%= link_to "Edit", edit_organization_membership_path(current_organization, membership), class: "text-link" %>
+              <% end %>
+              <% if policy(membership).destroy? %>
+                <%= button_to(
+                  "Remove",
+                  organization_membership_path(current_organization, membership),
+                  method: :delete,
+                  form: { data: { turbo_confirm: "Remove this member?" } },
+                  class: "danger-link"
+                ) %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% elsif @query.present? %>
+  <div class="empty-state">No users match “<%= @query %>”. Try another search or clear it.</div>
+<% else %>
+  <div class="empty-state">No users have been added yet.</div>
+<% end %>

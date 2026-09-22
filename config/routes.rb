@@ -15,14 +15,40 @@ Rails.application.routes.draw do
 
   resources :organizations, param: :slug, only: %i[index show edit update] do
     resources :memberships, controller: "organizations/memberships", except: :show
-    resources :students, controller: "organizations/students", only: %i[index show]
+    resources :students, controller: "organizations/students", only: %i[index show] do
+      get :enrollment, on: :member
+      post :enroll, on: :member
+    end
     resources :roles, controller: "organizations/roles", except: :show
+    resources :class_meetings, path: "classes", controller: "organizations/class_meetings" do
+      get :history, on: :collection
+      get "calendar/:date", action: :day, on: :collection, as: :calendar_day
+      resources :feedbacks, controller: "organizations/class_meeting_feedbacks", only: %i[index show new create]
+    end
+    get "class-feedback", to: "organizations/class_meeting_feedbacks#admin_index", as: :class_feedback
+    resources :certificates, controller: "organizations/certificates", only: %i[index show] do
+      patch :unpublish, on: :member
+    end
+    resources :assignments, controller: "organizations/assignments", only: %i[index show new create edit update] do
+      get :document, action: :download_document, on: :member
+      patch :cancel, on: :member
+      resource :submission, controller: "organizations/assignment_submissions", only: :update
+      get "submissions/:submission_id/documents/:attachment_id",
+        to: "organizations/assignment_submissions#download_document",
+        as: :submission_document
+      patch "recipients/:recipient_id/comment", to: "organizations/assignment_submissions#comment", as: :recipient_comment
+    end
     resources :courses, controller: "organizations/courses" do
+      resources :sections, controller: "organizations/course_sections", except: :show do
+        patch :move, on: :member
+      end
       resources :materials, controller: "organizations/materials" do
         patch :toggle_completion, on: :member
       end
       resources :quizzes, controller: "organizations/quizzes" do
         get :attempt, on: :member, controller: "organizations/quiz_attempts"
+        post :retake, on: :member, controller: "organizations/quiz_attempts"
+        get :connection_check, on: :member
         patch "attempt/questions/:question_id", to: "organizations/quiz_attempts#update_answer", as: :attempt_answer
         resources :questions, controller: "organizations/quiz_questions", only: %i[create update destroy] do
           patch :move, on: :member
@@ -32,10 +58,14 @@ Rails.application.routes.draw do
         get :enrollments
         patch :enrollments, action: :update_enrollments
         patch "contents/:content_id/move", action: :move_content, as: :move_content
+        patch "contents/:content_id/section", action: :move_content_to_section, as: :move_content_to_section
       end
     end
     get "grading", to: "organizations/quiz_attempt_reviews#index", as: :grading
     get "grading/attempts/:id", to: "organizations/quiz_attempt_reviews#show", as: :grading_attempt
+    post "grading/attempts/:attempt_id/certificate", to: "organizations/certificates#create", as: :grading_attempt_certificate
+    post "grading/attempts/:id/automatic", to: "organizations/quiz_attempt_reviews#automatic_grade", as: :automatic_grade_attempt
+    patch "grading/attempts/:id/feedback", to: "organizations/quiz_attempt_reviews#update_feedback", as: :grading_attempt_feedback
     patch "grading/attempts/:id/review", to: "organizations/quiz_attempt_reviews#review", as: :review_grading_attempt
     patch "grading/attempts/:id/unreview", to: "organizations/quiz_attempt_reviews#unreview", as: :unreview_grading_attempt
     patch "grading/attempts/:id/questions/:question_id", to: "organizations/quiz_attempt_reviews#grade_answer", as: :grade_answer

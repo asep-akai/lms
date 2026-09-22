@@ -5,6 +5,13 @@
   </div>
   <%= back_link_to "Back to organization", organization_path(current_organization) %>
 </div>
+
+<%= render "shared/table_search",
+  url: organization_audit_events_path(current_organization),
+  query: @query,
+  label: "Search audit events",
+  placeholder: "Search by event or recorded details" %>
+
 <% if @audit_events.any? %>
   <div class="table-wrap">
     <table class="data-table">
@@ -81,8 +88,12 @@
     </table>
   </div>
 <% else %>
-  <div class="card p-6">
-    <h2 class="text-base font-semibold text-slate-950">No audit events yet</h2>
-    <p class="mt-1 text-sm text-slate-600">Administrative and security events will appear here as activity occurs.</p>
-  </div>
+  <% if @query.present? %>
+    <div class="empty-state">No audit events match “<%= @query %>”. Try another search or clear it.</div>
+  <% else %>
+    <div class="card mt-8 p-6">
+      <h2 class="text-base font-semibold text-slate-950">No audit events yet</h2>
+      <p class="mt-1 text-sm text-slate-600">Administrative and security events will appear here as activity occurs.</p>
+    </div>
+  <% end %>
 <% end %>

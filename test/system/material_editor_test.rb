@@ -30,6 +30,12 @@ class MaterialEditorTest < ApplicationSystemTestCase
     click_button "Add text"
     fill_editor(all("[contenteditable]").last, "<p>Each structure has a specific function.</p>")
 
+    click_button "Add video"
+    within all(".material-block").last do
+      fill_in "YouTube URL", with: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+      click_button "Move up"
+    end
+
     click_button "Add text"
     within all(".material-block").last do
       click_button "Remove"
@@ -39,14 +45,15 @@ class MaterialEditorTest < ApplicationSystemTestCase
 
     assert_text "Material created."
     assert_text "Learn how structures inside cells work together."
-    assert_equal %w[div figure div], all(".material-article > *").map(&:tag_name)
+    assert_equal %w[div figure div div], all(".material-article > *").map(&:tag_name)
     assert_text "Cells contain several structures."
     assert_text "Each structure has a specific function."
     assert_selector ".material-article h2", text: "Cells contain several structures."
     assert_equal "rgb(185, 28, 28)", find(".material-article [style]").evaluate_script("getComputedStyle(this).color")
+    assert_selector "iframe[src='https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ']"
 
     material = course.materials.find_by!(title: "Inside a cell")
-    assert_equal %w[text image text], material.blocks.pluck(:block_type)
+    assert_equal %w[text image video text], material.blocks.pluck(:block_type)
     assert material.blocks.second.image.attached?
     assert material.cover_image.attached?
   end

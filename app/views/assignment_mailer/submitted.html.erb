@@ -1,0 +1,4 @@
+<h1>Assignment submitted</h1>
+<p>Hello <%= @teacher.name %>,</p>
+<p><%= @student.name %> submitted <strong><%= @assignment.title %></strong><%= " after the deadline" if @submission.late? %>.</p>
+<p><%= link_to "Review submission", organization_assignment_url(@assignment.organization, @assignment) %></p>

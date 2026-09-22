@@ -1,0 +1,88 @@
+<% method = local_assigns.fetch(:method, :get) %>
+<div data-controller="quiz-connection-check"
+     data-quiz-connection-check-test-url-value="<%= connection_check_organization_course_quiz_path(current_organization, @course, @quiz) %>"
+     data-quiz-connection-check-storage-key-value="lms:quiz-connection-check:<%= current_organization.id %>:<%= @quiz.id %>">
+  <% if method == :get %>
+    <%= link_to label,
+      destination,
+      class: "btn-primary",
+      data: {
+        action: "quiz-connection-check#check",
+        quiz_connection_check_target: "launch"
+      } %>
+  <% else %>
+    <%= form_with url: destination,
+      method: method,
+      data: {
+        action: "submit->quiz-connection-check#check",
+        turbo_confirm: local_assigns[:confirm]
+      }.compact do |form| %>
+      <%= form.submit label, class: "btn-primary", data: { quiz_connection_check_target: "launch" } %>
+    <% end %>
+  <% end %>
+
+  <dialog class="quiz-connection-dialog" aria-label="Quiz connection test" data-quiz-connection-check-target="dialog">
+    <div data-quiz-connection-check-target="testing" role="status" aria-live="polite">
+      <div class="flex flex-col items-center text-center">
+        <div class="relative flex size-44 items-center justify-center rounded-full border border-slate-200 bg-white shadow-lg" aria-hidden="true">
+          <svg class="absolute -rotate-90" width="176" height="176" viewBox="0 0 176 176">
+            <circle cx="88" cy="88" r="72" fill="none" stroke="currentColor" stroke-width="5" class="text-slate-100"></circle>
+            <circle cx="88" cy="88" r="72" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"
+                    class="text-brand-600 transition-all duration-300"
+                    data-quiz-connection-check-target="progressCircle"></circle>
+          </svg>
+          <div class="relative grid w-36 grid-cols-2 gap-1">
+            <div class="min-w-0 px-1">
+              <p class="text-[9px] font-semibold uppercase tracking-wide text-slate-500">Latency</p>
+              <p class="mt-1 truncate text-sm font-bold tabular-nums text-slate-950" data-quiz-connection-check-target="liveLatency">—</p>
+            </div>
+            <div class="min-w-0 border-l border-slate-200 px-1">
+              <p class="text-[9px] font-semibold uppercase tracking-wide text-slate-500">Download</p>
+              <p class="mt-1 truncate text-sm font-bold tabular-nums text-slate-950" data-quiz-connection-check-target="liveSpeed">—</p>
+            </div>
+            <p class="col-span-2 text-xs font-bold text-brand-700" data-quiz-connection-check-target="progressText">0%</p>
+          </div>
+        </div>
+
+        <p class="eyebrow mt-5">Connection benchmark</p>
+        <h2 class="mt-1">Testing your connection…</h2>
+        <p class="mt-2 text-sm text-slate-600" data-quiz-connection-check-target="phase">Preparing the speed test.</p>
+        <div class="mt-4 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+          <div class="h-full w-0 rounded-full bg-brand-600 transition-all duration-300" data-quiz-connection-check-target="progressBar"></div>
+        </div>
+        <p class="mt-2 text-xs font-medium uppercase tracking-wide text-slate-500" data-quiz-connection-check-target="probeLabel">Warm-up probe</p>
+      </div>
+    </div>
+
+    <div data-quiz-connection-check-target="result" role="status" aria-live="polite" hidden>
+      <p class="eyebrow" data-quiz-connection-check-target="statusLabel"></p>
+      <h2 class="mt-1" data-quiz-connection-check-target="title"></h2>
+      <p class="mt-2 text-sm text-slate-600" data-quiz-connection-check-target="summary"></p>
+
+      <dl class="mt-5 grid gap-3 rounded-lg bg-slate-50 p-4 text-sm sm:grid-cols-2">
+        <div>
+          <dt class="font-medium text-slate-500">Median latency</dt>
+          <dd class="mt-1 font-semibold text-slate-950" data-quiz-connection-check-target="latency"></dd>
+        </div>
+        <div>
+          <dt class="font-medium text-slate-500">Jitter</dt>
+          <dd class="mt-1 font-semibold text-slate-950" data-quiz-connection-check-target="jitter"></dd>
+        </div>
+        <div>
+          <dt class="font-medium text-slate-500">Download speed</dt>
+          <dd class="mt-1 font-semibold text-slate-950" data-quiz-connection-check-target="downloadSpeed"></dd>
+        </div>
+        <div>
+          <dt class="font-medium text-slate-500">Connection profile</dt>
+          <dd class="mt-1 font-semibold text-slate-950" data-quiz-connection-check-target="networkType"></dd>
+        </div>
+      </dl>
+
+      <div class="actions mt-6">
+        <button type="button" class="btn-primary" data-action="quiz-connection-check#retry" data-quiz-connection-check-target="retry" hidden>Retry benchmark</button>
+        <button type="button" class="btn-primary" data-action="quiz-connection-check#proceed" data-quiz-connection-check-target="proceed">Continue to quiz</button>
+        <button type="button" class="btn-secondary" data-action="quiz-connection-check#close">Stay here</button>
+      </div>
+    </div>
+  </dialog>
+</div>

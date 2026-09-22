@@ -1,0 +1,135 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Organization</p>
+    <h1 class="title">Class feedback</h1>
+    <p class="subtitle">Review feedback from teachers and students across <%= current_organization.name %>.</p>
+  </div>
+  <%= back_link_to "Back to organization", organization_path(current_organization) %>
+</div>
+
+<%= render "organizations/class_meetings/tabs", active: :feedback %>
+
+<section class="card card-body mt-8" aria-labelledby="feedback-filter-heading">
+  <h2 id="feedback-filter-heading">Filter feedback</h2>
+  <%= form_with url: organization_class_feedback_path(current_organization), method: :get, class: "mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5" do |form| %>
+    <div class="md:col-span-2 xl:col-span-1">
+      <%= form.label :query, "Class or feedback author", class: "label" %>
+      <%= form.search_field :query,
+        value: @filters[:query],
+        maxlength: 200,
+        class: "field",
+        placeholder: "Subject, topic, name, or email",
+        autocomplete: "off" %>
+    </div>
+    <div>
+      <%= form.label :author_role, "Feedback from", class: "label" %>
+      <%= form.select :author_role,
+        options_for_select([["All sources", ""], ["Teachers", "teacher"], ["Students", "student"]], @filters[:author_role]),
+        {},
+        class: "field" %>
+    </div>
+    <div>
+      <%= form.label :rating, "Rating", class: "label" %>
+      <%= form.select :rating,
+        options_for_select([["All ratings", ""]] + (1..5).map { |rating| ["#{rating}/5", rating] }, @filters[:rating]),
+        {},
+        class: "field" %>
+    </div>
+    <div>
+      <%= form.label :teacher_id, "Teacher", class: "label" %>
+      <%= form.collection_select :teacher_id,
+        @teachers,
+        :id,
+        ->(membership) { membership.user.name },
+        { include_blank: "All teachers", selected: @filters[:teacher_membership_id] },
+        class: "field" %>
+    </div>
+    <div>
+      <%= form.label :student_id, "Student", class: "label" %>
+      <%= form.collection_select :student_id,
+        @students,
+        :id,
+        ->(membership) { membership.user.name },
+        { include_blank: "All students", selected: @filters[:student_membership_id] },
+        class: "field" %>
+    </div>
+    <div class="actions md:col-span-2 xl:col-span-5">
+      <%= form.submit "Apply filters", class: "btn-primary" %>
+      <% if @filters.values.any?(&:present?) %>
+        <%= link_to "Clear filters", organization_class_feedback_path(current_organization), class: "btn-secondary" %>
+      <% end %>
+    </div>
+  <% end %>
+</section>
+
+<section class="mt-10" aria-labelledby="feedback-results-heading">
+  <div>
+    <p class="eyebrow"><%= pluralize(@feedbacks.size, "response") %></p>
+    <h2 id="feedback-results-heading" class="mt-1">Feedback results</h2>
+  </div>
+
+  <% if @feedbacks.any? %>
+    <% retained_filters = {
+      query: @filters[:query],
+      author_role: @filters[:author_role],
+      rating: @filters[:rating],
+      teacher_id: @filters[:teacher_membership_id],
+      student_id: @filters[:student_membership_id]
+    }.compact %>
+    <div class="table-wrap mt-5">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="th">Class</th>
+            <th class="th">Date</th>
+            <th class="th">Feedback from</th>
+            <th class="th">Rating</th>
+            <th class="th">Visible to</th>
+            <th class="th">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @feedbacks.each do |feedback| %>
+            <% meeting = feedback.class_meeting %>
+            <tr data-feedback-id="<%= feedback.id %>">
+              <td class="td">
+                <strong class="text-slate-950"><%= meeting.subject %> · Meeting <%= meeting.meeting_number %></strong><br>
+                <span class="text-slate-500"><%= meeting.topic %></span>
+              </td>
+              <td class="td">
+                <time datetime="<%= meeting.starts_at.iso8601 %>">
+                  <%= meeting.starts_at.in_time_zone(current_organization.timezone).strftime("%-d %b %Y, %H:%M") %>
+                </time>
+              </td>
+              <td class="td">
+                <strong class="text-slate-950"><%= feedback.author_membership.user.name %></strong><br>
+                <span class="text-slate-500"><%= feedback.author_role.humanize %></span>
+              </td>
+              <td class="td"><span class="font-semibold text-slate-950"><%= feedback.rating %>/5</span></td>
+              <td class="td">
+                <% if feedback.teacher_feedback? %>
+                  <%= pluralize(meeting.student_memberships.size, "assigned student") %>
+                <% else %>
+                  <%= meeting.teacher_membership.user.name %>
+                <% end %>
+              </td>
+              <td class="td">
+                <%= modal_link_to "View details",
+                  organization_class_meeting_feedback_path(
+                    current_organization,
+                    meeting,
+                    feedback,
+                    from: "feedback",
+                    **retained_filters
+                  ),
+                  class: "btn-secondary" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <div class="empty-state">No class feedback matches these filters.</div>
+  <% end %>
+</section>

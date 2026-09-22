@@ -3,8 +3,14 @@ class Organizations::EvaluationsController < Organizations::BaseController
 
   def index
     authorize :evaluation
-    @attempts = Current.membership.quiz_attempts.reviewed
-      .includes({ quiz: [ :course, { questions: :answer_options } ] }, { answers: :quiz_answer_option }, :answer_overrides)
+    @query = TableSearch.normalize(params[:query])
+    attempts = Current.membership.quiz_attempts.active.reviewed.joins(quiz: :course)
+    @attempts = TableSearch.call(
+      attempts,
+      query: @query,
+      columns: %w[quizzes.title courses.name]
+    )
+      .includes({ quiz: [ :course, { questions: :answer_options } ] }, { answers: :quiz_answer_option }, :answer_overrides, :certificates)
       .order(reviewed_at: :desc)
     @gradings_by_attempt_id = @attempts.to_h { |attempt| [ attempt.id, QuizAttemptGrader.new(attempt) ] }
   end
@@ -17,7 +23,7 @@ class Organizations::EvaluationsController < Organizations::BaseController
 
   private
     def set_attempt
-      @attempt = QuizAttempt.includes(membership: :user, quiz: { questions: :answer_options }, answers: :quiz_answer_option, answer_overrides: []).find(params[:id])
+      @attempt = QuizAttempt.includes(membership: :user, quiz: { questions: :answer_options }, answers: :quiz_answer_option, answer_overrides: [], certificates: []).find(params[:id])
     end
 
     def set_back_destination
@@ -27,6 +33,9 @@ class Organizations::EvaluationsController < Organizations::BaseController
       elsif params[:from] == "quiz"
         @back_label = "Back to quiz"
         @back_path = organization_course_quiz_path(Current.organization, @attempt.quiz.course, @attempt.quiz, from: "course")
+      elsif params[:from] == "student" && StudentPolicy.new(current_user, @attempt.membership).show?
+        @back_label = "Back to student"
+        @back_path = organization_student_path(Current.organization, @attempt.membership)
       else
         @back_label = "Back to evaluation"
         @back_path = organization_evaluation_path(Current.organization)

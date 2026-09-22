@@ -1,0 +1,12 @@
+<fieldset>
+  <legend class="label"><%= feedback.teacher_feedback? ? "Student progress rating" : "Class rating" %></legend>
+  <p id="rating-hint" class="hint">Choose a rating from 1 (lowest) to 5 (highest).</p>
+  <div class="mt-3 flex flex-wrap gap-2" aria-describedby="rating-hint">
+    <% (1..5).each do |rating| %>
+      <label class="flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-900">
+        <%= form.radio_button :rating, rating, required: true, class: "sr-only" %>
+        <span><%= rating %></span>
+      </label>
+    <% end %>
+  </div>
+</fieldset>

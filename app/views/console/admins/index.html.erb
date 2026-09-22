@@ -5,6 +5,14 @@
   </div>
   <%= link_to "New administrator", new_console_admin_path, class: "btn-primary" %>
 </div>
+
+<%= render "shared/table_search",
+  url: console_admins_path,
+  query: @query,
+  label: "Search administrators",
+  placeholder: "Search by name, email, or status" %>
+
+<% if @admins.any? %>
 <div class="table-wrap">
   <table class="data-table">
     <thead>
@@ -44,3 +52,8 @@
     </tbody>
   </table>
 </div>
+<% elsif @query.present? %>
+  <div class="empty-state">No administrators match “<%= @query %>”. Try another search or clear it.</div>
+<% else %>
+  <div class="empty-state">No administrators have been created yet.</div>
+<% end %>

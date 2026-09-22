@@ -21,6 +21,7 @@ gem "jbuilder"
 gem "json", "< 3"
 gem "devise", ">= 5.0.4", "< 6"
 gem "pundit", "~> 2.5"
+gem "prawn", "~> 2.5"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 gem "bcrypt", "~> 3.1"

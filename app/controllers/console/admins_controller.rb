@@ -4,7 +4,13 @@ module Console
 
     def index
       authorize Admin
-      @admins = policy_scope(Admin).includes(:roles).order(:name)
+      @query = TableSearch.normalize(params[:query])
+      admins = TableSearch.call(
+        policy_scope(Admin),
+        query: @query,
+        columns: %w[admins.name admins.email admins.status]
+      )
+      @admins = admins.includes(:roles).order(:name)
     end
 
     def new

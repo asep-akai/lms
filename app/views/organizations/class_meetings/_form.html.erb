@@ -1,0 +1,73 @@
+<%= render "shared/errors", record: class_meeting %>
+
+<%= form_with model: [ current_organization, class_meeting ], class: "form-stack mt-8", data: { controller: "delivery-mode" } do |form| %>
+  <% (@navigation_params || {}).each do |key, value| %>
+    <%= hidden_field_tag key, value %>
+  <% end %>
+  <div class="form-grid">
+    <div>
+      <%= form.label :subject, class: "label" %>
+      <%= form.text_field :subject, required: true, maxlength: 160, autofocus: true, class: "field", placeholder: "Example: Mathematics" %>
+      <p class="hint">The meeting number is assigned automatically within this subject.</p>
+    </div>
+    <div>
+      <%= form.label :topic, class: "label" %>
+      <%= form.text_field :topic, required: true, maxlength: 240, class: "field", placeholder: "Example: Introduction to algebra" %>
+    </div>
+    <div>
+      <%= form.label :starts_at, "Date and time", class: "label" %>
+      <%= form.datetime_local_field :starts_at,
+        required: true,
+        value: class_meeting.starts_at&.in_time_zone(current_organization.timezone)&.strftime("%Y-%m-%dT%H:%M"),
+        class: "field" %>
+      <p class="hint">Shown in <%= time_zone_label(current_organization.timezone) %>.</p>
+    </div>
+    <div>
+      <%= form.label :delivery_mode, "Status", class: "label" %>
+      <%= form.select :delivery_mode,
+        ClassMeeting::DELIVERY_MODES.map { |mode| [ mode.humanize, mode ] },
+        { prompt: "Choose onsite or online" },
+        { required: true, class: "field", data: { delivery_mode_target: "select", action: "delivery-mode#toggle" } } %>
+    </div>
+  </div>
+
+  <div data-delivery-mode-target="onlineFields" <%= "hidden" unless class_meeting.online? %>>
+    <%= form.label :meeting_url, "Online meeting link", class: "label" %>
+    <%= form.url_field :meeting_url,
+      maxlength: 2_048,
+      class: "field",
+      placeholder: "https://meet.example.com/class-room",
+      data: { delivery_mode_target: "meetingUrl" } %>
+    <p class="hint">Students and the teacher will receive this link in their notification email.</p>
+  </div>
+
+  <div>
+    <%= form.label :teacher_membership_id, "Teacher", class: "label" %>
+    <%= form.collection_select :teacher_membership_id,
+      @teachers,
+      :id,
+      ->(membership) { "#{membership.user.name} (#{membership.user.email})" },
+      { prompt: "Choose a teacher" },
+      { required: true, class: "field" } %>
+    <% if @teachers.empty? %>
+      <p class="field-error">Add an active member with the Teacher role before scheduling a class.</p>
+    <% end %>
+  </div>
+
+  <%= render "shared/searchable_student_multiselect",
+    students: @students,
+    selected_student_ids: @selected_student_memberships&.map(&:id) || class_meeting.student_membership_ids,
+    field_name: "class_meeting[student_membership_ids]",
+    id_prefix: "class-meeting",
+    legend: "Students",
+    hint: "Select every student who should attend this meeting.",
+    empty_message: "Add an active member with the Student role before scheduling a class.",
+    empty_class: "field-error" %>
+
+  <div class="actions">
+    <%= form.submit class_meeting.persisted? ? "Save changes" : "Schedule class", class: "btn-primary", disabled: @teachers.empty? || @students.empty? %>
+    <%= link_to "Cancel",
+      class_meeting.persisted? ? organization_class_meeting_path(current_organization, class_meeting, **(@navigation_params || {})) : organization_class_meetings_path(current_organization),
+      class: "btn-secondary" %>
+  </div>
+<% end %>

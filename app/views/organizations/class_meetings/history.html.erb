@@ -1,0 +1,106 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Organization</p>
+    <h1 class="title">Classes</h1>
+    <p class="subtitle">Review your previous class meetings, starting with the most recent.</p>
+  </div>
+  <%= back_link_to "Back to organization", organization_path(current_organization) %>
+</div>
+
+<%= render "tabs", active: :history %>
+
+<section class="card card-body mt-8" aria-labelledby="history-search-heading">
+  <h2 id="history-search-heading">Search class history</h2>
+  <% search_fields = [ "subject", "topic" ] %>
+  <% search_fields << "teacher name" if current_membership.student? %>
+  <% search_fields << "student name" if current_membership.teacher? %>
+  <%= form_with url: history_organization_class_meetings_path(current_organization), method: :get, class: "mt-4 flex flex-col gap-3 sm:flex-row sm:items-end" do |form| %>
+    <div class="min-w-0 flex-1">
+      <%= form.label :query, "Search by #{search_fields.to_sentence}", class: "label" %>
+      <%= form.search_field :query,
+        value: @query,
+        maxlength: 200,
+        class: "field",
+        placeholder: "Enter a #{search_fields.to_sentence(last_word_connector: ' or ')}",
+        autocomplete: "off" %>
+    </div>
+    <div class="actions">
+      <%= form.submit "Search", class: "btn-primary" %>
+      <% if @query.present? %>
+        <%= link_to "Clear", history_organization_class_meetings_path(current_organization), class: "btn-secondary" %>
+      <% end %>
+    </div>
+  <% end %>
+</section>
+
+<section class="mt-10" aria-labelledby="class-history-heading">
+  <div>
+    <p class="eyebrow"><%= pluralize(@class_meetings.size, "class") %></p>
+    <h2 id="class-history-heading" class="mt-1"><%= @query.present? ? "Search results" : "Class history" %></h2>
+  </div>
+
+  <% if @class_meetings.any? %>
+    <ol class="card mt-5 divide-y divide-slate-200 overflow-hidden" aria-label="Previous classes, newest first">
+      <% @class_meetings.each do |class_meeting| %>
+        <% own_feedback = @own_feedbacks_by_meeting_id[class_meeting.id] %>
+        <% received_feedbacks = @received_feedbacks_by_meeting_id.fetch(class_meeting.id, []) %>
+        <li>
+          <article class="grid gap-4 p-5 sm:grid-cols-[10rem_minmax(0,1fr)] xl:grid-cols-[10rem_minmax(0,1fr)_minmax(12rem,18rem)_auto] xl:items-center" data-class-meeting-id="<%= class_meeting.id %>">
+            <div>
+              <time datetime="<%= class_meeting.starts_at.iso8601 %>" class="font-semibold text-slate-950">
+                <%= class_meeting.starts_at.in_time_zone(current_organization.timezone).strftime("%-d %b %Y") %>
+              </time>
+              <p class="mt-1 text-sm text-slate-500"><%= class_meeting.starts_at.in_time_zone(current_organization.timezone).strftime("%H:%M %Z") %></p>
+            </div>
+            <div class="min-w-0">
+              <p class="eyebrow"><%= class_meeting.subject %> · Meeting <%= class_meeting.meeting_number %></p>
+              <h3 class="mt-1 text-lg font-semibold text-slate-950"><%= class_meeting.topic %></h3>
+            </div>
+            <dl class="text-sm">
+              <% if current_membership.student? || !current_membership.teacher? %>
+                <div>
+                  <dt class="font-medium text-slate-500">Teacher</dt>
+                  <dd class="mt-1 text-slate-950"><%= class_meeting.teacher_membership.user.name %></dd>
+                </div>
+              <% end %>
+              <% if current_membership.teacher? || !current_membership.student? %>
+                <div class="<%= "mt-3" if current_membership.student? || !current_membership.teacher? %>">
+                  <dt class="font-medium text-slate-500">Students</dt>
+                  <dd class="mt-1 text-slate-950"><%= class_meeting.student_memberships.map { |membership| membership.user.name }.sort.to_sentence %></dd>
+                </div>
+              <% end %>
+            </dl>
+            <div class="flex flex-wrap items-center gap-3 sm:col-start-2 xl:col-start-auto xl:justify-end">
+              <span class="<%= class_meeting.online? ? "badge-active" : "badge-neutral" %>"><%= class_meeting.delivery_mode.humanize %></span>
+              <% if class_meeting.started? && class_meeting.feedback_role_for(current_membership).present? %>
+                <% if own_feedback %>
+                  <%= modal_link_to "View your feedback",
+                    organization_class_meeting_feedback_path(current_organization, class_meeting, own_feedback, history_query: @query.presence),
+                    class: "btn-secondary" %>
+                <% else %>
+                  <%= modal_link_to "Give feedback",
+                    new_organization_class_meeting_feedback_path(current_organization, class_meeting, history_query: @query.presence),
+                    class: "btn-primary" %>
+                <% end %>
+                <% if received_feedbacks.any? %>
+                  <%= modal_link_to(
+                    current_membership.id == class_meeting.teacher_membership_id ? "View student feedback (#{received_feedbacks.size})" : "View teacher feedback",
+                    organization_class_meeting_feedbacks_path(current_organization, class_meeting, history_query: @query.presence),
+                    class: "btn-secondary"
+                  ) %>
+                <% end %>
+              <% end %>
+              <%= link_to "View class",
+                organization_class_meeting_path(current_organization, class_meeting, from: "history", history_query: @query.presence),
+                class: "btn-secondary" %>
+            </div>
+          </article>
+        </li>
+      <% end %>
+    </ol>
+  <% elsif @query.present? %>
+    <div class="empty-state">No previous classes match “<%= @query %>”.</div>
+  <% else %>
+    <div class="empty-state">You do not have any previous classes yet.</div>
+  <% end %>
+</section>

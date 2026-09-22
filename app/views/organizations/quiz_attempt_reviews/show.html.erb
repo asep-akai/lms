@@ -8,16 +8,38 @@
   </div>
   <div class="actions">
     <%= back_link_to "Back to grading", organization_grading_path(current_organization) %>
-    <% if @attempt.waiting_for_review? && policy(@attempt).review? %>
-      <%= button_to "Mark as reviewed", organization_review_grading_attempt_path(current_organization, @attempt), method: :patch, class: "btn-primary" %>
-    <% elsif @attempt.reviewed? && policy(@attempt).review? %>
-      <%= button_to "Return to review queue",
-        organization_unreview_grading_attempt_path(current_organization, @attempt),
-        method: :patch,
-        form: { data: { turbo_confirm: "Return this attempt to the waiting-for-review queue?" } },
+    <% if @attempt.submitted? && !@attempt.reviewed? && !@attempt.cancelled? && policy(@attempt).ai_analyze? %>
+      <%= button_to @attempt.ai_analysis_generated_at? ? "Regenerate AI analysis" : "Run AI analysis",
+        organization_automatic_grade_attempt_path(current_organization, @attempt),
+        method: :post,
+        form: { data: {
+          controller: "blocking-submit",
+          action: "turbo:submit-start->blocking-submit#start turbo:submit-end->blocking-submit#finish",
+          turbo_confirm: ("Replace the current AI analysis with a newly generated draft?" if @attempt.ai_analysis_generated_at?)
+        }.compact },
         class: "btn-secondary" %>
     <% end %>
-    <% if policy(@attempt).reset? %>
+    <% if @attempt.reviewed? && !@attempt.cancelled? && policy(@attempt).review? %>
+      <%= button_to "Unpublish results",
+        organization_unreview_grading_attempt_path(current_organization, @attempt),
+        method: :patch,
+        form: { data: { turbo_confirm: "Unpublish these results? The student will no longer be able to view them." } },
+        class: "btn-secondary" %>
+    <% end %>
+    <% if @attempt.reviewed? && !@attempt.cancelled? %>
+      <% if (certificate = @attempt.result_certificate) %>
+        <%= link_to "View certificate",
+          organization_certificate_path(current_organization, certificate, from: "grading"),
+          class: "btn-primary" %>
+      <% elsif policy(Certificate.new(source: @attempt)).create? %>
+        <%= button_to "Generate certificate",
+          organization_grading_attempt_certificate_path(current_organization, @attempt),
+          method: :post,
+          form: { data: { turbo_confirm: "Generate a certificate from this published score and analysis?" } },
+          class: "btn-primary" %>
+      <% end %>
+    <% end %>
+    <% if !@attempt.cancelled? && policy(@attempt).reset? %>
       <%= button_to "Reset attempt",
         organization_reset_grading_attempt_path(current_organization, @attempt),
         method: :delete,
@@ -28,12 +50,18 @@
 </div>
 
 <div class="mt-6 flex flex-wrap items-center gap-3">
-  <% if @attempt.reviewed? %>
-    <span class="badge-neutral">Reviewed</span>
-    <span class="text-sm text-slate-600">Reviewed <%= l(@attempt.reviewed_at, format: :short) %></span>
+  <% if @attempt.cancelled? %>
+    <span class="badge-neutral">Cancelled for retake</span>
+    <span class="text-sm text-slate-600">Retained as attempt <%= @attempt.attempt_number %> for audit history.</span>
+  <% elsif @attempt.reviewed? %>
+    <span class="badge-neutral">Published</span>
+    <span class="text-sm text-slate-600">Published <%= l(@attempt.reviewed_at, format: :short) %></span>
+  <% elsif @attempt.waiting_for_confirmation? %>
+    <span class="badge-suspended">Waiting for confirmation</span>
+    <span class="text-sm text-slate-600">AI draft generated <%= l(@attempt.ai_analysis_generated_at, format: :short) %></span>
   <% elsif @attempt.waiting_for_review? %>
-    <span class="badge-suspended">Waiting for review</span>
-    <span class="text-sm text-slate-600">Submitted <%= l(@attempt.submitted_at, format: :short) %></span>
+    <span class="badge-suspended"><%= @attempt.timed_out? ? "Timed out, waiting for review" : "Waiting for review" %></span>
+    <span class="text-sm text-slate-600"><%= @attempt.timed_out? ? "Automatically submitted" : "Submitted" %> <%= l(@attempt.submitted_at, format: :short) %></span>
   <% else %>
     <span class="badge-active">In progress</span>
     <span class="text-sm text-slate-600">Last active <%= l(@attempt.last_activity_at, format: :short) %></span>
@@ -45,6 +73,72 @@
   <h2 id="score-heading" class="mt-1"><%= @grading.correct_count %>/<%= @grading.total_count %></h2>
   <p class="mt-1 text-2xl font-semibold text-slate-950"><%= @grading.percentage %>%</p>
   <p class="subtitle">Calculated from the answer key and any manual overrides below.</p>
+</section>
+
+<section class="card card-body mt-8" aria-labelledby="feedback-heading">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <p class="eyebrow">Feedback</p>
+      <h2 id="feedback-heading" class="mt-1">Performance analysis</h2>
+    </div>
+    <% if @attempt.ai_graded? %>
+      <span class="badge-neutral">AI-generated draft</span>
+    <% end %>
+  </div>
+
+  <% if @attempt.waiting_for_confirmation? %>
+    <p class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      Check the score and edit this analysis before publishing it to the student.
+    </p>
+  <% end %>
+
+  <% if @attempt.submitted? && !@attempt.reviewed? && !@attempt.cancelled? && policy(@attempt).review? %>
+    <%= form_with model: @attempt,
+      scope: :quiz_attempt,
+      url: organization_grading_attempt_feedback_path(current_organization, @attempt),
+      method: :patch,
+      class: "mt-5 space-y-5" do |form| %>
+      <div>
+        <%= form.label :performance_analysis, "Analysis", class: "label" %>
+        <%= form.text_area :performance_analysis, rows: 5, class: "field", placeholder: "Summarize the student's overall performance." %>
+      </div>
+      <div class="grid gap-5 lg:grid-cols-2">
+        <div>
+          <%= form.label :strengths, class: "label" %>
+          <%= form.text_area :strengths, rows: 5, class: "field", placeholder: "What did the student understand well?" %>
+        </div>
+        <div>
+          <%= form.label :weaknesses, "Areas to improve", class: "label" %>
+          <%= form.text_area :weaknesses, rows: 5, class: "field", placeholder: "Which concepts need more attention?" %>
+        </div>
+      </div>
+      <div>
+        <%= form.label :recommendations, class: "label" %>
+        <%= form.text_area :recommendations, rows: 5, class: "field", placeholder: "Give practical next steps for the student." %>
+      </div>
+      <div class="actions">
+        <%= form.submit "Save draft", class: "btn-secondary" %>
+        <%= button_tag "Publish results",
+          type: "submit",
+          formaction: organization_review_grading_attempt_path(current_organization, @attempt),
+          class: "btn-primary",
+          data: { turbo_confirm: "Publish this score and feedback to the student?" } %>
+      </div>
+    <% end %>
+  <% elsif QuizAttempt::FEEDBACK_FIELDS.any? { |field| @attempt.public_send(field).present? } %>
+    <div class="mt-5 space-y-5">
+      <% [ [ "Analysis", :performance_analysis ], [ "Strengths", :strengths ], [ "Areas to improve", :weaknesses ], [ "Recommendations", :recommendations ] ].each do |label, field| %>
+        <% if @attempt.public_send(field).present? %>
+          <div>
+            <h3 class="text-sm font-semibold text-slate-700"><%= label %></h3>
+            <p class="mt-2 whitespace-pre-wrap text-slate-800"><%= @attempt.public_send(field) %></p>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="mt-4 text-sm text-slate-500">No grader feedback has been added.</p>
+  <% end %>
 </section>
 
 <div class="mt-8 space-y-4">
@@ -71,7 +165,7 @@
       <div class="mt-5 flex flex-wrap items-center gap-3">
         <span class="<%= result.correct ? "badge-active" : "badge-suspended" %>"><%= result.correct ? "Correct" : "Wrong" %></span>
         <% if result.overridden %><span class="text-sm text-slate-500">Manually graded</span><% end %>
-        <% if @attempt.submitted? && policy(@attempt).review? %>
+        <% if @attempt.submitted? && !@attempt.reviewed? && !@attempt.cancelled? && policy(@attempt).review? %>
           <%= button_to "Mark correct", organization_grade_answer_path(current_organization, @attempt, question_id: question.id), method: :patch, params: { correct: "1" }, class: result.correct ? "btn-primary" : "btn-secondary" %>
           <%= button_to "Mark wrong", organization_grade_answer_path(current_organization, @attempt, question_id: question.id), method: :patch, params: { correct: "0" }, class: result.correct ? "btn-secondary" : "btn-danger" %>
           <% if result.overridden %>

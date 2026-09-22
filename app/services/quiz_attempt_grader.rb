@@ -3,10 +3,10 @@ class QuizAttemptGrader
 
   attr_reader :attempt, :results
 
-  def initialize(attempt)
+  def initialize(attempt, use_overrides: true)
     @attempt = attempt
     answers = attempt.answers.index_by(&:quiz_question_id)
-    overrides = attempt.answer_overrides.index_by(&:quiz_question_id)
+    overrides = use_overrides ? attempt.answer_overrides.index_by(&:quiz_question_id) : {}
     @results = attempt.quiz.questions.map do |question|
       answer = answers[question.id]
       override = overrides[question.id]

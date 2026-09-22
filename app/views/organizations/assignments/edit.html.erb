@@ -1,0 +1,13 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Assignments</p>
+    <h1 class="title">Edit assignment</h1>
+    <p class="subtitle">Update the instructions, deadline, document, or assigned students.</p>
+  </div>
+  <%= back_link_to "Back to assignment", organization_assignment_path(current_organization, @assignment) %>
+</div>
+
+<%= render "form",
+  assignment: @assignment,
+  submit_label: "Save changes",
+  cancel_path: organization_assignment_path(current_organization, @assignment) %>

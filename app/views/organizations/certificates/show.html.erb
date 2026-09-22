@@ -1,0 +1,77 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow"><%= @presenter.heading %></p>
+    <h1 class="title"><%= @presenter.exam_name %></h1>
+    <p class="subtitle">Generated <%= @certificate.generated_at.in_time_zone(current_organization.timezone).strftime("%-d %B %Y at %H:%M %Z") %></p>
+  </div>
+  <div class="actions">
+    <%= back_link_to @back_label, @back_path %>
+    <% unless @certificate.unpublished? %>
+      <%= link_to "Open PDF",
+        organization_certificate_path(current_organization, @certificate, format: :pdf),
+        class: "btn-secondary",
+        target: "_blank",
+        rel: "noopener",
+        data: { turbo: false } %>
+      <%= link_to "Download PDF",
+        organization_certificate_path(current_organization, @certificate, format: :pdf, download: 1),
+        class: "btn-primary",
+        download: @presenter.filename,
+        data: { turbo: false } %>
+    <% end %>
+    <% if policy(@certificate).unpublish? %>
+      <%= button_to "Unpublish certificate",
+        unpublish_organization_certificate_path(current_organization, @certificate, from: params[:from]),
+        method: :patch,
+        class: "btn-danger",
+        form: { data: { turbo_confirm: "Unpublish this certificate? It will be hidden from the student and teacher, and you will be able to generate a new certificate." } } %>
+    <% end %>
+  </div>
+</div>
+
+<% if @certificate.unpublished? %>
+  <div class="alert-error mt-6" role="status">
+    <strong>Unpublished certificate.</strong>
+    It was unpublished <%= @certificate.unpublished_at.in_time_zone(current_organization.timezone).strftime("%-d %B %Y at %H:%M %Z") %>
+    <% if @certificate.unpublished_by_membership %>
+      by <%= @certificate.unpublished_by_membership.user.name %>
+    <% end %>.
+    It is hidden from the student and teacher, and its PDF is no longer available.
+  </div>
+<% end %>
+
+<article class="card card-body mt-8" aria-labelledby="certificate-recipient-heading">
+  <div class="border-b border-slate-200 pb-6 text-center">
+    <p class="text-sm text-slate-600">This certifies the published result of</p>
+    <h2 id="certificate-recipient-heading" class="mt-2 text-3xl font-semibold text-slate-950"><%= @presenter.student_name %></h2>
+    <p class="mt-3 text-sm text-slate-600">for the examination</p>
+    <p class="mt-1 text-xl font-semibold text-brand-900"><%= @presenter.exam_name %></p>
+  </div>
+
+  <dl class="mt-6 grid gap-4 sm:grid-cols-3">
+    <div class="rounded-lg bg-slate-100 p-4">
+      <dt class="text-sm font-medium text-slate-600">Test date</dt>
+      <dd class="mt-2 font-semibold text-slate-950"><%= @presenter.test_date.strftime("%-d %B %Y") %></dd>
+    </div>
+    <div class="rounded-lg bg-slate-100 p-4">
+      <dt class="text-sm font-medium text-slate-600">Score</dt>
+      <dd class="mt-2 text-xl font-semibold text-slate-950"><%= @presenter.score %></dd>
+    </div>
+    <div class="rounded-lg bg-slate-100 p-4">
+      <dt class="text-sm font-medium text-slate-600">Percentage</dt>
+      <dd class="mt-2 text-xl font-semibold text-slate-950"><%= @presenter.percentage %>%</dd>
+    </div>
+  </dl>
+
+  <section class="mt-8" aria-labelledby="certificate-analysis-heading">
+    <h2 id="certificate-analysis-heading">Performance analysis</h2>
+    <p class="mt-3 whitespace-pre-wrap leading-7 text-slate-800"><%= @presenter.analysis %></p>
+  </section>
+
+  <footer class="mt-8 border-t border-slate-200 pt-4 text-sm text-slate-500">
+    Certificate ID: <%= @certificate.id %>
+    <% if @certificate.unpublished? %>
+      · Unpublished
+    <% end %>
+  </footer>
+</article>

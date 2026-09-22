@@ -1,0 +1,52 @@
+<h1 class="title"><%= feedback.teacher_feedback? ? "Give student feedback" : "Give teacher feedback" %></h1>
+<p class="subtitle"><%= class_meeting.subject %> · <%= class_meeting.topic %></p>
+
+<% if feedback.errors.any? %>
+  <div class="alert-error mt-6" role="alert">
+    <p class="font-semibold">Feedback could not be submitted.</p>
+    <ul class="mt-2 list-disc space-y-1 pl-5">
+      <% feedback.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<%= form_with model: feedback, url: organization_class_meeting_feedbacks_path(current_organization, class_meeting), class: "form-stack mt-6", data: { turbo_frame: "_top" } do |form| %>
+  <%= hidden_field_tag :modal, "1" if modal_request? %>
+  <%= hidden_field_tag :history_query, params[:history_query] if params[:history_query].present? %>
+
+  <%= render "organizations/class_meeting_feedbacks/rating_field", form: form, feedback: feedback %>
+
+  <% if feedback.teacher_feedback? %>
+    <div>
+      <%= form.label :internal_feedback, "Internal feedback", class: "label" %>
+      <p class="hint">Only you can view this note.</p>
+      <%= form.text_area :internal_feedback, rows: 4, maxlength: 5_000, required: true, class: "field" %>
+    </div>
+    <div>
+      <%= form.label :feedback_to_student, "Feedback to students", class: "label" %>
+      <p class="hint">Every student assigned to this class can view this feedback.</p>
+      <%= form.text_area :feedback_to_student, rows: 4, maxlength: 5_000, required: true, class: "field" %>
+    </div>
+    <div>
+      <%= form.label :topics_discussed, "Topics discussed", class: "label" %>
+      <%= form.text_area :topics_discussed, rows: 3, maxlength: 5_000, required: true, class: "field" %>
+    </div>
+    <div>
+      <%= form.label :next_topics, "Next topics", class: "label" %>
+      <%= form.text_area :next_topics, rows: 3, maxlength: 5_000, required: true, class: "field" %>
+    </div>
+  <% else %>
+    <div>
+      <%= form.label :comment, "Comment (optional)", class: "label" %>
+      <p class="hint">Your comment is private between you and the teacher.</p>
+      <%= form.text_area :comment, rows: 4, maxlength: 5_000, class: "field" %>
+    </div>
+  <% end %>
+
+  <div class="actions">
+    <%= form.submit "Submit feedback", class: "btn-primary" %>
+    <%= link_to "Cancel", @back_path, class: "btn-secondary", data: { turbo_frame: "_top" } %>
+  </div>
+<% end %>

@@ -12,6 +12,7 @@ module TestRbac
         [ key, role ]
       end
       roles.fetch("admin").permissions = Permission.organization_assignable
+      roles.fetch("teacher").permissions = Permission.where(key: RbacSeeder::TEACHER_PERMISSION_KEYS)
 
       organization.memberships.includes(:user).find_each do |membership|
         key = membership.user.email == "one@example.com" ? "admin" : "student"

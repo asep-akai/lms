@@ -1,7 +1,52 @@
 <% current_index = @questions.index(@question) %>
 <% previous_question = current_index.positive? ? @questions[current_index - 1] : nil %>
 <% next_question = current_index < @questions.size - 1 ? @questions[current_index + 1] : nil %>
-<div class="page-header"><div><p class="eyebrow"><%= @course.name %> · Quiz</p><h1 class="title"><%= @quiz.title %></h1><% if @quiz.description.present? %><p class="subtitle"><%= @quiz.description %></p><% end %></div><button type="submit" form="quiz-answer-form" name="leave_quiz" value="1" formaction="<%= organization_course_quiz_attempt_answer_path(current_organization, @course, @quiz, question_id: @question.id) %>" class="btn-secondary">Back to course</button></div>
-<p class="mt-6 text-sm text-slate-600">Question <%= @question.position %> of <%= @questions.size %>. Your response is saved when you move between questions.</p>
-<nav class="mt-5 flex flex-wrap gap-2" aria-label="Question navigation"><% @questions.each do |question| %><% if question == @question %><button type="button" class="btn-primary min-h-11 min-w-11 px-3" disabled aria-current="step" aria-label="Question <%= question.position %>, current"><%= question.position %></button><% else %><button type="submit" form="quiz-answer-form" name="next_question" value="<%= question.position %>" formaction="<%= organization_course_quiz_attempt_answer_path(current_organization, @course, @quiz, question_id: @question.id, next_question: question.position) %>" class="btn-secondary min-h-11 min-w-11 px-3" aria-label="Question <%= question.position %>"><%= question.position %></button><% end %><% end %></nav>
-<section class="card card-body mt-8"><p class="text-sm font-medium text-slate-500">Question <%= @question.position %> · <%= @question.question_type.humanize %></p><div class="rich-content mt-3 text-slate-800"><%= sanitize(@question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div><%= render "answer_form", question: @question, answer: @answer, previous_question: previous_question, next_question: next_question, unanswered_questions_count: @unanswered_questions_count, current_answer_saved: @current_answer_saved %></section>
+<% timer_data = @attempt.expires_at? ? {
+  controller: "quiz-timer",
+  quiz_timer_expires_at_value: @attempt.expires_at.iso8601,
+  quiz_timer_form_id_value: "quiz-answer-form"
+} : {} %>
+
+<div <%= tag.attributes(data: timer_data) %>>
+  <div class="page-header">
+    <div>
+      <p class="eyebrow"><%= @course.name %> · Quiz</p>
+      <h1 class="title"><%= @quiz.title %></h1>
+      <% if @quiz.description.present? %><p class="subtitle"><%= @quiz.description %></p><% end %>
+    </div>
+    <button type="submit" form="quiz-answer-form" name="leave_quiz" value="1" formaction="<%= organization_course_quiz_attempt_answer_path(current_organization, @course, @quiz, question_id: @question.id) %>" class="btn-secondary">Back to course</button>
+  </div>
+
+  <% if @attempt.expires_at? %>
+    <section class="mt-6 flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950 sm:flex-row sm:items-center sm:justify-between" aria-labelledby="quiz-time-heading">
+      <div>
+        <h2 id="quiz-time-heading" class="text-base font-semibold">Time remaining</h2>
+        <p class="mt-1 text-sm" data-quiz-timer-target="status">The timer continues if you leave or close this quiz.</p>
+      </div>
+      <time class="text-2xl font-bold tabular-nums" datetime="<%= @attempt.expires_at.iso8601 %>" data-quiz-timer-target="output">Calculating...</time>
+    </section>
+  <% end %>
+
+  <p class="mt-6 text-sm text-slate-600">Question <%= @question.position %> of <%= @questions.size %>. Your response is saved when you move between questions.</p>
+  <nav class="mt-5 flex flex-wrap gap-2" aria-label="Question navigation">
+    <% @questions.each do |question| %>
+      <% if question == @question %>
+        <button type="button" class="btn-primary min-h-11 min-w-11 px-3" disabled aria-current="step" aria-label="Question <%= question.position %>, current"><%= question.position %></button>
+      <% else %>
+        <button type="submit" form="quiz-answer-form" name="next_question" value="<%= question.position %>" formaction="<%= organization_course_quiz_attempt_answer_path(current_organization, @course, @quiz, question_id: @question.id, next_question: question.position) %>" class="btn-secondary min-h-11 min-w-11 px-3" aria-label="Question <%= question.position %>"><%= question.position %></button>
+      <% end %>
+    <% end %>
+  </nav>
+
+  <section class="card card-body mt-8">
+    <p class="text-sm font-medium text-slate-500">Question <%= @question.position %> · <%= @question.question_type.humanize %></p>
+    <div class="rich-content mt-3 text-slate-800"><%= sanitize(@question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div>
+    <%= render "answer_form",
+      question: @question,
+      answer: @answer,
+      previous_question: previous_question,
+      next_question: next_question,
+      unanswered_questions_count: @unanswered_questions_count,
+      current_answer_saved: @current_answer_saved %>
+  </section>
+</div>

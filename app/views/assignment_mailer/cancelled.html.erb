@@ -1,0 +1,4 @@
+<h1>Assignment cancelled</h1>
+<p>Hello <%= @student.name %>,</p>
+<p><%= @assignment.teacher_membership.user.name %> cancelled <strong><%= @assignment.title %></strong>. You can no longer submit work for it.</p>
+<p><%= link_to "View assignment", organization_assignment_url(@assignment.organization, @assignment) %></p>

@@ -1,0 +1,32 @@
+<section aria-labelledby="day-classes-heading">
+  <p class="eyebrow">Daily schedule</p>
+  <h2 id="day-classes-heading" class="mt-1"><%= date.strftime("%A, %-d %B %Y") %></h2>
+
+  <% if class_meetings.any? %>
+    <div class="mt-6 space-y-4">
+      <% class_meetings.each do |class_meeting| %>
+        <article class="rounded-xl border border-slate-200 p-4">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p class="text-sm font-semibold text-brand-700">
+                <%= class_meeting.starts_at.in_time_zone(current_organization.timezone).strftime("%H:%M %Z") %>
+              </p>
+              <h3 class="mt-1 font-semibold text-slate-950"><%= class_meeting.subject %> · Meeting <%= class_meeting.meeting_number %></h3>
+              <p class="mt-1 text-sm text-slate-600"><%= class_meeting.topic %></p>
+            </div>
+            <span class="<%= class_meeting.online? ? "badge-active" : "badge-neutral" %>"><%= class_meeting.delivery_mode.humanize %></span>
+          </div>
+          <p class="mt-3 text-sm text-slate-600">Teacher: <%= class_meeting.teacher_membership.user.name %></p>
+          <div class="actions mt-4">
+            <%= link_to "View class",
+              organization_class_meeting_path(current_organization, class_meeting, month: date.strftime("%Y-%m")),
+              class: "btn-secondary",
+              data: { turbo_frame: "_top" } %>
+          </div>
+        </article>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="mt-6 rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">No classes are scheduled for this day.</p>
+  <% end %>
+</section>

@@ -1,0 +1,11 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Daily schedule</p>
+    <h1 class="title"><%= @date.strftime("%A, %-d %B %Y") %></h1>
+  </div>
+  <%= back_link_to "Back to classes", organization_class_meetings_path(current_organization, month: @date.strftime("%Y-%m")) %>
+</div>
+
+<div class="card card-body mt-8">
+  <%= render "day_details", date: @date, class_meetings: @class_meetings %>
+</div>

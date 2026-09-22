@@ -1,0 +1,7 @@
+Assignment cancelled
+
+Hello <%= @student.name %>,
+
+<%= @assignment.teacher_membership.user.name %> cancelled <%= @assignment.title %>. You can no longer submit work for it.
+
+View assignment: <%= organization_assignment_url(@assignment.organization, @assignment) %>

@@ -1,5 +1,7 @@
 class MaterialBlock < ApplicationRecord
-  TYPES = %w[text image].freeze
+  TYPES = %w[text image video].freeze
+  YOUTUBE_HOSTS = %w[youtube.com www.youtube.com m.youtube.com youtu.be].freeze
+  YOUTUBE_ID_PATTERN = /\A[a-zA-Z0-9_-]{11}\z/
   ALLOWED_HTML_TAGS = %w[p h2 h3 br strong b em i u ul ol li span].freeze
   ALLOWED_HTML_ATTRIBUTES = %w[style].freeze
   ALLOWED_TEXT_COLORS = {
@@ -15,13 +17,36 @@ class MaterialBlock < ApplicationRecord
   validates :block_type, inclusion: { in: TYPES }
   validates :position, presence: true, numericality: { only_integer: true, greater_than: 0 }
   validates :body_html, length: { maximum: 50_000 }, if: :text?
+  validates :video_url, presence: true, length: { maximum: 2_000 }, if: :video?
   validate :text_has_content
   validate :image_is_attached
   validate :image_is_supported
+  validate :video_is_supported
   before_validation :sanitize_body_html, if: :text?
 
   def text? = block_type == "text"
   def image? = block_type == "image"
+  def video? = block_type == "video"
+
+  def youtube_video_id
+    uri = URI.parse(video_url.to_s)
+    return unless uri.scheme.in?(%w[http https]) && uri.host&.downcase.in?(YOUTUBE_HOSTS)
+
+    candidate = if uri.host.downcase == "youtu.be"
+      uri.path.split("/").second
+    elsif uri.path == "/watch"
+      Rack::Utils.parse_query(uri.query)["v"]
+    elsif uri.path.match?(%r{\A/(embed|shorts)/})
+      uri.path.split("/").third
+    end
+    candidate if candidate&.match?(YOUTUBE_ID_PATTERN)
+  rescue URI::InvalidURIError
+    nil
+  end
+
+  def youtube_embed_url
+    "https://www.youtube-nocookie.com/embed/#{youtube_video_id}" if youtube_video_id
+  end
 
   private
     def text_has_content
@@ -58,5 +83,12 @@ class MaterialBlock < ApplicationRecord
 
       errors.add(:image, "must be JPEG, PNG, GIF, or WebP") unless image.blob.content_type.in?(Material::ALLOWED_IMAGE_TYPES)
       errors.add(:image, "must be smaller than 10 MB") if image.blob.byte_size > Material::MAX_IMAGE_SIZE
+    end
+
+    def video_is_supported
+      return unless video? && video_url.present?
+      return if youtube_video_id
+
+      errors.add(:video_url, "must be a valid YouTube link")
     end
 end

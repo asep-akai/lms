@@ -19,6 +19,21 @@
 </div>
 
 <% if policy(@quiz).update? %>
+  <section class="card card-body mt-8" aria-labelledby="quiz-settings-heading">
+    <p class="eyebrow">Attempt settings</p>
+    <h2 id="quiz-settings-heading" class="mt-1">Quiz rules</h2>
+    <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+      <div>
+        <dt class="font-medium text-slate-500">Retakes</dt>
+        <dd class="mt-1 text-slate-950"><%= @quiz.retake_limit.to_i.positive? ? pluralize(@quiz.retake_limit, "retake") : "Not allowed" %></dd>
+      </div>
+      <div>
+        <dt class="font-medium text-slate-500">Time limit</dt>
+        <dd class="mt-1 text-slate-950"><%= @quiz.time_limited? ? pluralize(@quiz.time_limit_minutes, "minute") : "No time limit" %></dd>
+      </div>
+    </dl>
+  </section>
+
   <div class="mt-8 space-y-4">
     <% @quiz.questions.each do |question| %>
       <section class="card card-body">
@@ -48,30 +63,63 @@
   <% end %>
 <% else %>
   <section class="card card-body mt-8" aria-labelledby="quiz-status-heading">
+    <div class="mb-5 border-b border-slate-200 pb-4 text-sm">
+      <span class="font-medium text-slate-600">Retakes:</span>
+      <strong class="ml-1 text-slate-950">
+        <% if @quiz.retake_limit.to_i.positive? %>
+          <%= @remaining_retakes %> of <%= @quiz.retake_limit %> remaining
+        <% else %>
+          Not allowed
+        <% end %>
+      </strong>
+    </div>
     <% if @attempt&.reviewed? %>
-      <p class="eyebrow">Reviewed</p>
+      <p class="eyebrow">Results published</p>
       <h2 id="quiz-status-heading" class="mt-1">Your result is ready</h2>
       <p class="subtitle">Your answers have been graded and are available to review.</p>
       <div class="actions mt-5">
         <%= link_to "View results", organization_evaluation_attempt_path(current_organization, @attempt, from: "quiz"), class: "btn-primary" %>
+        <% if @remaining_retakes.positive? %>
+          <%= render "connection_check",
+            label: "Start retake",
+            destination: retake_organization_course_quiz_path(current_organization, @course, @quiz),
+            method: :post,
+            confirm: "Start a new attempt? Your current result will be cancelled and hidden from your evaluation history." %>
+        <% end %>
       </div>
+      <%= render "attempt_rules", quiz: @quiz if @remaining_retakes.positive? %>
     <% elsif @attempt&.submitted? %>
-      <p class="eyebrow">In review</p>
-      <h2 id="quiz-status-heading" class="mt-1">Attempt submitted</h2>
-      <p class="subtitle">Your answers have been saved and are waiting for review.</p>
+      <p class="eyebrow"><%= @attempt.timed_out? ? "Time ended" : "In review" %></p>
+      <h2 id="quiz-status-heading" class="mt-1"><%= @attempt.timed_out? ? "Attempt submitted when time ran out" : "Attempt submitted" %></h2>
+      <p class="subtitle">Your saved answers are waiting for review.</p>
+      <% if @remaining_retakes.positive? %>
+        <div class="actions mt-5">
+          <%= render "connection_check",
+            label: "Start retake",
+            destination: retake_organization_course_quiz_path(current_organization, @course, @quiz),
+            method: :post,
+            confirm: "Start a new attempt? Your current attempt will be cancelled and hidden from your evaluation history." %>
+        </div>
+        <%= render "attempt_rules", quiz: @quiz %>
+      <% end %>
     <% elsif @attempt %>
       <p class="eyebrow">In progress</p>
       <h2 id="quiz-status-heading" class="mt-1">Continue your attempt</h2>
-      <p class="subtitle">You will return to the last question you visited.</p>
+      <p class="subtitle"><%= @attempt.expires_at? ? "The timer is still running. You will return to the last question you visited." : "You will return to the last question you visited." %></p>
       <div class="actions mt-5">
-        <%= link_to "Resume quiz", attempt_organization_course_quiz_path(current_organization, @course, @quiz), class: "btn-primary" %>
+        <%= render "connection_check",
+          label: "Resume quiz",
+          destination: attempt_organization_course_quiz_path(current_organization, @course, @quiz, attempt_id: @attempt.id) %>
       </div>
     <% elsif @quiz.questions.any? %>
       <p class="eyebrow">Not started</p>
       <h2 id="quiz-status-heading" class="mt-1">Ready to begin?</h2>
       <p class="subtitle"><%= pluralize(@quiz.questions.size, "question") %>. Your progress is saved as you move through the quiz.</p>
+      <%= render "attempt_rules", quiz: @quiz %>
       <div class="actions mt-5">
-        <%= link_to "Start quiz", attempt_organization_course_quiz_path(current_organization, @course, @quiz), class: "btn-primary" %>
+        <%= render "connection_check",
+          label: "Start quiz",
+          destination: attempt_organization_course_quiz_path(current_organization, @course, @quiz) %>
       </div>
     <% else %>
       <p class="eyebrow">Unavailable</p>

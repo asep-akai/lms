@@ -4,7 +4,13 @@ module Console
 
     def index
       authorize User
-      @users = policy_scope(User).includes(:roles, memberships: :organization).order(:name)
+      @query = TableSearch.normalize(params[:query])
+      users = policy_scope(User).left_joins(memberships: :organization)
+      @users = TableSearch.call(
+        users,
+        query: @query,
+        columns: %w[users.name users.email users.status organizations.name organizations.slug]
+      ).includes(:roles, memberships: :organization).distinct.order(:name)
     end
 
     def new

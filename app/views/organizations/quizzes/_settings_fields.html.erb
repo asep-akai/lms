@@ -1,0 +1,12 @@
+<div class="grid gap-5 sm:grid-cols-2">
+  <div>
+    <%= form.label :retake_limit, "Retake quota", class: "label" %>
+    <%= form.number_field :retake_limit, min: 0, step: 1, class: "field", placeholder: "No retakes" %>
+    <p class="hint">Number of additional attempts allowed after the first submission. Leave blank or enter 0 to disable retakes.</p>
+  </div>
+  <div>
+    <%= form.label :time_limit_minutes, "Time limit (minutes)", class: "label" %>
+    <%= form.number_field :time_limit_minutes, min: 1, step: 1, class: "field", placeholder: "No time limit" %>
+    <p class="hint">The timer starts with the first question and keeps running if the student leaves or closes the quiz.</p>
+  </div>
+</div>

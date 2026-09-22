@@ -8,27 +8,16 @@
 </div>
 <%= render "shared/errors", record: @course %>
 <%= form_with url: enrollments_organization_course_path(current_organization, @course), method: :patch, class: "form-stack mt-8" do %>
-  <%= hidden_field_tag "course[membership_ids][]", "" %>
-  <fieldset>
-    <legend class="label">Enrolled students</legend>
-    <% if @students.any? %>
-      <div class="checkbox-grid">
-        <% @students.each do |membership| %>
-          <label class="checkbox-row">
-            <%= check_box_tag "course[membership_ids][]", membership.id, @enrolled_membership_ids.include?(membership.id) %>
-            <span>
-              <strong><%= membership.user.name %></strong>
-              <span class="hint"><%= membership.user.email %></span>
-            </span>
-          </label>
-        <% end %>
-      </div>
-    <% else %>
-      <div class="empty-state">There are no active students in this organization.</div>
-    <% end %>
-  </fieldset>
+  <%= render "shared/searchable_student_multiselect",
+    students: @students,
+    selected_student_ids: @enrolled_membership_ids,
+    field_name: "course[membership_ids]",
+    id_prefix: "course-enrollment",
+    legend: "Enrolled students",
+    hint: "Select every student who should have access to this course.",
+    empty_message: "There are no active students in this organization." %>
   <div class="actions">
-    <%= submit_tag "Save enrollments", class: "btn-primary" %>
+    <%= submit_tag "Save enrollments", class: "btn-primary", disabled: @students.empty? %>
     <%= link_to "Cancel", organization_course_path(current_organization, @course), class: "btn-secondary" %>
   </div>
 <% end %>

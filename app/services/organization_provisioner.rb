@@ -15,6 +15,7 @@ class OrganizationProvisioner
         [ key, organization.roles.create!(key: key, name: name, system: true) ]
       end
       roles.fetch("admin").permissions = Permission.organization_assignable
+      roles.fetch("teacher").permissions = Permission.where(key: RbacSeeder::TEACHER_PERMISSION_KEYS)
 
       membership = organization.memberships.create!(user: owner)
       membership.role_ids = [ roles.fetch("admin").id ]

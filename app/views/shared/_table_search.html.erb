@@ -1,0 +1,21 @@
+<% hidden_params = local_assigns.fetch(:hidden_params, {}) %>
+<% clear_url = local_assigns.fetch(:clear_url, url) %>
+
+<%= form_with url: url, method: :get, class: "mt-6", role: "search" do |form| %>
+  <% hidden_params.each do |name, value| %>
+    <%= hidden_field_tag name, value if value.present? %>
+  <% end %>
+
+  <%= form.label :query, label, class: "label" %>
+  <div class="flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-start">
+    <%= form.search_field :query,
+      value: query,
+      placeholder: placeholder,
+      autocomplete: "off",
+      class: "field min-h-11 flex-1 sm:mt-0" %>
+    <div class="actions shrink-0">
+      <%= form.submit "Search", class: "btn-primary" %>
+      <%= link_to "Clear", clear_url, class: "btn-secondary" if query.present? %>
+    </div>
+  </div>
+<% end %>

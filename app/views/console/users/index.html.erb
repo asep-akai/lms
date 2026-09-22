@@ -5,6 +5,14 @@
   </div>
   <%= link_to "New user", new_console_user_path, class: "btn-primary" %>
 </div>
+
+<%= render "shared/table_search",
+  url: console_users_path,
+  query: @query,
+  label: "Search users",
+  placeholder: "Search by name, email, status, or organization" %>
+
+<% if @users.any? %>
 <div class="table-wrap">
   <table class="data-table">
     <thead>
@@ -49,3 +57,8 @@
     </tbody>
   </table>
 </div>
+<% elsif @query.present? %>
+  <div class="empty-state">No users match “<%= @query %>”. Try another search or clear it.</div>
+<% else %>
+  <div class="empty-state">No users have been created yet.</div>
+<% end %>

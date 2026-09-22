@@ -1,0 +1,52 @@
+<%= form_with model: [ current_organization, assignment ], class: "card card-body mt-8 space-y-6" do |form| %>
+  <% if assignment.errors.any? %>
+    <div class="alert-error">
+      <p class="font-semibold">The assignment could not be saved.</p>
+      <ul class="mt-2 list-disc pl-5">
+        <% assignment.errors.full_messages.each do |message| %><li><%= message %></li><% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :title, class: "label" %>
+    <%= form.text_field :title, class: "field", required: true, maxlength: 200 %>
+  </div>
+  <div>
+    <%= form.label :description, class: "label" %>
+    <%= form.text_area :description, class: "field", rows: 7, required: true, maxlength: 20_000 %>
+  </div>
+  <div>
+    <%= form.label :deadline, "Deadline date and time", class: "label" %>
+    <%= form.datetime_local_field :deadline,
+      required: true,
+      value: assignment.deadline&.in_time_zone(current_organization.timezone)&.strftime("%Y-%m-%dT%H:%M"),
+      class: "field" %>
+    <p class="hint">Shown in <%= time_zone_label(current_organization.timezone) %>.</p>
+  </div>
+  <div>
+    <%= form.label :document, "Assignment document (optional)", class: "label" %>
+    <%= form.file_field :document, accept: Assignment::ALLOWED_DOCUMENT_TYPES.join(","), class: "field" %>
+    <p class="hint">PDF, Office documents, text files, JPG, or PNG. Maximum 20 MB.</p>
+    <% if assignment.document.attached? %>
+      <label class="mt-3 flex min-h-11 items-center gap-3 text-sm text-slate-700">
+        <%= check_box_tag "assignment[remove_document]", "1", false, class: "size-4 rounded border-slate-300 text-brand-600 focus:ring-brand-600" %>
+        Remove <%= assignment.document.filename %>
+      </label>
+    <% end %>
+  </div>
+  <%= render "shared/searchable_student_multiselect",
+    students: @students,
+    selected_student_ids: @selected_student_ids,
+    field_name: "assignment[student_ids]",
+    id_prefix: "assignment",
+    legend: "Students",
+    empty_message: "No students are assigned to your classes yet." %>
+  <% if assignment.persisted? && @students.any? %>
+    <p class="hint">Students with saved work cannot be removed.</p>
+  <% end %>
+  <div class="actions">
+    <%= form.submit submit_label, class: "btn-primary", disabled: @students.empty? %>
+    <%= link_to "Cancel", cancel_path, class: "btn-secondary" %>
+  </div>
+<% end %>

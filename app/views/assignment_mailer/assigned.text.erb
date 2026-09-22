@@ -1,0 +1,10 @@
+New assignment
+
+Hello <%= @student.name %>,
+
+<%= @assignment.teacher_membership.user.name %> assigned you new work.
+
+Assignment: <%= @assignment.title %>
+Deadline: <%= @deadline.strftime("%-d %B %Y at %H:%M %Z") %>
+
+View assignment: <%= organization_assignment_url(@assignment.organization, @assignment) %>

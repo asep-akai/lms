@@ -12,7 +12,7 @@
       <% unless policy(item).update? %>
         <span class="<%= local_assigns[:completed] ? "badge-active" : "badge-neutral" %>"><%= local_assigns[:completed] ? "Complete" : "Incomplete" %></span>
         <% if attempt&.reviewed? %>
-          <span class="badge-neutral">Reviewed</span>
+          <span class="badge-neutral">Results published</span>
         <% elsif attempt&.submitted? %>
           <span class="badge-suspended">In review</span>
         <% elsif attempt %>

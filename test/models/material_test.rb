@@ -28,7 +28,24 @@ class MaterialTest < ActiveSupport::TestCase
     material = organizations(:one).courses.create!(name: "Biology", description: "Living systems.").materials.new(title: "Cells")
 
     assert_not material.valid?
-    assert_includes material.errors[:blocks], "must include at least one text or image block"
+    assert_includes material.errors[:blocks], "must include at least one text, image, or video block"
+  end
+
+  test "accepts supported YouTube links and derives a privacy enhanced embed URL" do
+    material = organizations(:one).courses.create!(name: "Video course", description: "Video lessons.").materials.new(title: "Video lesson")
+    block = material.blocks.build(block_type: "video", position: 1, video_url: "https://youtu.be/dQw4w9WgXcQ?t=10")
+
+    assert block.valid?
+    assert_equal "dQw4w9WgXcQ", block.youtube_video_id
+    assert_equal "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ", block.youtube_embed_url
+  end
+
+  test "rejects video links from unsupported hosts" do
+    material = organizations(:one).courses.create!(name: "Video course", description: "Video lessons.").materials.new(title: "Video lesson")
+    block = material.blocks.build(block_type: "video", position: 1, video_url: "https://example.com/watch?v=dQw4w9WgXcQ")
+
+    assert_not block.valid?
+    assert_includes block.errors[:video_url], "must be a valid YouTube link"
   end
 
   test "keeps supported article formatting and removes arbitrary styles" do

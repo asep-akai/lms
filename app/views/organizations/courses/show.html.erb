@@ -27,15 +27,7 @@
   <div class="mt-4 whitespace-pre-wrap text-slate-700"><%= @course.description %></div>
 </section>
 <% if @course_contents %>
-  <%= render "content_section",
-    title: "Course content",
-    description: "Work through the materials and quizzes in order.",
-    course_contents: @course_contents,
-    empty_message: "No course content is available yet.",
-    actions: [
-      (policy(Material).create? ? { label: "Manage materials", path: organization_course_materials_path(current_organization, @course) } : nil),
-      (policy(Quiz).create? ? { label: "Manage quizzes", path: organization_course_quizzes_path(current_organization, @course) } : nil)
-    ].compact %>
+  <%= render "sections" %>
 <% end %>
 <% if policy(:student).index? %>
   <section class="mt-8" aria-labelledby="student-progress-heading">

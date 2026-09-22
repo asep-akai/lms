@@ -1,0 +1,5 @@
+<div class="page-header">
+  <div></div>
+  <%= back_link_to "Back to students", organization_students_path(current_organization) %>
+</div>
+<%= render "enrollment_form", student: @student %>

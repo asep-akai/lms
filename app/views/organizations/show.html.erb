@@ -10,32 +10,49 @@
     <%= link_to "Settings", edit_organization_path(@organization), class: "btn-secondary" %>
   <% end %>
 </div>
-<section class="card card-body mt-8" aria-labelledby="your-roles-heading">
-  <p class="eyebrow">Your access</p>
-  <h2 id="your-roles-heading" class="mt-1 text-xl font-semibold text-slate-950">Your roles</h2>
-  <% if @roles.any? %>
-    <div class="mt-4 flex flex-wrap gap-3">
-      <% @roles.each do |role| %>
-        <div class="rounded-lg border border-slate-200 px-4 py-3">
-          <p class="font-semibold text-slate-950">
-            <%= role.name %>
-          </p>
-          <% if role.description.present? %>
-            <p class="mt-1 text-sm text-slate-600">
-              <%= role.description %>
+<% if @roles %>
+  <section class="card card-body mt-8" aria-labelledby="your-roles-heading">
+    <p class="eyebrow">Your access</p>
+    <h2 id="your-roles-heading" class="mt-1 text-xl font-semibold text-slate-950">Your roles</h2>
+    <% if @roles.any? %>
+      <div class="mt-4 flex flex-wrap gap-3">
+        <% @roles.each do |role| %>
+          <div class="rounded-lg border border-slate-200 px-4 py-3">
+            <p class="font-semibold text-slate-950">
+              <%= role.name %>
             </p>
-          <% end %>
-        </div>
-      <% end %>
-    </div>
-  <% else %>
-    <p class="mt-4 text-sm text-slate-600">No roles are assigned to you. Contact an organization administrator for help.</p>
-  <% end %>
-</section>
+            <% if role.description.present? %>
+              <p class="mt-1 text-sm text-slate-600">
+                <%= role.description %>
+              </p>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="mt-4 text-sm text-slate-600">No roles are assigned to you. Contact an organization administrator for help.</p>
+    <% end %>
+  </section>
+<% end %>
+<% if @class_calendar %>
+  <%= render "organizations/class_meetings/calendar",
+    calendar: @class_calendar,
+    month_path: ->(month) { organization_path(@organization, month: month) } %>
+<% end %>
 <div class="stats">
   <%= link_to organization_courses_path(@organization), class: "card-link" do %>
     <h2>Courses</h2>
     <p class="subtitle">View the courses available to you.</p>
+  <% end %>
+  <%= link_to organization_class_meetings_path(@organization), class: "card-link" do %>
+    <h2>Classes</h2>
+    <p class="subtitle">View your scheduled class meetings.</p>
+  <% end %>
+  <% if policy(Assignment).index? %>
+    <%= link_to organization_assignments_path(@organization), class: "card-link" do %>
+      <h2>Assignments</h2>
+      <p class="subtitle"><%= current_membership.student? ? "View and submit assigned work." : "Create assignments and review submissions." %></p>
+    <% end %>
   <% end %>
   <% if can?("quiz_attempts.index") %>
     <%= link_to organization_grading_path(@organization), class: "card-link" do %>
@@ -47,6 +64,18 @@
     <%= link_to organization_evaluation_path(@organization), class: "card-link" do %>
       <h2>Evaluation</h2>
       <p class="subtitle">View your reviewed quiz results.</p>
+    <% end %>
+  <% end %>
+  <% if policy(Certificate).index? %>
+    <%= link_to organization_certificates_path(@organization), class: "card-link" do %>
+      <h2>Certificates</h2>
+      <p class="subtitle">View generated assessment certificates.</p>
+    <% end %>
+  <% end %>
+  <% if current_membership.teacher? && !can?("students.index") %>
+    <%= link_to organization_students_path(@organization), class: "card-link" do %>
+      <h2>Students</h2>
+      <p class="subtitle">View students assigned to your classes.</p>
     <% end %>
   <% end %>
 </div>

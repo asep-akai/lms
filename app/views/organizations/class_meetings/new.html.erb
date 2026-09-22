@@ -1,0 +1,10 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Classes</p>
+    <h1 class="title">Schedule class</h1>
+    <p class="subtitle">Assign the teacher and students, then set the meeting details.</p>
+  </div>
+  <%= back_link_to "Back to classes", organization_class_meetings_path(current_organization) %>
+</div>
+
+<%= render "form", class_meeting: @class_meeting %>
