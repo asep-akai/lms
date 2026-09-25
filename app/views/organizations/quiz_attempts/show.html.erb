@@ -38,15 +38,36 @@
     <% end %>
   </nav>
 
-  <section class="card card-body mt-8">
-    <p class="text-sm font-medium text-slate-500">Question <%= @question.position %> · <%= @question.question_type.humanize %></p>
-    <div class="rich-content mt-3 text-slate-800"><%= sanitize(@question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div>
-    <%= render "answer_form",
-      question: @question,
-      answer: @answer,
-      previous_question: previous_question,
-      next_question: next_question,
-      unanswered_questions_count: @unanswered_questions_count,
-      current_answer_saved: @current_answer_saved %>
-  </section>
+  <% if @question.quiz_page.blocks.any? %>
+    <section class="quiz-player-split mt-8 grid overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm lg:grid-cols-2" aria-label="Question and shared page content">
+      <div class="quiz-player-scroll border-b border-slate-200 bg-slate-50 p-5 sm:p-7 lg:border-b-0 lg:border-r">
+        <%= render "organizations/quizzes/page_content", page: @question.quiz_page %>
+      </div>
+      <div class="quiz-player-scroll p-5 sm:p-7">
+        <%= render "question_prompt", question: @question %>
+        <div class="mt-6">
+          <%= render "answer_form",
+            question: @question,
+            answer: @answer,
+            previous_question: previous_question,
+            next_question: next_question,
+            unanswered_questions_count: @unanswered_questions_count,
+            current_answer_saved: @current_answer_saved %>
+        </div>
+      </div>
+    </section>
+  <% else %>
+    <section class="quiz-question-panel card card-body mt-8" aria-label="Question">
+      <%= render "question_prompt", question: @question %>
+      <div class="mt-6">
+        <%= render "answer_form",
+          question: @question,
+          answer: @answer,
+          previous_question: previous_question,
+          next_question: next_question,
+          unanswered_questions_count: @unanswered_questions_count,
+          current_answer_saved: @current_answer_saved %>
+      </div>
+    </section>
+  <% end %>
 </div>

@@ -1,8 +1,6 @@
 require "application_system_test_case"
 
 class AuditLogTest < ApplicationSystemTestCase
-  teardown { page.current_window.resize_to(1400, 1000) }
-
   test "organization administrator inspects audit event details" do
     course = organizations(:one).courses.create!(name: "Biology", description: "Living systems.")
     AuditRecorder.record!(

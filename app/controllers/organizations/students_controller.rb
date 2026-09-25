@@ -69,7 +69,11 @@ class Organizations::StudentsController < Organizations::BaseController
 
     def load_quiz_attempts
       @quiz_attempts = @student.quiz_attempts
-        .includes({ quiz: [ :course, { questions: :answer_options } ] }, { answers: :quiz_answer_option }, :answer_overrides)
+        .includes(
+          :answer_overrides,
+          { quiz: [ :course, { questions: :answer_options } ] },
+          { answers: [ :quiz_answer_option, { audio_response_attachment: :blob } ] }
+        )
         .order(Arel.sql("COALESCE(reviewed_at, submitted_at, last_activity_at, started_at) DESC"))
       @gradings_by_attempt_id = @quiz_attempts.filter(&:reviewed?).to_h do |attempt|
         [ attempt.id, QuizAttemptGrader.new(attempt) ]

@@ -10,7 +10,14 @@ class Organizations::EvaluationsController < Organizations::BaseController
       query: @query,
       columns: %w[quizzes.title courses.name]
     )
-      .includes({ quiz: [ :course, { questions: :answer_options } ] }, { answers: :quiz_answer_option }, :answer_overrides, :certificates)
+      .includes(
+        :answer_overrides,
+        :answer_ai_grades,
+        :answer_feedbacks,
+        :certificates,
+        { quiz: [ :course, { questions: :answer_options } ] },
+        { answers: [ :quiz_answer_option, { audio_response_attachment: :blob } ] }
+      )
       .order(reviewed_at: :desc)
     @gradings_by_attempt_id = @attempts.to_h { |attempt| [ attempt.id, QuizAttemptGrader.new(attempt) ] }
   end
@@ -23,7 +30,15 @@ class Organizations::EvaluationsController < Organizations::BaseController
 
   private
     def set_attempt
-      @attempt = QuizAttempt.includes(membership: :user, quiz: { questions: :answer_options }, answers: :quiz_answer_option, answer_overrides: [], certificates: []).find(params[:id])
+      @attempt = QuizAttempt.includes(
+        :answer_overrides,
+        :answer_ai_grades,
+        :answer_feedbacks,
+        :certificates,
+        membership: :user,
+        quiz: { questions: :answer_options },
+        answers: [ :quiz_answer_option, { audio_response_attachment: :blob } ]
+      ).find(params[:id])
     end
 
     def set_back_destination

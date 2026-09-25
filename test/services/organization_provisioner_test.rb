@@ -3,7 +3,7 @@ require "test_helper"
 class OrganizationProvisionerTest < ActiveSupport::TestCase
   test "creates protected defaults and grants the owner admin access" do
     owner = users(:one)
-    organization = Organization.new(name: "New School", slug: "new-school", timezone: "UTC", locale: "en")
+    organization = Organization.new(name: "New School", slug: "new-school", timezone: "Jakarta", locale: "en")
 
     OrganizationProvisioner.call!(organization: organization, owner: owner)
 

@@ -83,6 +83,7 @@ module Console
 
       def load_permissions
         @permission_groups = Permission.console_assignable.console_groups
+        @existing_role_keys = Role.where(organization: nil).where.not(id: @role.id).pluck(:key)
       end
   end
 end

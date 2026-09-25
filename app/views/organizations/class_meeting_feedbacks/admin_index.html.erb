@@ -98,7 +98,7 @@
               </td>
               <td class="td">
                 <time datetime="<%= meeting.starts_at.iso8601 %>">
-                  <%= meeting.starts_at.in_time_zone(current_organization.timezone).strftime("%-d %b %Y, %H:%M") %>
+                  <%= meeting.starts_at.in_time_zone(current_organization.timezone).strftime("%-d %b %Y, %H:%M %Z") %>
                 </time>
               </td>
               <td class="td">

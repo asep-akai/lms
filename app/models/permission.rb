@@ -12,6 +12,7 @@ class Permission < ApplicationRecord
     "admins.create" => [ "Create administrators", "Create platform administrator accounts." ],
     "admins.update" => [ "Update administrators", "Update or suspend platform administrators." ],
     "admins.destroy" => [ "Delete administrators", "Remove platform administrator accounts." ],
+    "support_tickets.console" => [ "Manage escalated support", "View and respond to support tickets escalated by organizations." ],
     "roles.index" => [ "List roles", "View roles and their permissions." ],
     "roles.create" => [ "Create roles", "Create custom roles." ],
     "roles.update" => [ "Update roles", "Update custom roles and permissions." ],
@@ -52,7 +53,8 @@ class Permission < ApplicationRecord
     "quiz_attempts.review" => [ "Review quiz attempts", "Grade attempts, save feedback, and publish results." ],
     "quiz_attempts.ai_analyze" => [ "Analyze quiz attempts with AI", "Generate draft performance analysis with the configured AI provider." ],
     "quiz_attempts.reset" => [ "Reset quiz attempts", "Delete a student's attempt and allow them to retry the quiz." ],
-    "audit_events.index" => [ "View audit log", "Review organization security and administrative activity." ]
+    "audit_events.index" => [ "View audit log", "Review organization security and administrative activity." ],
+    "support_tickets.manage" => [ "Manage support tickets", "View, respond to, and escalate support tickets in the organization." ]
   }.freeze
 
   CONSOLE_ONLY_KEYS = %w[
@@ -60,6 +62,7 @@ class Permission < ApplicationRecord
     organizations.index organizations.create organizations.update
     users.index users.create users.update users.destroy
     admins.index admins.create admins.update admins.destroy
+    support_tickets.console
   ].freeze
 
   ORGANIZATION_ONLY_KEYS = %w[
@@ -75,6 +78,7 @@ class Permission < ApplicationRecord
     quizzes.index quizzes.create quizzes.update quizzes.destroy
     quiz_attempts.index quiz_attempts.show quiz_attempts.review quiz_attempts.ai_analyze quiz_attempts.reset
     audit_events.index
+    support_tickets.manage
   ].freeze
 
   ORGANIZATION_GROUPS = {
@@ -86,7 +90,8 @@ class Permission < ApplicationRecord
     "Certificates" => %w[certificates.index certificates.create],
     "Assignments" => %w[assignments.index assignments.create assignments.review],
     "Roles" => %w[roles.index roles.create roles.update roles.destroy],
-    "Audit" => %w[audit_events.index]
+    "Audit" => %w[audit_events.index],
+    "Support" => %w[support_tickets.manage]
   }.freeze
 
   CONSOLE_GROUPS = {
@@ -94,6 +99,7 @@ class Permission < ApplicationRecord
     "Organizations" => %w[organizations.index organizations.create organizations.update],
     "Users" => %w[users.index users.create users.update users.destroy],
     "Administrators" => %w[admins.index admins.create admins.update admins.destroy],
+    "Support" => %w[support_tickets.console],
     "Roles" => %w[roles.index roles.create roles.update roles.destroy]
   }.freeze
 

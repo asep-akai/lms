@@ -20,7 +20,7 @@ class ClassMeetingMailerTest < ActionMailer::TestCase
     assert_equal [ "student-one@example.com" ], email.to
     assert_equal "Class scheduled: Mathematics, meeting 1", email.subject
     assert_match "Introduction to algebra", email.text_part.body.to_s
-    assert_match "10 October 2026 at 08:30 UTC", email.text_part.body.to_s
+    assert_match "10 October 2026 at 15:30 WIB", email.text_part.body.to_s
     assert_match "student", email.text_part.body.to_s
     assert_match "https://meet.example.com/algebra", email.text_part.body.to_s
   end

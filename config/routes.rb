@@ -50,6 +50,9 @@ Rails.application.routes.draw do
         post :retake, on: :member, controller: "organizations/quiz_attempts"
         get :connection_check, on: :member
         patch "attempt/questions/:question_id", to: "organizations/quiz_attempts#update_answer", as: :attempt_answer
+        resources :pages, controller: "organizations/quiz_pages", only: %i[create update destroy] do
+          patch :move, on: :member
+        end
         resources :questions, controller: "organizations/quiz_questions", only: %i[create update destroy] do
           patch :move, on: :member
         end
@@ -69,11 +72,17 @@ Rails.application.routes.draw do
     patch "grading/attempts/:id/review", to: "organizations/quiz_attempt_reviews#review", as: :review_grading_attempt
     patch "grading/attempts/:id/unreview", to: "organizations/quiz_attempt_reviews#unreview", as: :unreview_grading_attempt
     patch "grading/attempts/:id/questions/:question_id", to: "organizations/quiz_attempt_reviews#grade_answer", as: :grade_answer
+    patch "grading/attempts/:id/questions/:question_id/feedback", to: "organizations/quiz_attempt_reviews#update_answer_feedback", as: :answer_feedback
     delete "grading/attempts/:id/questions/:question_id/grade", to: "organizations/quiz_attempt_reviews#reset_grade", as: :reset_answer_grade
     delete "grading/attempts/:id", to: "organizations/quiz_attempt_reviews#reset", as: :reset_grading_attempt
     get "evaluation", to: "organizations/evaluations#index", as: :evaluation
     get "evaluation/attempts/:id", to: "organizations/evaluations#show", as: :evaluation_attempt
     resources :audit_events, controller: "organizations/audit_events", only: :index
+    resources :support_tickets, controller: "organizations/support_tickets", only: %i[index show new create update] do
+      post :reply, on: :member
+      patch :escalate, on: :member
+      get "attachments/:attachment_id", action: :download_attachment, on: :member, as: :attachment
+    end
   end
 
   namespace :console do
@@ -86,6 +95,10 @@ Rails.application.routes.draw do
     end
     resources :admins, except: :show
     resources :roles, except: :show
+    resources :support_tickets, only: %i[index show update] do
+      post :reply, on: :member
+      get "attachments/:attachment_id", action: :download_attachment, on: :member, as: :attachment
+    end
   end
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

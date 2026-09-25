@@ -195,6 +195,7 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     assert_operator response.body.index("Cells check-in"), :<, response.body.index("Earlier assessment")
     assert_select "tr", text: /Cells check-in/ do
       assert_select ".attempt-score", text: "Not published"
+      assert_select "time", text: /WIB\z/
     end
     assert_select "a", text: "View attempt", count: 0
 

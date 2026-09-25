@@ -11,8 +11,8 @@ class TableSearchTest < ActiveSupport::TestCase
   end
 
   test "escapes SQL wildcard characters" do
-    matching = Organization.create!(name: "100% Learning", slug: "one-hundred-percent", timezone: "UTC", locale: "en")
-    Organization.create!(name: "100X Learning", slug: "one-hundred-x", timezone: "UTC", locale: "en")
+    matching = Organization.create!(name: "100% Learning", slug: "one-hundred-percent", timezone: "Jakarta", locale: "en")
+    Organization.create!(name: "100X Learning", slug: "one-hundred-x", timezone: "Jakarta", locale: "en")
 
     results = TableSearch.call(Organization.all, query: "100%", columns: %w[organizations.name])
 

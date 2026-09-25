@@ -1,8 +1,6 @@
 require "application_system_test_case"
 
 class CertificateManagementTest < ApplicationSystemTestCase
-  teardown { page.current_window.resize_to(1400, 1000) }
-
   test "administrator generates a certificate and student opens it from evaluation" do
     student = create_member("student", "system-certificate-student@example.com", "Certificate Student")
     attempt = create_reviewed_attempt(student)

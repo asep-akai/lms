@@ -1,7 +1,8 @@
 <% method = local_assigns.fetch(:method, :get) %>
 <div data-controller="quiz-connection-check"
      data-quiz-connection-check-test-url-value="<%= connection_check_organization_course_quiz_path(current_organization, @course, @quiz) %>"
-     data-quiz-connection-check-storage-key-value="lms:quiz-connection-check:<%= current_organization.id %>:<%= @quiz.id %>">
+     data-quiz-connection-check-storage-key-value="lms:quiz-connection-check:<%= current_organization.id %>:<%= @quiz.id %>"
+     data-quiz-connection-check-confirm-value="<%= local_assigns[:confirm] %>">
   <% if method == :get %>
     <%= link_to label,
       destination,
@@ -14,9 +15,8 @@
     <%= form_with url: destination,
       method: method,
       data: {
-        action: "submit->quiz-connection-check#check",
-        turbo_confirm: local_assigns[:confirm]
-      }.compact do |form| %>
+        action: "submit->quiz-connection-check#check"
+      } do |form| %>
       <%= form.submit label, class: "btn-primary", data: { quiz_connection_check_target: "launch" } %>
     <% end %>
   <% end %>

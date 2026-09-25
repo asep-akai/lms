@@ -20,7 +20,7 @@ class AssignmentMailerTest < ActionMailer::TestCase
 
     assert_equal [ @student.user.email ], email.to
     assert_equal "New assignment: Reading response", email.subject
-    assert_match "10 October 2026 at 08:30 UTC", email.text_part.body.to_s
+    assert_match "10 October 2026 at 15:30 WIB", email.text_part.body.to_s
     expected_url = Rails.application.routes.url_helpers.organization_assignment_url(
       organizations(:one),
       @assignment,
@@ -56,7 +56,7 @@ class AssignmentMailerTest < ActionMailer::TestCase
 
     assert_equal [ @student.user.email ], email.to
     assert_equal "Assignment updated: Reading response", email.subject
-    assert_match "10 October 2026 at 08:30 UTC", email.text_part.body.to_s
+    assert_match "10 October 2026 at 15:30 WIB", email.text_part.body.to_s
   end
 
   test "removed email explains that the student is no longer assigned" do

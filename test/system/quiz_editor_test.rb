@@ -1,6 +1,118 @@
 require "application_system_test_case"
 
 class QuizEditorTest < ApplicationSystemTestCase
+  test "student records and replaces a Safari-compatible audio response" do
+    membership = organizations(:one).memberships.create!(user: users(:two), status: "active")
+    membership.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]
+    course = organizations(:one).courses.create!(name: "Speaking", description: "Recorded responses.")
+    course.course_enrollments.create!(membership: membership)
+    quiz = course.quizzes.create!(title: "Oral response")
+    question = quiz.questions.create!(question_type: "audio", content_html: "", position: 1)
+
+    visit new_user_session_path
+    fill_in "Email", with: users(:two).email
+    fill_in "Password", with: "password"
+    click_button "Sign in"
+    assert_text "Organizations"
+    visit attempt_organization_course_quiz_path(organizations(:one), course, quiz)
+
+    page.execute_script(<<~JAVASCRIPT)
+      (() => {
+        const track = { stop() {} }
+        Object.defineProperty(navigator, "mediaDevices", {
+          configurable: true,
+          value: { getUserMedia: async () => ({ getTracks: () => [track] }) }
+        })
+        class TestMediaRecorder extends EventTarget {
+          static isTypeSupported(type) { return type.startsWith("audio/mp4") }
+          constructor(stream, options) {
+            super()
+            this.stream = stream
+            this.mimeType = options.mimeType
+            this.state = "inactive"
+          }
+          start() { this.state = "recording" }
+          stop() {
+            this.state = "inactive"
+            const data = new Blob(["recorded audio"], { type: "audio/mp4" })
+            this.dispatchEvent(new MessageEvent("dataavailable", { data }))
+            this.dispatchEvent(new Event("stop"))
+          }
+        }
+        Object.defineProperty(window, "MediaRecorder", { configurable: true, value: TestMediaRecorder })
+      })()
+    JAVASCRIPT
+
+    click_button "Start recording"
+    assert_text "Recording…"
+    assert_selector "canvas[aria-label='Live microphone waveform']:not([hidden])"
+    click_button "Stop recording"
+    assert_text "Recording ready"
+    assert_selector "audio:not([hidden])"
+    assert_button "Record again"
+
+    click_button "Submit"
+    assert_selector "dialog[open]", text: "All questions are answered. Submit quiz?"
+    within("dialog[open]") { click_button "Cancel" }
+
+    click_button "Back to course"
+    assert_text "Quiz progress saved."
+    answer = membership.quiz_attempts.find_by!(quiz: quiz).answers.find_by!(quiz_question: question)
+    assert_predicate answer.audio_response, :attached?
+    assert_equal "m4a", answer.audio_response.filename.extension
+    assert_equal "audio/m4a", answer.gemini_audio_content_type
+  end
+
+  test "essay word counter initializes from a saved response and updates while typing" do
+    membership = organizations(:one).memberships.create!(user: users(:two), status: "active")
+    membership.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]
+    course = organizations(:one).courses.create!(name: "Writing", description: "Structured responses.")
+    course.course_enrollments.create!(membership: membership)
+    quiz = course.quizzes.create!(title: "Case analysis")
+    question = quiz.questions.create!(question_type: "essay", content_html: "<p>Explain your decision.</p>", position: 1)
+    attempt = QuizAttempt.create!(quiz: quiz, membership: membership, started_at: Time.current, last_activity_at: Time.current)
+    attempt.answers.create!(quiz_question: question, short_answer_response: "A saved response")
+
+    visit new_user_session_path
+    fill_in "Email", with: users(:two).email
+    fill_in "Password", with: "password"
+    click_button "Sign in"
+    assert_text "Organizations"
+    visit attempt_organization_course_quiz_path(organizations(:one), course, quiz, attempt_id: attempt.id)
+
+    assert_text "3 words"
+    fill_in "Your essay", with: "One two\nthree four"
+    assert_text "4 words"
+  end
+
+  test "administrator rearranges text and image blocks on a quiz page" do
+    course = organizations(:one).courses.create!(name: "Writing", description: "Structured responses.")
+    quiz = course.quizzes.create!(title: "Case analysis")
+    quiz_page = quiz.default_page
+    text_block = quiz_page.blocks.create!(block_type: "text", body_html: "<p>Read the case carefully.</p>", position: 1)
+    image_block = quiz_page.blocks.build(block_type: "image", position: 2)
+    image_block.image.attach(io: StringIO.new("reference image"), filename: "case.png", content_type: "image/png", identify: false)
+    image_block.save!
+
+    visit new_user_session_path
+    fill_in "Email", with: users(:one).email
+    fill_in "Password", with: "password"
+    click_button "Sign in"
+    assert_text organizations(:one).name
+    visit edit_organization_course_quiz_path(organizations(:one), course, quiz)
+
+    click_button "Edit page"
+    within "[data-controller~='content-block-editor']" do
+      within "[data-block-type='image']" do
+        click_button "Move up"
+      end
+      click_button "Save page"
+    end
+
+    assert_text "Page updated."
+    assert_equal [ image_block.id, text_block.id ], quiz_page.reload.blocks.pluck(:id)
+  end
+
   test "back to course saves the current quiz answer" do
     membership = organizations(:one).memberships.create!(user: users(:two), status: "active")
     membership.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]
@@ -193,6 +305,17 @@ class QuizEditorTest < ApplicationSystemTestCase
     page.execute_script("window.__quizOriginalFetch = window.fetch.bind(window); window.fetch = () => Promise.reject(new TypeError('offline'))")
 
     click_button "Start retake"
+    within("dialog[open]") do
+      assert_text "Start a new attempt? Your current attempt will be cancelled and hidden from your evaluation history."
+      click_button "Cancel"
+    end
+    assert_no_selector "dialog[open][aria-label='Quiz connection test']"
+
+    click_button "Start retake"
+    within("dialog[open]") do
+      assert_text "Start a new attempt? Your current attempt will be cancelled and hidden from your evaluation history."
+      click_button "Confirm"
+    end
 
     using_wait_time(8) do
       within "dialog[open][aria-label='Quiz connection test']" do
@@ -201,7 +324,6 @@ class QuizEditorTest < ApplicationSystemTestCase
         click_button "Proceed anyway"
       end
     end
-    within("dialog[open]") { click_button "Confirm" }
 
     assert_text "Retake started. Your previous attempt is no longer active."
     assert_text "Question 1 of 1"
@@ -235,5 +357,34 @@ class QuizEditorTest < ApplicationSystemTestCase
     click_button "Save question"
     assert_text "Question updated."
     assert_equal question.id, quiz.questions.reload.first.id
+  end
+
+  test "editor switches between cloze fields and feedback-only essay scoring" do
+    course = organizations(:one).courses.create!(name: "Languages", description: "Mixed question formats.")
+    quiz = course.quizzes.create!(title: "Grammar review")
+
+    visit new_user_session_path
+    fill_in "Email", with: users(:one).email
+    fill_in "Password", with: "password"
+    click_button "Sign in"
+    assert_text organizations(:one).name
+    visit edit_organization_course_quiz_path(organizations(:one), course, quiz)
+
+    click_button "Add question"
+    within("section[data-controller='question-editor']") do
+      select "Multiple answers (cloze)", from: "Question type"
+      assert_field "Cloze text"
+      assert_no_field "Expected answer", visible: true
+      fill_in "Cloze text", with: "A sentence begins with a [[capital letter]] and ends with [[punctuation]]."
+      click_button "Add question"
+    end
+    assert_text "Question added."
+    assert_predicate quiz.questions.reload.first, :cloze?
+
+    click_button "Add question"
+    within("section[data-controller='question-editor']", match: :first) do
+      select "Essay", from: "Question type"
+      assert_field "Result treatment", with: "feedback_only"
+    end
   end
 end

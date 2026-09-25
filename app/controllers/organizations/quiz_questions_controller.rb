@@ -8,6 +8,7 @@ class Organizations::QuizQuestionsController < Organizations::BaseController
     @question = @quiz.questions.new(question_params.merge(position: next_position))
 
     if @question.save
+      @quiz.resequence_questions_by_page!
       record_question_change("quiz.question_created", 0, 1)
       redirect_to editor_path, notice: "Question added."
     else
@@ -20,6 +21,7 @@ class Organizations::QuizQuestionsController < Organizations::BaseController
     authorize @quiz, :update?
 
     if @question.update(question_params)
+      @quiz.resequence_questions_by_page!
       record_question_change("quiz.question_updated", 1, 1)
       redirect_to editor_path, notice: "Question updated."
     else
@@ -31,6 +33,7 @@ class Organizations::QuizQuestionsController < Organizations::BaseController
   def destroy
     authorize @quiz, :update?
     @question.destroy!
+    @quiz.resequence_questions_by_page!
     record_question_change("quiz.question_deleted", 1, 0)
     redirect_to editor_path, notice: "Question removed."
   end
@@ -78,6 +81,9 @@ class Organizations::QuizQuestionsController < Organizations::BaseController
         :question_type,
         :content_html,
         :short_answer,
+        :cloze_template,
+        :scoring_mode,
+        :quiz_page_id,
         answer_options_attributes: [ :id, :content, :correct, :_destroy ]
       )
     end
@@ -87,16 +93,18 @@ class Organizations::QuizQuestionsController < Organizations::BaseController
     end
 
     def previous_question
-      @quiz.questions.where("position < ?", @question.position).order(position: :desc).first
+      @question.quiz_page.questions.where("position < ?", @question.position).order(position: :desc).first
     end
 
     def next_question
-      @quiz.questions.where("position > ?", @question.position).order(:position).first
+      @question.quiz_page.questions.where("position > ?", @question.position).order(:position).first
     end
 
     def load_editor
-      @questions = @quiz.questions.includes(:answer_options)
-      @new_question = @question.new_record? ? @question : @quiz.questions.new(question_type: :multiple_choice)
+      @pages = @quiz.pages.includes(questions: :answer_options)
+      @questions = @quiz.questions.includes(:answer_options, :quiz_page)
+      @new_page = @quiz.build_next_page
+      @new_question = @question.new_record? ? @question : @quiz.questions.new(question_type: :multiple_choice, quiz_page: @quiz.default_page)
     end
 
     def record_question_change(action, before_count, after_count)

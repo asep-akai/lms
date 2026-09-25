@@ -1,3 +1,61 @@
 <% question_url = question.persisted? ? organization_course_quiz_question_path(current_organization, course, quiz, question, from: params[:from]) : organization_course_quiz_questions_path(current_organization, course, quiz, from: params[:from]) %>
 <% question_method = question.persisted? ? :patch : :post %>
-<section class="rounded-xl border border-slate-200 bg-slate-50 p-5" data-controller="question-editor"><h3 class="text-base font-semibold text-slate-950"><%= heading %></h3><%= render "shared/errors", record: question %><%= form_with model: question, url: question_url, method: question_method, class: "form-stack mt-5", data: { controller: "question-form", action: "submit->question-form#synchronize change->question-form#clearChoiceValidation" } do |form| %><div><%= form.label :content_html, "Question", class: "label" %><div data-controller="rich-text-editor"><div class="rich-editor-toolbar" aria-label="Text formatting" data-action="mousedown->rich-text-editor#preserveSelection"><button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="bold"><strong>B</strong></button><button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="italic"><em>I</em></button><button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="underline"><u>U</u></button><button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="insertUnorderedList">Bulleted list</button><button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="insertOrderedList">Numbered list</button></div><div class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" data-rich-text-editor-target="editor" data-action="input->rich-text-editor#synchronize"><%= sanitize(question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div><%= form.hidden_field :content_html, data: { rich_text_editor_target: "input" } %></div></div><div><%= form.label :question_type, "Question type", class: "label" %><%= form.select :question_type, QuizQuestion::QUESTION_TYPES, {}, class: "field", data: { question_editor_target: "type", action: "change->question-editor#update" } %></div><div data-question-editor-target="multipleChoice"><p class="label">Answer choices</p><p class="hint">Provide at least two choices and mark exactly one as correct.</p><% question.answer_options.build while question.answer_options.size < 4 %><div class="mt-3 space-y-3"><%= form.fields_for :answer_options do |option_form| %><div class="rounded-lg border border-slate-200 bg-white p-3"><%= option_form.hidden_field :id if option_form.object.persisted? %><%= option_form.hidden_field :_destroy, value: "0" %><div class="flex items-start gap-3"><div class="min-w-0 flex-1"><%= option_form.label :content, "Choice", class: "label" %><%= option_form.text_field :content, maxlength: 2000, class: "field" %></div><div class="pt-8"><%= option_form.check_box :correct, class: "h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-600" %> <%= option_form.label :correct, "Correct", class: "ml-1 text-sm font-medium text-slate-700" %></div></div></div><% end %></div></div><div data-question-editor-target="shortAnswer" <%= "hidden" unless question.short_answer? %>><%= form.label :short_answer, "Expected answer", class: "label" %><%= form.text_field :short_answer, maxlength: 1000, class: "field" %></div><div class="actions"><%= form.submit question.persisted? ? "Save question" : "Add question", class: "btn-primary" %></div><% end %><% if question.persisted? %><div class="mt-3"><%= button_to "Remove question", organization_course_quiz_question_path(current_organization, course, quiz, question, from: params[:from]), method: :delete, form: { data: { turbo_confirm: "Remove this question?" } }, class: "danger-link" %></div><% end %></section>
+<section class="rounded-xl border border-slate-200 bg-slate-50 p-5" data-controller="question-editor">
+  <h3 class="text-base font-semibold text-slate-950"><%= heading %></h3>
+  <%= render "shared/errors", record: question %>
+  <%= form_with model: question, url: question_url, method: question_method, class: "form-stack mt-5", data: { controller: "question-form", action: "submit->question-form#synchronize change->question-form#clearChoiceValidation" } do |form| %>
+    <div class="form-grid">
+      <div><%= form.label :quiz_page_id, "Page", class: "label" %><%= form.collection_select :quiz_page_id, pages, :id, :title, {}, class: "field" %><p class="hint">The page's shared instructions will appear with this question.</p></div>
+      <div><%= form.label :question_type, "Question type", class: "label" %><%= form.select :question_type, QuizQuestion::QUESTION_TYPES, {}, class: "field", data: { question_editor_target: "type", action: "change->question-editor#update" } %></div>
+    </div>
+    <div>
+      <%= form.label :content_html, "Question", class: "label" %>
+      <div data-controller="rich-text-editor">
+        <div class="rich-editor-toolbar" aria-label="Text formatting" data-action="mousedown->rich-text-editor#preserveSelection">
+          <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="bold"><strong>B</strong></button>
+          <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="italic"><em>I</em></button>
+          <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="underline"><u>U</u></button>
+          <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="insertUnorderedList">Bulleted list</button>
+          <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="insertOrderedList">Numbered list</button>
+        </div>
+        <div class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" data-rich-text-editor-target="editor" data-action="input->rich-text-editor#synchronize"><%= sanitize(question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div>
+        <%= form.hidden_field :content_html, data: { rich_text_editor_target: "input" } %>
+      </div>
+      <p class="hint">Optional. Leave this empty when the shared page content contains the complete instruction.</p>
+    </div>
+    <div data-question-editor-target="multipleChoice">
+      <p class="label">Answer choices</p><p class="hint" data-question-editor-target="choiceHint"><%= question.multiple_choice_set? ? "Provide at least two choices, with at least one correct and one incorrect." : "Provide at least two choices and mark exactly one as correct." %></p>
+      <% question.answer_options.build while question.answer_options.size < 4 %>
+      <div class="mt-3 space-y-3">
+        <%= form.fields_for :answer_options do |option_form| %>
+          <div class="rounded-lg border border-slate-200 bg-white p-3">
+            <%= option_form.hidden_field :id if option_form.object.persisted? %><%= option_form.hidden_field :_destroy, value: "0" %>
+            <div class="flex items-start gap-3">
+              <div class="min-w-0 flex-1"><%= option_form.label :content, "Choice", class: "label" %><%= option_form.text_field :content, maxlength: 2000, class: "field" %></div>
+              <div class="pt-8"><%= option_form.check_box :correct, class: "h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-600" %> <%= option_form.label :correct, "Correct", class: "ml-1 text-sm font-medium text-slate-700" %></div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    <div data-question-editor-target="shortAnswer" <%= "hidden" unless question.short_answer? %>><%= form.label :short_answer, "Expected answer", class: "label" %><%= form.text_field :short_answer, maxlength: 1000, class: "field" %></div>
+    <div data-question-editor-target="cloze" <%= "hidden" unless question.cloze? %>>
+      <%= form.label :cloze_template, "Cloze text", class: "label" %>
+      <%= form.text_area :cloze_template, rows: 6, maxlength: 20_000, class: "field font-mono", placeholder: "Water freezes at [[0|zero]] degrees [[Celsius|C]]." %>
+      <p class="hint">Use [[answer|alternative]] when more than one response should be accepted.</p>
+      <p class="hint">Put each expected answer in double brackets. Students see an inline answer box in each position; the expected answers are never sent to their quiz page.</p>
+    </div>
+    <div data-question-editor-target="essay" <%= "hidden" unless question.essay? %>><p class="rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-900">Essay responses can remain unscored, be scored manually, or receive an AI-assisted draft score for reviewer confirmation.</p></div>
+    <div data-question-editor-target="audio" <%= "hidden" unless question.audio? %>><p class="rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-900">Students can record one response or upload one Gemini-compatible audio file. Responses can remain unscored, be scored manually, or receive an AI-assisted draft score.</p></div>
+    <div data-question-editor-target="scoring" <%= "hidden" unless question.manual_grading? %>>
+      <%= form.label :scoring_mode, "Result treatment", class: "label" %>
+      <%= form.select :scoring_mode,
+        [ [ "Feedback only — do not include in final score", "feedback_only" ], [ "Include in final score", "scored" ] ],
+        { selected: question.scoring_mode.presence || "feedback_only" },
+        class: "field" %>
+      <p class="hint">Feedback-only responses are still included in AI analysis, but they never receive a correct/wrong judgment or affect the score.</p>
+    </div>
+    <div class="actions"><%= form.submit question.persisted? ? "Save question" : "Add question", class: "btn-primary" %></div>
+  <% end %>
+  <% if question.persisted? %><div class="mt-3"><%= button_to "Remove question", organization_course_quiz_question_path(current_organization, course, quiz, question, from: params[:from]), method: :delete, form: { data: { turbo_confirm: "Remove this question?" } }, class: "danger-link" %></div><% end %>
+</section>

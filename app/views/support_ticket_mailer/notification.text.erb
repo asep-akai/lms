@@ -1,0 +1,22 @@
+<%= SupportTicketMailer::SUBJECTS.fetch(@event) %>
+
+Hello <%= @recipient.name %>,
+
+<% case @event %>
+<% when "created" %>
+<%= @actor.user.name %> opened a support ticket in <%= @ticket.organization.name %>.
+<% when "replied" %>
+<%= @actor.is_a?(Membership) ? @actor.user.name : @actor.name %> replied to a support ticket in <%= @ticket.organization.name %>.
+<% when "escalated" %>
+<%= @ticket.organization.name %> escalated this support ticket to the console team.
+<% when "status_changed" %>
+<%= @actor.is_a?(Membership) ? @actor.user.name : @actor.name %> changed the ticket status to <%= @ticket.status.humanize %>.
+<% end %>
+
+<%= @ticket.subject %>
+<% if @message.present? %>
+
+<%= @message.body %>
+<% end %>
+
+View support ticket: <%= @ticket_url %>

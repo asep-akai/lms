@@ -14,7 +14,7 @@ module Console
     end
 
     def new
-      @organization = Organization.new(timezone: "Jakarta", locale: "en")
+      @organization = Organization.new(timezone: Organization::TIME_ZONE, locale: "en")
       authorize @organization
     end
 
@@ -46,7 +46,7 @@ module Console
           action: "console.organization.updated",
           auditable: @organization,
           organization: @organization,
-          changes: @organization.saved_changes.slice("name", "slug", "status", "timezone", "locale")
+          changes: @organization.saved_changes.slice("name", "slug", "status", "locale")
         )
         redirect_to console_organizations_path, notice: "Organization updated."
       else
@@ -75,7 +75,7 @@ module Console
       end
 
       def organization_params
-        params.require(:organization).permit(:name, :slug, :status, :timezone, :locale)
+        params.require(:organization).permit(:name, :slug, :status, :locale)
       end
   end
 end

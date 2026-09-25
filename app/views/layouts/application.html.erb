@@ -52,6 +52,7 @@
                 <% if can?("audit_events.index") %>
                   <%= link_to "Audit log", organization_audit_events_path(current_organization), class: "nav-link" %>
                 <% end %>
+                <%= link_to "Support", organization_support_tickets_path(current_organization), class: "nav-link" %>
               </nav>
             <% end %>
           </div>

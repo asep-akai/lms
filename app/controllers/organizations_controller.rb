@@ -23,7 +23,7 @@ class OrganizationsController < AppController
         action: "organization.updated",
         auditable: @organization,
         organization: @organization,
-        changes: @organization.saved_changes.slice("name", "slug", "timezone", "locale")
+        changes: @organization.saved_changes.slice("name", "slug", "locale")
       )
       redirect_to @organization, notice: "Organization updated."
     else
@@ -39,7 +39,7 @@ class OrganizationsController < AppController
     end
 
     def organization_params
-      params.require(:organization).permit(:name, :slug, :timezone, :locale)
+      params.require(:organization).permit(:name, :slug, :locale)
     end
 
     def load_class_calendar

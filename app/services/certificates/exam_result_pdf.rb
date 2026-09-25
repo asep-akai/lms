@@ -78,7 +78,7 @@ module Certificates
         results = [
           [ "Test date", @presenter.test_date.strftime("%-d %B %Y") ],
           [ "Score", @presenter.score ],
-          [ "Percentage", "#{@presenter.percentage}%" ]
+          [ "Percentage", @presenter.percentage.nil? ? "—" : "#{@presenter.percentage}%" ]
         ]
 
         document.bounding_box([ 0, document.cursor ], width: document.bounds.width, height: 72) do

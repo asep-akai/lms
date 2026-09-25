@@ -59,7 +59,7 @@
     </div>
     <div class="rounded-lg bg-slate-100 p-4">
       <dt class="text-sm font-medium text-slate-600">Percentage</dt>
-      <dd class="mt-2 text-xl font-semibold text-slate-950"><%= @presenter.percentage %>%</dd>
+      <dd class="mt-2 text-xl font-semibold text-slate-950"><%= @presenter.percentage.nil? ? "—" : "#{@presenter.percentage}%" %></dd>
     </div>
   </dl>
 

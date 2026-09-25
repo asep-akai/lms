@@ -17,10 +17,15 @@ export default class extends Controller {
     const correctChoices = choices.filter((choice) => choice.checked)
 
     choices.forEach((choice) => choice.setCustomValidity(""))
-    if (questionType?.value !== "multiple_choice" || correctChoices.length === 1) return
+    const valid = questionType?.value === "multiple_choice" ?
+      correctChoices.length === 1 :
+      questionType?.value === "multiple_choice_set" ? correctChoices.length >= 1 : true
+    if (valid) return
 
     event.preventDefault()
-    const message = "Choose exactly one correct answer."
+    const message = questionType?.value === "multiple_choice_set" ?
+      "Choose at least one correct answer." :
+      "Choose exactly one correct answer."
     choices[0]?.setCustomValidity(message)
     choices[0]?.reportValidity()
   }

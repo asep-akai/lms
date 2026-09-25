@@ -34,24 +34,43 @@
     </dl>
   </section>
 
-  <div class="mt-8 space-y-4">
-    <% @quiz.questions.each do |question| %>
-      <section class="card card-body">
-        <p class="text-sm font-medium text-slate-500">Question <%= question.position %> · <%= question.question_type.humanize %></p>
-        <div class="rich-content mt-3 text-slate-800"><%= sanitize(question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div>
+  <div class="mt-8 space-y-6">
+    <% @quiz.pages.includes({ blocks: { image_attachment: :blob } }, questions: :answer_options).each do |page| %>
+      <section class="rounded-xl border border-slate-300 bg-white shadow-sm">
+        <div class="p-5 sm:p-6">
+          <h2><%= page.title %></h2>
+          <% if page.blocks.any? %><div class="mt-4"><%= render "organizations/quizzes/page_content", page: page %></div><% end %>
+        </div>
+        <div class="space-y-4 border-t border-slate-200 bg-slate-50 p-4 sm:p-6">
+          <% page.questions.each do |question| %>
+            <section class="card card-body">
+              <p class="text-sm font-medium text-slate-500">Question <%= question.position %> · <%= question.question_type.humanize %></p>
+              <% if question.content_text? %><div class="rich-content mt-3 text-slate-800"><%= sanitize(question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div><% end %>
 
-        <% if question.multiple_choice? %>
-          <ul class="mt-4 space-y-2">
-            <% question.answer_options.each do |option| %>
-              <li class="rounded-lg border border-slate-200 px-4 py-3 text-sm <%= option.correct? ? "border-emerald-300 bg-emerald-50 text-emerald-900" : "text-slate-700" %>">
-                <%= option.content %>
-                <% if option.correct? %><span class="ml-2 font-medium">Correct</span><% end %>
-              </li>
-            <% end %>
-          </ul>
-        <% else %>
-          <p class="mt-4 text-sm text-slate-600"><span class="font-medium">Expected answer:</span> <%= question.short_answer %></p>
-        <% end %>
+              <% if question.multiple_choice? || question.multiple_choice_set? %>
+                <ul class="mt-4 space-y-2">
+                  <% question.answer_options.each do |option| %>
+                    <li class="rounded-lg border border-slate-200 px-4 py-3 text-sm <%= option.correct? ? "border-emerald-300 bg-emerald-50 text-emerald-900" : "text-slate-700" %>">
+                      <%= option.content %><% if option.correct? %><span class="ml-2 font-medium">Correct</span><% end %>
+                    </li>
+                  <% end %>
+                </ul>
+              <% elsif question.short_answer? %>
+                <p class="mt-4 text-sm text-slate-600"><span class="font-medium">Expected answer:</span> <%= question.short_answer %></p>
+              <% elsif question.cloze? %>
+                <div class="mt-4 text-sm text-slate-600">
+                  <span class="font-medium">Expected answers:</span>
+                  <%= render "organizations/quiz_answers/answer_key", question: question %>
+                </div>
+              <% elsif question.essay? %>
+                <p class="mt-4 text-sm text-slate-500"><%= question.feedback_only? ? "Essay response · Feedback only" : "Essay response · Included in final score" %></p>
+              <% else %>
+                <p class="mt-4 text-sm text-slate-500"><%= question.feedback_only? ? "Audio response · Feedback only" : "Audio response · Included in final score" %></p>
+              <% end %>
+            </section>
+          <% end %>
+          <% if page.questions.empty? %><p class="text-sm text-slate-500">No questions on this page.</p><% end %>
+        </div>
       </section>
     <% end %>
   </div>

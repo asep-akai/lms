@@ -18,7 +18,7 @@ export default class extends Controller {
     "liveLatency", "liveSpeed"
   ]
 
-  static values = { testUrl: String, storageKey: String }
+  static values = { testUrl: String, storageKey: String, confirm: String }
 
   connect() {
     this.removeDismissibleBehavior = makeDialogDismissible(this.dialogTarget, () => this.close())
@@ -34,13 +34,20 @@ export default class extends Controller {
       this.proceeding = false
       return
     }
-    if (this.wasChecked()) return
 
-    event.preventDefault()
     if (event.currentTarget.tagName === "FORM") {
+      event.preventDefault()
       this.form = event.currentTarget
       this.destination = null
+      if (this.confirmValue && !await Turbo.config.forms.confirm(this.confirmValue)) return
+      if (this.wasChecked()) {
+        this.submitForm()
+        return
+      }
     } else {
+      if (this.wasChecked()) return
+
+      event.preventDefault()
       this.form = null
       this.destination = event.currentTarget.href
     }
@@ -74,11 +81,15 @@ export default class extends Controller {
     const destination = this.destination
     this.close()
     if (this.form) {
-      this.proceeding = true
-      this.form.requestSubmit()
+      this.submitForm()
     } else {
       Turbo.visit(destination)
     }
+  }
+
+  submitForm() {
+    this.proceeding = true
+    this.form.requestSubmit()
   }
 
   close() {

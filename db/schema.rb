@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_21_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_24_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -289,6 +289,44 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_120000) do
     t.index ["key"], name: "index_permissions_on_key", unique: true
   end
 
+  create_table "quiz_answer_ai_grades", force: :cascade do |t|
+    t.boolean "correct", null: false
+    t.datetime "created_at", null: false
+    t.string "model", null: false
+    t.bigint "quiz_attempt_id", null: false
+    t.bigint "quiz_question_id", null: false
+    t.text "rationale", null: false
+    t.datetime "updated_at", null: false
+    t.index ["quiz_attempt_id", "quiz_question_id"], name: "index_quiz_answer_ai_grades_on_attempt_and_question", unique: true
+    t.index ["quiz_attempt_id"], name: "index_quiz_answer_ai_grades_on_quiz_attempt_id"
+    t.index ["quiz_question_id"], name: "index_quiz_answer_ai_grades_on_quiz_question_id"
+  end
+
+  create_table "quiz_answer_ai_transcriptions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "model", null: false
+    t.bigint "quiz_attempt_id", null: false
+    t.bigint "quiz_question_id", null: false
+    t.text "transcript", null: false
+    t.datetime "updated_at", null: false
+    t.index ["quiz_attempt_id", "quiz_question_id"], name: "index_quiz_answer_ai_transcriptions_on_attempt_and_question", unique: true
+    t.index ["quiz_attempt_id"], name: "index_quiz_answer_ai_transcriptions_on_quiz_attempt_id"
+    t.index ["quiz_question_id"], name: "index_quiz_answer_ai_transcriptions_on_quiz_question_id"
+  end
+
+  create_table "quiz_answer_feedbacks", force: :cascade do |t|
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.string "model"
+    t.string "origin", null: false
+    t.bigint "quiz_attempt_id", null: false
+    t.bigint "quiz_question_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["quiz_attempt_id", "quiz_question_id"], name: "index_quiz_answer_feedbacks_on_attempt_and_question", unique: true
+    t.index ["quiz_attempt_id"], name: "index_quiz_answer_feedbacks_on_quiz_attempt_id"
+    t.index ["quiz_question_id"], name: "index_quiz_answer_feedbacks_on_quiz_question_id"
+  end
+
   create_table "quiz_answer_options", force: :cascade do |t|
     t.text "content", null: false
     t.boolean "correct", default: false, null: false
@@ -307,6 +345,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_120000) do
     t.index ["quiz_attempt_id", "quiz_question_id"], name: "idx_on_quiz_attempt_id_quiz_question_id_4bde5e5bfc", unique: true
     t.index ["quiz_attempt_id"], name: "index_quiz_answer_overrides_on_quiz_attempt_id"
     t.index ["quiz_question_id"], name: "index_quiz_answer_overrides_on_quiz_question_id"
+  end
+
+  create_table "quiz_answer_selections", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "quiz_answer_id", null: false
+    t.bigint "quiz_answer_option_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["quiz_answer_id", "quiz_answer_option_id"], name: "index_quiz_answer_selections_on_answer_and_option", unique: true
+    t.index ["quiz_answer_id"], name: "index_quiz_answer_selections_on_quiz_answer_id"
+    t.index ["quiz_answer_option_id"], name: "index_quiz_answer_selections_on_quiz_answer_option_id"
   end
 
   create_table "quiz_answers", force: :cascade do |t|
@@ -356,16 +404,53 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_120000) do
     t.index ["superseded_by_attempt_id"], name: "index_quiz_attempts_on_superseded_by_attempt_id"
   end
 
+  create_table "quiz_cloze_responses", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "position", null: false
+    t.bigint "quiz_answer_id", null: false
+    t.text "response_text", null: false
+    t.datetime "updated_at", null: false
+    t.index ["quiz_answer_id", "position"], name: "index_quiz_cloze_responses_on_quiz_answer_id_and_position", unique: true
+    t.index ["quiz_answer_id"], name: "index_quiz_cloze_responses_on_quiz_answer_id"
+  end
+
+  create_table "quiz_page_blocks", force: :cascade do |t|
+    t.string "block_type", null: false
+    t.text "body_html"
+    t.datetime "created_at", null: false
+    t.integer "position", null: false
+    t.bigint "quiz_page_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["quiz_page_id", "position"], name: "index_quiz_page_blocks_on_quiz_page_id_and_position"
+    t.index ["quiz_page_id"], name: "index_quiz_page_blocks_on_quiz_page_id"
+  end
+
+  create_table "quiz_pages", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "instructions_html"
+    t.integer "position", default: 1, null: false
+    t.bigint "quiz_id", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["quiz_id", "position"], name: "index_quiz_pages_on_quiz_id_and_position", unique: true
+    t.index ["quiz_id"], name: "index_quiz_pages_on_quiz_id"
+  end
+
   create_table "quiz_questions", force: :cascade do |t|
+    t.text "cloze_template"
     t.text "content_html", null: false
     t.datetime "created_at", null: false
     t.integer "position", default: 0, null: false
     t.string "question_type", null: false
     t.bigint "quiz_id", null: false
+    t.bigint "quiz_page_id", null: false
+    t.string "scoring_mode"
     t.string "short_answer"
     t.datetime "updated_at", null: false
     t.index ["quiz_id", "position"], name: "index_quiz_questions_on_quiz_id_and_position"
     t.index ["quiz_id"], name: "index_quiz_questions_on_quiz_id"
+    t.index ["quiz_page_id", "position"], name: "index_quiz_questions_on_quiz_page_id_and_position"
+    t.index ["quiz_page_id"], name: "index_quiz_questions_on_quiz_page_id"
   end
 
   create_table "quizzes", force: :cascade do |t|
@@ -564,6 +649,35 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_120000) do
     t.index ["key"], name: "index_solid_queue_semaphores_on_key", unique: true
   end
 
+  create_table "support_messages", force: :cascade do |t|
+    t.bigint "author_id", null: false
+    t.string "author_type", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.bigint "support_ticket_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["author_type", "author_id"], name: "index_support_messages_on_author"
+    t.index ["support_ticket_id"], name: "index_support_messages_on_support_ticket_id"
+  end
+
+  create_table "support_tickets", force: :cascade do |t|
+    t.string "category", default: "technical_issue", null: false
+    t.datetime "created_at", null: false
+    t.datetime "escalated_at"
+    t.bigint "escalated_by_membership_id"
+    t.bigint "organization_id", null: false
+    t.string "priority", default: "normal", null: false
+    t.bigint "reporter_membership_id", null: false
+    t.string "status", default: "open", null: false
+    t.string "subject", null: false
+    t.datetime "updated_at", null: false
+    t.index ["escalated_at"], name: "index_support_tickets_on_escalated_at"
+    t.index ["escalated_by_membership_id"], name: "index_support_tickets_on_escalated_by_membership_id"
+    t.index ["organization_id", "status"], name: "index_support_tickets_on_organization_id_and_status"
+    t.index ["organization_id"], name: "index_support_tickets_on_organization_id"
+    t.index ["reporter_membership_id"], name: "index_support_tickets_on_reporter_membership_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email", null: false
@@ -609,15 +723,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_120000) do
   add_foreign_key "materials", "courses"
   add_foreign_key "memberships", "organizations"
   add_foreign_key "memberships", "users"
+  add_foreign_key "quiz_answer_ai_grades", "quiz_attempts"
+  add_foreign_key "quiz_answer_ai_grades", "quiz_questions"
+  add_foreign_key "quiz_answer_ai_transcriptions", "quiz_attempts"
+  add_foreign_key "quiz_answer_ai_transcriptions", "quiz_questions"
+  add_foreign_key "quiz_answer_feedbacks", "quiz_attempts"
+  add_foreign_key "quiz_answer_feedbacks", "quiz_questions"
   add_foreign_key "quiz_answer_options", "quiz_questions"
   add_foreign_key "quiz_answer_overrides", "quiz_attempts"
   add_foreign_key "quiz_answer_overrides", "quiz_questions"
+  add_foreign_key "quiz_answer_selections", "quiz_answer_options"
+  add_foreign_key "quiz_answer_selections", "quiz_answers"
   add_foreign_key "quiz_answers", "quiz_answer_options"
   add_foreign_key "quiz_answers", "quiz_attempts"
   add_foreign_key "quiz_answers", "quiz_questions"
   add_foreign_key "quiz_attempts", "memberships"
   add_foreign_key "quiz_attempts", "quiz_attempts", column: "superseded_by_attempt_id"
   add_foreign_key "quiz_attempts", "quizzes"
+  add_foreign_key "quiz_cloze_responses", "quiz_answers"
+  add_foreign_key "quiz_page_blocks", "quiz_pages"
+  add_foreign_key "quiz_pages", "quizzes"
+  add_foreign_key "quiz_questions", "quiz_pages"
   add_foreign_key "quiz_questions", "quizzes"
   add_foreign_key "quizzes", "courses"
   add_foreign_key "role_assignments", "roles"
@@ -632,4 +758,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_120000) do
   add_foreign_key "solid_queue_ready_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_recurring_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "support_messages", "support_tickets"
+  add_foreign_key "support_tickets", "memberships", column: "escalated_by_membership_id"
+  add_foreign_key "support_tickets", "memberships", column: "reporter_membership_id"
+  add_foreign_key "support_tickets", "organizations"
 end

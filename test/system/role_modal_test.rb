@@ -21,6 +21,33 @@ class RoleModalTest < ApplicationSystemTestCase
     assert_text "Curriculum coordinator"
   end
 
+  test "invalid and duplicate keys are explained without leaving the role modal" do
+    organizations(:one).roles.create!(name: "Curriculum coordinator", key: "curriculum_coordinator")
+
+    visit new_user_session_path
+    fill_in "Email", with: users(:one).email
+    fill_in "Password", with: "password"
+    click_button "Sign in"
+    assert_text organizations(:one).name
+    visit organization_roles_path(organizations(:one))
+    click_link "New custom role"
+
+    fill_in "Name", with: "Another coordinator"
+    fill_in "Key", with: "Wrong Key!"
+    click_button "Create Role"
+
+    assert_selector "dialog[open]"
+    assert_text "Use lowercase letters and numbers separated by single underscores."
+    assert_equal "Wrong Key!", find_field("Key").value
+
+    fill_in "Key", with: "curriculum_coordinator"
+    click_button "Create Role"
+
+    assert_selector "dialog[open]"
+    assert_text "This key is already used by another role. Choose a different key."
+    assert_equal "curriculum_coordinator", find_field("Key").value
+  end
+
   test "an organization administrator opens the role form in a modal" do
     role = organizations(:one).roles.create!(name: "Custom role", key: "custom_role")
 
@@ -42,8 +69,9 @@ class RoleModalTest < ApplicationSystemTestCase
     centered = page.evaluate_script(<<~JAVASCRIPT)
       (() => {
         const bounds = document.querySelector("dialog").getBoundingClientRect()
-        const horizontalOffset = Math.abs((bounds.left + bounds.width / 2) - window.innerWidth / 2)
-        const verticalOffset = Math.abs((bounds.top + bounds.height / 2) - window.innerHeight / 2)
+        const viewport = document.documentElement
+        const horizontalOffset = Math.abs((bounds.left + bounds.width / 2) - viewport.clientWidth / 2)
+        const verticalOffset = Math.abs((bounds.top + bounds.height / 2) - viewport.clientHeight / 2)
         return horizontalOffset < 2 && verticalOffset < 2
       })()
     JAVASCRIPT

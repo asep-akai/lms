@@ -1,6 +1,6 @@
 class Organizations::QuizAttemptReviewsController < Organizations::BaseController
-  before_action :set_attempt, only: %i[show automatic_grade update_feedback review unreview grade_answer reset_grade reset]
-  before_action :reject_cancelled_attempt, only: %i[automatic_grade update_feedback review unreview grade_answer reset_grade reset]
+  before_action :set_attempt, only: %i[show automatic_grade update_feedback update_answer_feedback review unreview grade_answer reset_grade reset]
+  before_action :reject_cancelled_attempt, only: %i[automatic_grade update_feedback update_answer_feedback review unreview grade_answer reset_grade reset]
 
   def index
     authorize QuizAttempt
@@ -9,8 +9,11 @@ class Organizations::QuizAttemptReviewsController < Organizations::BaseControlle
     attempts = policy_scope(QuizAttempt).joins({ membership: :user }, quiz: :course).includes(
       { membership: :user },
       { quiz: [ :course, { questions: :answer_options } ] },
-      { answers: :quiz_answer_option },
+      { answers: [ :quiz_answer_option, { audio_response_attachment: :blob } ] },
       :answer_overrides,
+      :answer_ai_grades,
+      :answer_ai_transcriptions,
+      :answer_feedbacks,
       :certificates
     )
     attempts = attempts.public_send(@status) if @status
@@ -26,17 +29,47 @@ class Organizations::QuizAttemptReviewsController < Organizations::BaseControlle
   def show
     authorize @attempt
     @grading = QuizAttemptGrader.new(@attempt)
+    @transcriptions_by_question_id = @attempt.answer_ai_transcriptions.index_by(&:quiz_question_id)
+    @feedbacks_by_question_id = @attempt.answer_feedbacks.index_by(&:quiz_question_id)
   end
 
   def automatic_grade
     authorize @attempt, :ai_analyze?
     return redirect_to organization_grading_path(Current.organization), alert: "Only submitted attempts can be analyzed." unless @attempt.submitted?
-
     started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     Rails.logger.info("[Automatic grading] Started attempt_id=#{@attempt.id} organization_id=#{Current.organization.id}")
     analysis = QuizAttemptPerformanceAnalyzer.call(@attempt)
     QuizAttempt.transaction do
       @attempt.answer_overrides.destroy_all
+      @attempt.answer_ai_grades.destroy_all
+      @attempt.answer_ai_transcriptions.destroy_all
+      @attempt.answer_feedbacks.where(origin: "ai").destroy_all
+      analysis.transcriptions.each do |transcription|
+        @attempt.answer_ai_transcriptions.create!(
+          quiz_question_id: transcription.question_id,
+          transcript: transcription.text,
+          model: analysis.model
+        )
+      end
+      analysis.grades.each do |grade|
+        @attempt.answer_ai_grades.create!(
+          quiz_question_id: grade.question_id,
+          correct: grade.correct,
+          rationale: grade.rationale,
+          model: analysis.model
+        )
+      end
+      manual_feedback_question_ids = @attempt.answer_feedbacks.where(origin: "reviewer").pluck(:quiz_question_id)
+      analysis.reviews.each do |review|
+        next if manual_feedback_question_ids.include?(review.question_id)
+
+        @attempt.answer_feedbacks.create!(
+          quiz_question_id: review.question_id,
+          content: review.text,
+          origin: "ai",
+          model: analysis.model
+        )
+      end
       @attempt.update!(
         grading_mode: "ai",
         performance_analysis: analysis.performance_analysis,
@@ -52,7 +85,13 @@ class Organizations::QuizAttemptReviewsController < Organizations::BaseControlle
     AuditRecorder.record!(
       action: "quiz_attempt.ai_analysis_generated",
       auditable: @attempt,
-      metadata: { quiz: @attempt.quiz.title, model: analysis.model }
+      metadata: {
+        quiz: @attempt.quiz.title,
+        model: analysis.model,
+        ai_scored_responses: analysis.grades.size,
+        ai_transcribed_responses: analysis.transcriptions.size,
+        ai_reviewed_essays: analysis.reviews.size
+      }
     )
     duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000).round
     Rails.logger.info("[Automatic grading] Completed attempt_id=#{@attempt.id} model=#{analysis.model} duration_ms=#{duration_ms}")
@@ -73,10 +112,32 @@ class Organizations::QuizAttemptReviewsController < Organizations::BaseControlle
     redirect_to organization_grading_attempt_path(Current.organization, @attempt), notice: "Grading draft saved."
   end
 
+  def update_answer_feedback
+    authorize @attempt, :review?
+    return redirect_to organization_grading_attempt_path(Current.organization, @attempt), alert: "Only submitted attempts can have question feedback." unless @attempt.submitted?
+    return redirect_to organization_grading_attempt_path(Current.organization, @attempt), alert: "Unpublish the results before editing question feedback." if @attempt.reviewed?
+
+    question = @attempt.quiz.questions.find(params[:question_id])
+    unless question.essay?
+      return redirect_to organization_grading_attempt_path(Current.organization, @attempt), alert: "Question feedback is currently available for essays only."
+    end
+
+    content = params.dig(:answer_feedback, :content).to_s.strip
+    feedback = @attempt.answer_feedbacks.find_by(quiz_question: question)
+    if content.present?
+      feedback ||= @attempt.answer_feedbacks.build(quiz_question: question)
+      feedback.update!(content:, origin: "reviewer", model: nil)
+      notice = "Essay review saved."
+    else
+      feedback&.destroy!
+      notice = "Essay review removed."
+    end
+    redirect_to organization_grading_attempt_path(Current.organization, @attempt, anchor: "question-#{question.id}"), notice:
+  end
+
   def review
     authorize @attempt, :review?
     return redirect_to organization_grading_attempt_path(Current.organization, @attempt), alert: "Only submitted attempts can be published." unless @attempt.submitted?
-
     @attempt.publish!(feedback_params.merge(grading_mode: @attempt.grading_mode || "manual"))
     AuditRecorder.record!(action: "quiz_attempt.results_published", auditable: @attempt, metadata: { quiz: @attempt.quiz.title })
     redirect_to organization_grading_attempt_path(Current.organization, @attempt), notice: "Results published to the student."
@@ -105,6 +166,9 @@ class Organizations::QuizAttemptReviewsController < Organizations::BaseControlle
     return redirect_to organization_grading_attempt_path(Current.organization, @attempt), alert: "Unpublish the results before changing grades." if @attempt.reviewed?
 
     question = @attempt.quiz.questions.find(params[:question_id])
+    unless question.included_in_score?
+      return redirect_to organization_grading_attempt_path(Current.organization, @attempt, anchor: "question-#{question.id}"), alert: "Feedback-only responses cannot be marked correct or wrong."
+    end
     answer_override = @attempt.answer_overrides.find_or_initialize_by(quiz_question: question)
     answer_override.update!(correct: ActiveModel::Type::Boolean.new.cast(params.require(:correct)))
     redirect_to organization_grading_attempt_path(Current.organization, @attempt, anchor: "question-#{question.id}"), notice: "Answer grade updated."
@@ -115,8 +179,16 @@ class Organizations::QuizAttemptReviewsController < Organizations::BaseControlle
     return redirect_to organization_grading_attempt_path(Current.organization, @attempt), alert: "Unpublish the results before changing grades." if @attempt.reviewed?
 
     question = @attempt.quiz.questions.find(params[:question_id])
+    ai_grade = @attempt.answer_ai_grades.find_by(quiz_question: question)
     @attempt.answer_overrides.find_by(quiz_question: question)&.destroy!
-    redirect_to organization_grading_attempt_path(Current.organization, @attempt, anchor: "question-#{question.id}"), notice: "Automatic grading restored."
+    notice = if ai_grade
+      "AI score restored."
+    elsif question.manual_grading?
+      "Manual score removed. The response is no longer included in the score."
+    else
+      "Answer-key grading restored."
+    end
+    redirect_to organization_grading_attempt_path(Current.organization, @attempt, anchor: "question-#{question.id}"), notice: notice
   end
 
   def reset
@@ -138,7 +210,16 @@ class Organizations::QuizAttemptReviewsController < Organizations::BaseControlle
 
   private
     def set_attempt
-      @attempt = policy_scope(QuizAttempt).includes(membership: :user, quiz: { questions: :answer_options }, answers: :quiz_answer_option, answer_overrides: [], certificates: []).find(params[:id])
+      @attempt = policy_scope(QuizAttempt).includes(
+        :answer_overrides,
+        :answer_ai_grades,
+        :answer_ai_transcriptions,
+        :answer_feedbacks,
+        :certificates,
+        membership: :user,
+        quiz: { questions: [ :answer_options, { quiz_page: { blocks: { image_attachment: :blob } } } ] },
+        answers: [ :quiz_answer_option, { audio_response_attachment: :blob } ]
+      ).find(params[:id])
     end
 
     def feedback_params

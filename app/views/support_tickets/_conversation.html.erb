@@ -1,0 +1,42 @@
+<section class="support-thread" aria-labelledby="conversation-heading">
+  <div class="support-thread-header">
+    <h2 id="conversation-heading">Conversation</h2>
+    <p class="mt-1 text-sm text-slate-600"><%= pluralize(messages.size, "message") %></p>
+  </div>
+
+  <div>
+    <% messages.each do |message| %>
+      <article class="support-message">
+        <div class="support-message-meta">
+          <div>
+            <strong class="text-sm text-slate-950"><%= message.author_name %></strong>
+            <span class="ml-2 text-xs font-medium text-slate-500"><%= message.author.is_a?(Admin) ? "Console support" : message.author.organization.name %></span>
+          </div>
+          <time class="text-xs text-slate-500" datetime="<%= message.created_at.iso8601 %>"><%= l message.created_at.in_time_zone(timezone), format: :short %></time>
+        </div>
+        <div class="support-message-body"><%= simple_format message.body %></div>
+        <% message.attachments.each do |attachment| %>
+          <%= link_to attachment.filename, attachment_path.call(attachment), class: "attachment-link" %>
+        <% end %>
+      </article>
+    <% end %>
+  </div>
+
+  <% if ticket.resolved? %>
+    <div class="support-composer"><p class="text-sm font-medium text-slate-700">This ticket is resolved. An organization administrator can reopen it by changing its status.</p></div>
+  <% else %>
+    <%= form_with url: reply_url, scope: :support_message, class: "support-composer form-stack" do |form| %>
+      <div>
+        <%= form.label :body, "Reply", class: "label" %>
+        <%= form.text_area :body, rows: 5, class: "field", required: true, maxlength: 10_000, placeholder: "Write a reply" %>
+        <% if message_errors&.any? %><p class="field-error"><%= message_errors.full_messages.to_sentence %></p><% end %>
+      </div>
+      <div>
+        <%= form.label :attachments, "Attachments", class: "label" %>
+        <%= form.file_field :attachments, multiple: true, accept: SupportMessage::ALLOWED_ATTACHMENT_TYPES.join(","), class: "field" %>
+        <p class="hint">Up to five files, 20 MB each. PDF, office documents, text files, and common image formats are accepted.</p>
+      </div>
+      <div class="actions"><%= form.submit "Send reply", class: "btn-primary" %></div>
+    <% end %>
+  <% end %>
+</section>

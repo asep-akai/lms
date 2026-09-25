@@ -102,15 +102,19 @@
               </td>
               <td class="td">
                 <% if (grading = @gradings_by_attempt_id[attempt.id]) %>
-                  <strong class="text-slate-950"><%= grading.correct_count %>/<%= grading.total_count %></strong><br>
-                  <%= grading.percentage %>%
+                  <% if grading.scored? %>
+                    <strong class="text-slate-950"><%= grading.correct_count %>/<%= grading.total_count %></strong><br>
+                    <%= grading.percentage %>%
+                  <% else %>
+                    <span class="text-slate-500">Not scored</span>
+                  <% end %>
                 <% else %>
                   <span class="text-slate-500">Not scored</span>
                 <% end %>
               </td>
               <td class="td">
                 <% if activity_at %>
-                  <time datetime="<%= activity_at.iso8601 %>"><%= l(activity_at, format: :short) %></time>
+                  <time datetime="<%= activity_at.iso8601 %>"><%= l(wib_time(activity_at), format: :short) %> WIB</time>
                 <% else %>
                   <span class="text-slate-500">Not available</span>
                 <% end %>

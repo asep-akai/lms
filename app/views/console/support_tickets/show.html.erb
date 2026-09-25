@@ -1,0 +1,38 @@
+<% content_for :title, @ticket.subject %>
+<%= back_link_to "Back to escalated support", console_support_tickets_path %>
+
+<header class="mt-6">
+  <p class="eyebrow"><%= @ticket.organization.name %> · Ticket #<%= @ticket.id %></p>
+  <h1 class="title"><%= @ticket.subject %></h1>
+  <div class="mt-3 flex flex-wrap gap-2">
+    <span class="<%= support_status_badge_class(@ticket.status) %>"><%= @ticket.status.humanize %></span>
+    <span class="<%= support_priority_badge_class(@ticket.priority) %>"><%= @ticket.priority.humanize %> priority</span>
+  </div>
+</header>
+
+<div class="support-layout">
+  <%= render "support_tickets/conversation", ticket: @ticket, messages: @messages, timezone: @ticket.organization.timezone,
+    reply_url: reply_console_support_ticket_path(@ticket), message_errors: @message&.errors,
+    attachment_path: ->(attachment) { attachment_console_support_ticket_path(@ticket, attachment_id: attachment.id) } %>
+
+  <aside class="support-sidebar" aria-label="Ticket details and actions">
+    <section class="card card-body">
+      <h2>Ticket details</h2>
+      <dl class="support-detail-list mt-4">
+        <div class="support-detail-row"><dt class="text-slate-500">Organization</dt><dd class="text-right font-medium"><%= @ticket.organization.name %></dd></div>
+        <div class="support-detail-row"><dt class="text-slate-500">Reporter</dt><dd class="text-right font-medium"><%= @ticket.reporter_membership.user.name %></dd></div>
+        <div class="support-detail-row"><dt class="text-slate-500">Category</dt><dd class="text-right font-medium"><%= @ticket.category.humanize %></dd></div>
+        <div class="support-detail-row"><dt class="text-slate-500">Escalated</dt><dd class="text-right font-medium"><%= l @ticket.escalated_at.in_time_zone(@ticket.organization.timezone), format: :short %></dd></div>
+        <div class="support-detail-row"><dt class="text-slate-500">Last activity</dt><dd class="text-right font-medium"><%= l @ticket.updated_at.in_time_zone(@ticket.organization.timezone), format: :short %></dd></div>
+      </dl>
+    </section>
+
+    <section class="card card-body">
+      <h2>Manage ticket</h2>
+      <%= form_with model: @ticket, url: console_support_ticket_path(@ticket), method: :patch, class: "form-stack mt-4" do |form| %>
+        <div><%= form.label :status, class: "label" %><%= form.select :status, SupportTicket::STATUSES.map { |value| [ value.humanize, value ] }, {}, class: "field" %></div>
+        <%= form.submit "Update status", class: "btn-secondary w-full" %>
+      <% end %>
+    </section>
+  </aside>
+</div>

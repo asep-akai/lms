@@ -4,7 +4,7 @@
   <div>
     <p class="eyebrow"><%= course.name %> · <%= quiz.title %></p>
     <h1 class="title">Quiz results</h1>
-    <p class="subtitle">Published <%= l(@attempt.reviewed_at, format: :short) %></p>
+    <p class="subtitle">Published <%= l(wib_time(@attempt.reviewed_at), format: :short) %> WIB</p>
   </div>
   <div class="actions">
     <%= back_link_to @back_label, @back_path %>
@@ -18,8 +18,16 @@
 
 <section class="card card-body mt-8" aria-labelledby="evaluation-score-heading">
   <p class="eyebrow">Final score</p>
-  <h2 id="evaluation-score-heading" class="mt-1"><%= @grading.correct_count %>/<%= @grading.total_count %></h2>
-  <p class="mt-1 text-2xl font-semibold text-slate-950"><%= @grading.percentage %>%</p>
+  <% if @grading.scored? %>
+    <h2 id="evaluation-score-heading" class="mt-1"><%= @grading.correct_count %>/<%= @grading.total_count %></h2>
+    <p class="mt-1 text-2xl font-semibold text-slate-950"><%= @grading.percentage %>%</p>
+    <% if @grading.optionally_unscored_count.positive? %>
+      <p class="subtitle"><%= pluralize(@grading.optionally_unscored_count, "essay or audio response") %> not included because <%= @grading.optionally_unscored_count == 1 ? "it is" : "they are" %> feedback-only or unscored.</p>
+    <% end %>
+  <% else %>
+    <h2 id="evaluation-score-heading" class="mt-1">Not scored</h2>
+    <p class="subtitle">This result has no answer-key or manually scored responses.</p>
+  <% end %>
 </section>
 
 <% if QuizAttempt::FEEDBACK_FIELDS.any? { |field| @attempt.public_send(field).present? } %>
@@ -43,26 +51,57 @@
   <% @grading.results.each do |result| %>
     <% question = result.question %>
     <% answer = result.answer %>
+    <% question_feedback = @attempt.answer_feedbacks.find { |feedback| feedback.quiz_question_id == question.id } %>
     <section class="card card-body">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <p class="text-sm font-medium text-slate-500">Question <%= question.position %> · <%= question.question_type.humanize %></p>
-        <span class="<%= result.correct ? "badge-active" : "badge-suspended" %>"><%= result.correct ? "Correct" : "Wrong" %></span>
+        <% if question.feedback_only? %>
+          <span class="badge-neutral">Feedback only</span>
+        <% elsif result.correct.nil? %>
+          <span class="badge-neutral">Not scored</span>
+        <% else %>
+          <span class="<%= result.correct ? "badge-active" : "badge-suspended" %>"><%= result.correct ? "Correct" : "Wrong" %></span>
+        <% end %>
       </div>
-      <div class="rich-content mt-3 text-slate-800"><%= sanitize(question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div>
+      <% if question.content_text? %><div class="rich-content mt-3 text-slate-800"><%= sanitize(question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div><% end %>
       <div class="mt-5 grid gap-5 border-t border-slate-200 pt-4 sm:grid-cols-2">
         <div>
           <p class="text-sm font-medium text-slate-700"><%= current_membership.student? ? "Your answer" : "Student answer" %></p>
           <% if answer %>
-            <p class="mt-2 whitespace-pre-wrap text-slate-950"><%= question.multiple_choice? ? answer.quiz_answer_option&.content : answer.short_answer_response %></p>
+            <%= render "organizations/quiz_answers/response", question: question, answer: answer %>
           <% else %>
             <p class="mt-2 text-sm text-slate-500">Unanswered</p>
           <% end %>
         </div>
         <div>
           <p class="text-sm font-medium text-slate-700">Answer key</p>
-          <p class="mt-2 text-slate-950"><%= question.multiple_choice? ? question.answer_options.find(&:correct?)&.content : question.short_answer %></p>
+          <% if question.feedback_only? %>
+            <p class="mt-2 text-sm text-slate-500">This response was reviewed for feedback and was not included in the score.</p>
+          <% elsif question.manual_grading? %>
+            <% if result.overridden %>
+              <p class="mt-2 text-sm text-slate-500">This response was scored by a reviewer.</p>
+            <% elsif result.ai_grade %>
+              <p class="mt-2 text-sm text-slate-500">This AI-assisted score was confirmed by a reviewer.</p>
+            <% else %>
+              <p class="mt-2 text-sm text-slate-500">This response was not scored.</p>
+            <% end %>
+          <% else %>
+            <%= render "organizations/quiz_answers/answer_key", question: question %>
+          <% end %>
         </div>
       </div>
+      <% if result.ai_grade %>
+        <div class="mt-4 rounded-lg bg-slate-50 p-4">
+          <p class="text-sm font-semibold text-slate-700">Scoring feedback</p>
+          <p class="mt-2 text-sm text-slate-700"><%= result.ai_grade.rationale %></p>
+        </div>
+      <% end %>
+      <% if question.essay? && question_feedback %>
+        <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <p class="text-sm font-semibold text-slate-700">Reviewer feedback</p>
+          <p class="mt-2 whitespace-pre-wrap text-sm text-slate-800"><%= question_feedback.content %></p>
+        </div>
+      <% end %>
     </section>
   <% end %>
 </div>

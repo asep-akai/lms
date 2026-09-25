@@ -62,14 +62,18 @@
           <td class="td attempt-score">
             <% if attempt.reviewed? %>
               <% grading = @gradings_by_attempt_id.fetch(attempt.id) %>
-              <strong class="text-slate-950"><%= grading.correct_count %>/<%= grading.total_count %></strong><br><%= grading.percentage %>%
+              <% if grading.scored? %>
+                <strong class="text-slate-950"><%= grading.correct_count %>/<%= grading.total_count %></strong><br><%= grading.percentage %>%
+              <% else %>
+                <span class="text-slate-500">Not scored</span>
+              <% end %>
             <% else %>
               <span class="text-slate-500">Not published</span>
             <% end %>
           </td>
           <td class="td">
             <% activity_at = attempt.reviewed_at || attempt.submitted_at || attempt.last_activity_at || attempt.started_at %>
-            <time datetime="<%= activity_at.iso8601 %>"><%= l(activity_at, format: :short) %></time>
+            <time datetime="<%= activity_at.iso8601 %>"><%= l(wib_time(activity_at), format: :short) %> WIB</time>
           </td>
           <td class="td">
             <% if attempt.cancelled? %>

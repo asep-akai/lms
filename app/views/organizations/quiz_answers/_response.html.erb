@@ -1,0 +1,25 @@
+<% if question.audio? %>
+  <% if answer.audio_response.attached? %>
+    <%= audio_tag url_for(answer.audio_response), controls: true, preload: "metadata", class: "mt-2 w-full" %>
+  <% else %>
+    <p class="mt-2 text-sm text-slate-500">Audio unavailable</p>
+  <% end %>
+<% elsif question.multiple_choice? %>
+  <p class="mt-2 whitespace-pre-wrap text-slate-950"><%= answer.quiz_answer_option&.content %></p>
+<% elsif question.multiple_choice_set? %>
+  <ul class="mt-2 list-disc space-y-1 pl-5 text-slate-950">
+    <% answer.selected_options.each do |option| %><li><%= option.content %></li><% end %>
+  </ul>
+<% elsif question.cloze? %>
+  <div class="mt-2 leading-9 text-slate-950">
+    <% question.cloze_segments.each do |segment| %>
+      <% if segment[:text] %>
+        <%= cloze_text(segment[:text]) %>
+      <% else %>
+        <span class="mx-1 inline-block min-w-24 rounded bg-slate-100 px-2 py-0.5 font-medium"><%= answer.cloze_response_at(segment.fetch(:blank_position)).presence || "—" %></span>
+      <% end %>
+    <% end %>
+  </div>
+<% else %>
+  <p class="mt-2 whitespace-pre-wrap text-slate-950"><%= answer.short_answer_response %></p>
+<% end %>

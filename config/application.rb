@@ -20,12 +20,15 @@ module Lms
     # This avoids loading native processors during application boot.
     config.active_storage.variant_processor = :disabled
 
+    # Store timestamps in UTC, but interpret and render application times in WIB.
+    config.time_zone = "Jakarta"
+    config.active_record.default_timezone = :utc
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files
     # in config/environments, which are processed later.
     #
-    # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
   end
 end

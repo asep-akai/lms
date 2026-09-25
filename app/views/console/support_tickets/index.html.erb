@@ -1,0 +1,38 @@
+<% content_for :title, "Escalated support" %>
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Console support</p>
+    <h1 class="title">Escalated tickets</h1>
+    <p class="subtitle">Issues organization administrators have sent to the console team.</p>
+  </div>
+</div>
+
+<%= form_with url: console_support_tickets_path, method: :get, class: "support-search" do |form| %>
+  <div class="min-w-0 flex-1">
+    <%= form.label :query, "Search tickets", class: "label" %>
+    <%= form.search_field :query, value: @query, placeholder: "Subject, organization, status, or priority", class: "field" %>
+  </div>
+  <%= form.submit "Search", class: "btn-secondary" %>
+<% end %>
+
+<% if @tickets.any? %>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th class="th">Ticket</th><th class="th">Organization</th><th class="th">Reporter</th><th class="th">Priority</th><th class="th">Status</th><th class="th"><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody class="divide-y divide-slate-200">
+        <% @tickets.each do |ticket| %>
+          <tr>
+            <td class="td"><p class="font-semibold text-slate-900"><%= ticket.subject %></p><p class="hint"><%= ticket.category.humanize %></p></td>
+            <td class="td"><%= ticket.organization.name %></td>
+            <td class="td"><%= ticket.reporter_membership.user.name %></td>
+            <td class="td"><span class="<%= support_priority_badge_class(ticket.priority) %>"><%= ticket.priority.humanize %></span></td>
+            <td class="td"><span class="<%= support_status_badge_class(ticket.status) %>"><%= ticket.status.humanize %></span></td>
+            <td class="td text-right"><%= link_to "Open ticket", console_support_ticket_path(ticket), class: "text-link whitespace-nowrap" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% else %>
+  <div class="empty-state"><h2>No escalated tickets found</h2><p class="mt-2 text-sm"><%= @query.present? ? "Try a different search." : "Escalated organization tickets will appear here." %></p></div>
+<% end %>

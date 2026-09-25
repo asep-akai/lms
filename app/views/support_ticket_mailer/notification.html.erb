@@ -1,0 +1,17 @@
+<h1><%= SupportTicketMailer::SUBJECTS.fetch(@event) %></h1>
+<p>Hello <%= @recipient.name %>,</p>
+
+<% case @event %>
+<% when "created" %>
+  <p><%= @actor.user.name %> opened a support ticket in <strong><%= @ticket.organization.name %></strong>.</p>
+<% when "replied" %>
+  <p><%= @actor.is_a?(Membership) ? @actor.user.name : @actor.name %> replied to a support ticket in <strong><%= @ticket.organization.name %></strong>.</p>
+<% when "escalated" %>
+  <p><%= @ticket.organization.name %> escalated this support ticket to the console team.</p>
+<% when "status_changed" %>
+  <p><%= @actor.is_a?(Membership) ? @actor.user.name : @actor.name %> changed the ticket status to <strong><%= @ticket.status.humanize %></strong>.</p>
+<% end %>
+
+<p><strong><%= @ticket.subject %></strong></p>
+<% if @message.present? %><blockquote><%= simple_format(@message.body) %></blockquote><% end %>
+<p><%= link_to "View support ticket", @ticket_url %></p>

@@ -13,7 +13,7 @@ class PermissionTest < ActiveSupport::TestCase
   test "organization permissions are grouped by focus in a stable order" do
     groups = Permission.organization_assignable.organization_groups
 
-    assert_equal %w[Organization Members Students Courses Classes Certificates Assignments Roles Audit], groups.map(&:first)
+    assert_equal %w[Organization Members Students Courses Classes Certificates Assignments Roles Audit Support], groups.map(&:first)
     assert_equal %w[students.index students.show], groups.to_h.fetch("Students").map(&:key)
     assert_equal %w[courses.index courses.create courses.update courses.destroy course_enrollments.update course_contents.update materials.index materials.create materials.update materials.destroy quizzes.index quizzes.create quizzes.update quizzes.destroy quiz_attempts.index quiz_attempts.show quiz_attempts.review quiz_attempts.ai_analyze quiz_attempts.reset],
       groups.to_h.fetch("Courses").map(&:key)
@@ -26,7 +26,7 @@ class PermissionTest < ActiveSupport::TestCase
   test "console permissions are grouped by focus in a stable order" do
     groups = Permission.console_assignable.console_groups
 
-    assert_equal [ "Console access", "Organizations", "Users", "Administrators", "Roles" ], groups.map(&:first)
+    assert_equal [ "Console access", "Organizations", "Users", "Administrators", "Support", "Roles" ], groups.map(&:first)
     assert_equal %w[users.index users.create users.update users.destroy], groups.to_h.fetch("Users").map(&:key)
   end
 

@@ -1,1 +1,17 @@
-<section class="card card-body" data-controller="question-card"><div class="flex flex-wrap items-center justify-between gap-3"><div><p class="text-sm font-medium text-slate-500">Question <%= question.position %> · <%= question.question_type.humanize %></p><div class="rich-content mt-2 text-slate-800"><%= sanitize(question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div></div><div class="actions"><%= button_to "Move up", move_organization_course_quiz_question_path(current_organization, course, quiz, question, direction: "up", from: params[:from]), method: :patch, class: "btn-secondary", disabled: question.position == 1 %><%= button_to "Move down", move_organization_course_quiz_question_path(current_organization, course, quiz, question, direction: "down", from: params[:from]), method: :patch, class: "btn-secondary", disabled: question.position == quiz.questions.maximum(:position) %><button type="button" class="btn-secondary" data-action="question-card#toggle" data-question-card-target="toggle" data-closed-label="Edit question">Edit question</button></div></div><div class="mt-5" data-question-card-target="editor" hidden><%= render "organizations/quizzes/question_form", question: question, quiz: quiz, course: course, heading: "Edit question" %></div></section>
+<% page_questions = question.quiz_page.questions.to_a %>
+<section class="card card-body" data-controller="question-card">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div class="min-w-0">
+      <p class="text-sm font-medium text-slate-500">Question <%= question.position %> · <%= question.question_type.humanize %></p>
+      <% if question.content_text? %><div class="rich-content mt-2 text-slate-800"><%= sanitize(question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div><% end %>
+      <% if question.cloze? %><p class="mt-2 text-sm text-slate-600"><%= pluralize(question.cloze_answers.size, "inline answer blank") %></p><% end %>
+      <% if question.manual_grading? %><p class="mt-2 text-sm text-slate-600"><%= question.feedback_only? ? "Feedback only" : "Included in final score" %></p><% end %>
+    </div>
+    <div class="actions shrink-0">
+      <%= button_to "Move up", move_organization_course_quiz_question_path(current_organization, course, quiz, question, direction: "up", from: params[:from]), method: :patch, class: "btn-secondary", disabled: question == page_questions.first %>
+      <%= button_to "Move down", move_organization_course_quiz_question_path(current_organization, course, quiz, question, direction: "down", from: params[:from]), method: :patch, class: "btn-secondary", disabled: question == page_questions.last %>
+      <button type="button" class="btn-secondary" data-action="question-card#toggle" data-question-card-target="toggle" data-closed-label="Edit question">Edit question</button>
+    </div>
+  </div>
+  <div class="mt-5" data-question-card-target="editor" hidden><%= render "organizations/quizzes/question_form", question: question, quiz: quiz, course: course, pages: pages, heading: "Edit question" %></div>
+</section>

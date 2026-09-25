@@ -36,7 +36,7 @@ if user_email.present? && user_password.present?
       organization: Organization.new(
         name: ENV.fetch("DEFAULT_ORGANIZATION_NAME"),
         slug: ENV.fetch("DEFAULT_ORGANIZATION_SLUG", ENV.fetch("DEFAULT_ORGANIZATION_NAME").parameterize),
-        timezone: ENV.fetch("DEFAULT_ORGANIZATION_TIMEZONE", "Jakarta"),
+        timezone: Organization::TIME_ZONE,
         locale: ENV.fetch("DEFAULT_ORGANIZATION_LOCALE", "en")
       ),
       owner: user

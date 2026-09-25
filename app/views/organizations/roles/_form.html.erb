@@ -2,7 +2,7 @@
   <%= role.persisted? ? "Edit role" : "New custom role" %>
 </h1>
 <%= render "shared/errors", record: role %>
-<%= form_with model: [ current_organization, role ], class: "form-stack", data: { turbo_frame: "_top" } do |form| %>
+<%= form_with model: [ current_organization, role ], class: "form-stack", data: { turbo_frame: "_top", controller: "role-form", action: "submit->role-form#validate", role_form_existing_keys_value: @existing_role_keys } do |form| %>
   <%= hidden_field_tag :modal, "1" if modal_request? %>
   <div class="form-grid">
     <div>
@@ -11,9 +11,19 @@
     </div>
     <div>
       <%= form.label :key, class: "label" %>
-      <%= form.text_field :key, required: true, disabled: role.system?, class: "field" %>
+      <%= form.text_field :key,
+        required: true,
+        disabled: role.system?,
+        pattern: "[a-z0-9]+(?:_[a-z0-9]+)*",
+        title: "Use lowercase letters and numbers separated by single underscores.",
+        aria: { describedby: "#{dom_id(role)}_key_help #{dom_id(role)}_key_error" },
+        class: "field",
+        data: { role_form_target: "key", action: "input->role-form#validateKey" } %>
       <% if role.system? %>
         <p class="hint">Built-in role keys cannot be changed.</p>
+      <% else %>
+        <p id="<%= dom_id(role) %>_key_help" class="hint">Use lowercase letters, numbers, and underscores. For example: curriculum_coordinator.</p>
+        <p id="<%= dom_id(role) %>_key_error" class="field-error" data-role-form-target="keyError" role="alert" hidden></p>
       <% end %>
     </div>
   </div>

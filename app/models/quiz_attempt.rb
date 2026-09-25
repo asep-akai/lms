@@ -9,6 +9,9 @@ class QuizAttempt < ApplicationRecord
   has_one :superseded_attempt, class_name: "QuizAttempt", foreign_key: :superseded_by_attempt_id, dependent: :nullify, inverse_of: :superseded_by_attempt
   has_many :answers, class_name: "QuizAnswer", dependent: :destroy, inverse_of: :quiz_attempt
   has_many :answer_overrides, class_name: "QuizAnswerOverride", dependent: :destroy
+  has_many :answer_ai_grades, class_name: "QuizAnswerAiGrade", dependent: :destroy
+  has_many :answer_ai_transcriptions, class_name: "QuizAnswerAiTranscription", dependent: :destroy
+  has_many :answer_feedbacks, class_name: "QuizAnswerFeedback", dependent: :destroy
   has_many :certificates, as: :source, dependent: :destroy
 
   validates :membership_id, uniqueness: { scope: :quiz_id, conditions: -> { where(cancelled_at: nil) } }, unless: :cancelled?

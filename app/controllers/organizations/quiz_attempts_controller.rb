@@ -9,7 +9,7 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
     return redirect_timed_out_attempt if @attempt.submit_due_to_timeout!
     return redirect_submitted_attempt if @attempt.submitted?
 
-    @questions = @quiz.questions.includes(:answer_options)
+    @questions = @quiz.questions.includes(:answer_options, quiz_page: { blocks: { image_attachment: :blob } })
     @question = selected_question
     @attempt.update_column(:last_question_position, @question.position)
     @answer = @attempt.answers.find_by(quiz_question: @question) || QuizAnswer.new
@@ -29,15 +29,15 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
 
     question = @quiz.questions.find(params[:question_id])
     answer = attempt.answers.find_or_initialize_by(quiz_question: question)
-    answer.assign_attributes(answer_params(question))
+    assign_answer_submission(answer, question)
 
-    if answer_blank?(answer, question)
+    unless answer.response_present?
       answer.destroy! if answer.persisted?
       redirect_after_answer(question, attempt)
       return
     end
 
-    if answer.save
+    if answer.save_submission
       attempt.update_column(:last_activity_at, Time.current)
       redirect_after_answer(question, attempt)
     elsif timeout_submission_allowed?(attempt)
@@ -45,7 +45,7 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
       redirect_timed_out_attempt
     else
       @attempt = attempt
-      @questions = @quiz.questions.includes(:answer_options)
+      @questions = @quiz.questions.includes(:answer_options, quiz_page: { blocks: { image_attachment: :blob } })
       @question = question
       @answer = answer
       set_attempt_progress
@@ -104,23 +104,35 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
       attempts.order(:attempt_number, :id).last
     end
 
-    def answer_params(question)
-      answer = params.fetch(:quiz_answer, {}).permit(:quiz_answer_option_id, :short_answer_response)
+    def assign_answer_submission(answer, question)
+      submitted = params.fetch(:quiz_answer, {}).permit(
+        :quiz_answer_option_id,
+        :short_answer_response,
+        :audio_response,
+        selected_option_ids: [],
+        cloze_responses: {}
+      )
 
       if question.multiple_choice?
-        { quiz_answer_option_id: answer[:quiz_answer_option_id], short_answer_response: nil }
+        answer.assign_attributes(quiz_answer_option_id: submitted[:quiz_answer_option_id], short_answer_response: nil)
+      elsif question.multiple_choice_set?
+        answer.assign_attributes(quiz_answer_option_id: nil, short_answer_response: nil)
+        answer.submitted_selected_option_ids = submitted[:selected_option_ids]
+      elsif question.cloze?
+        answer.assign_attributes(quiz_answer_option_id: nil, short_answer_response: nil)
+        answer.submitted_cloze_responses = submitted[:cloze_responses] || {}
+      elsif question.audio?
+        attributes = { quiz_answer_option_id: nil, short_answer_response: nil }
+        attributes[:audio_response] = submitted[:audio_response] if submitted[:audio_response].present?
+        answer.assign_attributes(attributes)
       else
-        { short_answer_response: answer[:short_answer_response], quiz_answer_option_id: nil }
+        answer.assign_attributes(short_answer_response: submitted[:short_answer_response], quiz_answer_option_id: nil)
       end
     end
 
     def selected_question
       requested_position = (params[:question].presence || @attempt.last_question_position).to_i
       @questions.find { |question| question.position == requested_position } || @questions.first
-    end
-
-    def answer_blank?(answer, question)
-      question.multiple_choice? ? answer.quiz_answer_option_id.blank? : answer.short_answer_response.blank?
     end
 
     def redirect_after_answer(question, attempt)
@@ -163,8 +175,8 @@ class Organizations::QuizAttemptsController < Organizations::BaseController
     end
 
     def set_attempt_progress
-      @unanswered_questions_count = @questions.size - @attempt.answers.count
-      @current_answer_saved = @answer.persisted?
+      @unanswered_questions_count = @questions.size - @attempt.answers.count(&:complete?)
+      @current_answer_saved = @answer.persisted? && @answer.complete?
     end
 
     def timeout_submission_allowed?(attempt)

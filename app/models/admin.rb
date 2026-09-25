@@ -4,6 +4,7 @@ class Admin < ApplicationRecord
   has_many :role_assignments, as: :assignee, dependent: :destroy
   has_many :roles, through: :role_assignments
   has_many :audit_events, as: :actor, dependent: :nullify
+  has_many :support_messages, as: :author, dependent: :restrict_with_error
 
   validates :name, presence: true, length: { maximum: 120 }
   validates :status, inclusion: { in: %w[active suspended] }

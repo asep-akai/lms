@@ -1,0 +1,40 @@
+<% page_url = page.persisted? ? organization_course_quiz_page_path(current_organization, course, quiz, page, from: params[:from]) : organization_course_quiz_pages_path(current_organization, course, quiz, from: params[:from]) %>
+<% page_method = page.persisted? ? :patch : :post %>
+<section class="rounded-xl border border-slate-200 bg-slate-50 p-5">
+  <h3 class="text-base font-semibold text-slate-950"><%= heading %></h3>
+  <%= render "shared/errors", record: page %>
+  <%= form_with model: page, url: page_url, method: page_method, class: "form-stack mt-5", data: { controller: "content-block-editor", action: "submit->content-block-editor#synchronize" } do |form| %>
+    <div>
+      <%= form.label :title, "Page name", class: "label" %>
+      <%= form.text_field :title, maxlength: 160, class: "field", placeholder: "Reading passage" %>
+    </div>
+    <div>
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h4 class="font-semibold text-slate-950">Shared page content</h4>
+          <p class="hint">Arrange text and images in the order students should read them.</p>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn-secondary" data-action="content-block-editor#addText">Add text</button>
+          <button type="button" class="btn-secondary" data-action="content-block-editor#addImage">Add image</button>
+        </div>
+      </div>
+      <div class="mt-4 space-y-4" data-content-block-editor-target="blocks">
+        <%= form.fields_for :blocks do |block| %>
+          <%= render "organizations/quizzes/page_block_fields", block: block %>
+        <% end %>
+      </div>
+      <template data-content-block-editor-target="textTemplate">
+        <%= form.fields_for :blocks, QuizPageBlock.new(block_type: "text"), child_index: "NEW_BLOCK" do |block| %>
+          <%= render "organizations/quizzes/page_block_fields", block: block %>
+        <% end %>
+      </template>
+      <template data-content-block-editor-target="imageTemplate">
+        <%= form.fields_for :blocks, QuizPageBlock.new(block_type: "image"), child_index: "NEW_BLOCK" do |block| %>
+          <%= render "organizations/quizzes/page_block_fields", block: block %>
+        <% end %>
+      </template>
+    </div>
+    <div class="actions"><%= form.submit page.persisted? ? "Save page" : "Add page", class: "btn-primary" %></div>
+  <% end %>
+</section>

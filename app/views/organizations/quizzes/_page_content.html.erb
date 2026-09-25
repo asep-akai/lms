@@ -1,0 +1,9 @@
+<div class="space-y-6">
+  <% page.blocks.each do |block| %>
+    <% if block.text? %>
+      <div class="rich-content text-slate-700"><%= sanitize(block.body_html, tags: QuizPageBlock::ALLOWED_HTML_TAGS, attributes: QuizPageBlock::ALLOWED_HTML_ATTRIBUTES) %></div>
+    <% elsif block.image.attached? %>
+      <%= image_tag block.image, alt: block.image.filename.to_s, class: "mx-auto h-auto max-w-full rounded-lg border border-slate-200 bg-white" %>
+    <% end %>
+  <% end %>
+</div>

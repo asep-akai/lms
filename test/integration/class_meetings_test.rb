@@ -29,7 +29,7 @@ class ClassMeetingsTest < ActionDispatch::IntegrationTest
     meeting = ClassMeeting.order(:id).last
     assert_redirected_to organization_class_meeting_path(organizations(:one), meeting)
     assert_equal 1, meeting.meeting_number
-    assert_equal Time.utc(2026, 10, 10, 8, 30), meeting.starts_at
+    assert_equal Time.zone.local(2026, 10, 10, 8, 30), meeting.starts_at
     assert_equal [ @student.id ], meeting.student_membership_ids
     assert_equal "https://meet.example.com/algebra", meeting.meeting_url
     assert AuditEvent.exists?(action: "class_meeting.created", auditable: meeting)
@@ -72,7 +72,7 @@ class ClassMeetingsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "turbo-frame#class-meeting-calendar"
     assert_select "h2", "October 2026"
-    assert_select "a[aria-label='View classes on 10 October 2026']", text: /08:30.*Mathematics/m
+    assert_select "a[aria-label='View classes on 10 October 2026']", text: /15:30 WIB.*Mathematics/m
     assert_select "a", text: "Today"
 
     get calendar_day_organization_class_meetings_path(organizations(:one), date: "2026-10-10", modal: 1),
@@ -448,7 +448,7 @@ class ClassMeetingsTest < ActionDispatch::IntegrationTest
         student_membership_ids: [ @student.id ],
         subject: meeting.subject,
         topic: "Updated navigation lesson",
-        starts_at: meeting.starts_at.in_time_zone("UTC").strftime("%Y-%m-%dT%H:%M"),
+        starts_at: meeting.starts_at.in_time_zone(Organization::TIME_ZONE).strftime("%Y-%m-%dT%H:%M"),
         delivery_mode: meeting.delivery_mode,
         meeting_url: meeting.meeting_url
       }

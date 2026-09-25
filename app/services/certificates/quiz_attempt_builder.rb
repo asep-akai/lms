@@ -19,8 +19,8 @@ module Certificates
           "exam_name" => @attempt.quiz.title,
           "student_name" => @attempt.membership.user.name,
           "test_date" => @attempt.submitted_at.in_time_zone(organization.timezone).to_date.iso8601,
-          "score" => "#{grading.correct_count}/#{grading.total_count}",
-          "percentage" => grading.percentage,
+          "score" => grading.scored? ? "#{grading.correct_count}/#{grading.total_count}" : "Not scored",
+          "percentage" => grading.scored? ? grading.percentage : nil,
           "analysis" => @attempt.performance_analysis.to_s.strip.presence || "No performance analysis was provided."
         }
       }

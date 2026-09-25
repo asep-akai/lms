@@ -1,0 +1,19 @@
+<% if question.multiple_choice? %>
+  <p class="mt-2 text-slate-950"><%= question.answer_options.find(&:correct?)&.content %></p>
+<% elsif question.multiple_choice_set? %>
+  <ul class="mt-2 list-disc space-y-1 pl-5 text-slate-950">
+    <% question.answer_options.select(&:correct?).each do |option| %><li><%= option.content %></li><% end %>
+  </ul>
+<% elsif question.cloze? %>
+  <div class="mt-2 leading-9 text-slate-950">
+    <% question.cloze_segments.each do |segment| %>
+      <% if segment[:text] %>
+        <%= cloze_text(segment[:text]) %>
+      <% else %>
+        <span class="mx-1 inline-block min-w-24 rounded bg-emerald-50 px-2 py-0.5 font-medium text-emerald-900"><%= question.cloze_answer_sets.fetch(segment.fetch(:blank_position) - 1).join(" or ") %></span>
+      <% end %>
+    <% end %>
+  </div>
+<% else %>
+  <p class="mt-2 text-slate-950"><%= question.short_answer %></p>
+<% end %>

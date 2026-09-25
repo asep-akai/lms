@@ -122,7 +122,7 @@ class ConsoleAccessTest < ActionDispatch::IntegrationTest
     assert_difference [ "Organization.count", "Membership.count" ], 1 do
       post console_organizations_path, params: {
         organization: {
-          name: "Provisioned School", slug: "provisioned-school", timezone: "UTC", locale: "en",
+          name: "Provisioned School", slug: "provisioned-school", locale: "en",
           owner_email: users(:one).email
         }
       }
@@ -146,7 +146,6 @@ class ConsoleAccessTest < ActionDispatch::IntegrationTest
         name: "Renamed Organization",
         slug: organization.slug,
         status: organization.status,
-        timezone: organization.timezone,
         locale: organization.locale
       }
     }

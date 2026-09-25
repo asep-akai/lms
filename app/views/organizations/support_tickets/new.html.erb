@@ -1,0 +1,20 @@
+<% content_for :title, "Report an issue" %>
+<div class="max-w-3xl">
+  <%= back_link_to "Back to support", organization_support_tickets_path(Current.organization) %>
+  <div class="mt-6">
+    <p class="eyebrow">New support ticket</p>
+    <h1 class="title">Report an issue</h1>
+    <p class="subtitle">Include what you were doing, what you expected, and what happened instead.</p>
+  </div>
+
+  <%= form_with model: @ticket, url: organization_support_tickets_path(Current.organization), class: "card card-body form-stack mt-8" do |form| %>
+    <% if @ticket.errors.any? %><div class="alert-error"><%= @ticket.errors.full_messages.to_sentence %></div><% end %>
+    <div><%= form.label :subject, class: "label" %><%= form.text_field :subject, class: "field", required: true, maxlength: 180, placeholder: "A short summary of the issue" %></div>
+    <div class="form-grid">
+      <div><%= form.label :category, class: "label" %><%= form.select :category, SupportTicket::CATEGORIES, {}, class: "field" %></div>
+      <div><%= form.label :priority, class: "label" %><%= form.select :priority, SupportTicket::PRIORITIES.map { |value| [ value.humanize, value ] }, {}, class: "field" %><p class="hint">Use urgent only when work cannot continue.</p></div>
+    </div>
+    <div><%= form.label :message, "Description", class: "label" %><%= form.text_area :message, rows: 9, class: "field", required: true, maxlength: 10_000, placeholder: "Describe the issue and any steps that reproduce it." %></div>
+    <div class="actions"><%= form.submit "Create ticket", class: "btn-primary" %><%= link_to "Cancel", organization_support_tickets_path(Current.organization), class: "btn-secondary" %></div>
+  <% end %>
+</div>

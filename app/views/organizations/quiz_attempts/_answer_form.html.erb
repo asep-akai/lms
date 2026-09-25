@@ -1,10 +1,102 @@
-<%= form_with model: answer, url: organization_course_quiz_attempt_answer_path(current_organization, @course, @quiz, question_id: question.id), method: :patch, id: "quiz-answer-form", class: "mt-5", data: { controller: "quiz-submit", quiz_submit_unanswered_count_value: unanswered_questions_count, quiz_submit_current_answer_saved_value: current_answer_saved } do |form| %>
-  <%= hidden_field_tag :quiz_attempt_id, @attempt.id %>
-  <% if question.multiple_choice? %>
-    <fieldset><legend class="label">Your answer</legend><div class="mt-3 space-y-2"><% question.answer_options.each do |option| %><label class="checkbox-row"><%= form.radio_button :quiz_answer_option_id, option.id, checked: answer.quiz_answer_option_id == option.id %><span><%= option.content %></span></label><% end %></div></fieldset>
-  <% else %>
-    <%= form.label :short_answer_response, "Your answer", class: "label" %><%= form.text_area :short_answer_response, value: answer.short_answer_response, rows: 4, class: "field" %>
-  <% end %>
-  <% if answer.errors.any? %><p class="field-error"><%= answer.errors.full_messages.to_sentence %></p><% end %>
-  <div class="actions mt-4"><button type="submit" name="next_question" value="<%= previous_question&.position %>" formaction="<%= organization_course_quiz_attempt_answer_path(current_organization, @course, @quiz, question_id: question.id, next_question: previous_question&.position) %>" class="<%= previous_question ? "btn-secondary" : "btn-disabled" %>" <%= "disabled" if previous_question.nil? %>>Previous</button><% if next_question %><button type="submit" name="next_question" value="<%= next_question.position %>" formaction="<%= organization_course_quiz_attempt_answer_path(current_organization, @course, @quiz, question_id: question.id, next_question: next_question.position) %>" class="btn-primary">Next</button><% else %><button type="submit" name="submit_attempt" value="1" class="btn-primary" data-action="click->quiz-submit#confirm">Submit</button><% end %></div>
+<%= form_with model: answer, url: organization_course_quiz_attempt_answer_path(current_organization, @course, @quiz, question_id: question.id), method: :patch, id: "quiz-answer-form", class: "flex flex-col", data: { controller: "quiz-submit", quiz_submit_unanswered_count_value: unanswered_questions_count, quiz_submit_current_answer_saved_value: current_answer_saved, quiz_submit_answer_kind_value: question.question_type } do |form| %>
+  <div class="flex-1">
+    <% if question.multiple_choice? %>
+      <fieldset>
+        <legend class="label">Your answer</legend>
+        <div class="mt-3 space-y-2">
+          <% question.answer_options.each do |option| %>
+            <label class="checkbox-row"><%= form.radio_button :quiz_answer_option_id, option.id, checked: answer.quiz_answer_option_id == option.id %><span><%= option.content %></span></label>
+          <% end %>
+        </div>
+      </fieldset>
+    <% elsif question.multiple_choice_set? %>
+      <fieldset>
+        <legend class="label">Select every correct answer</legend>
+        <p class="hint">The response is correct only when all correct choices—and no incorrect choices—are selected.</p>
+        <%= hidden_field_tag "quiz_answer[selected_option_ids][]", "" %>
+        <div class="mt-3 space-y-2">
+          <% selected_ids = answer.selected_option_ids_for_form %>
+          <% question.answer_options.each do |option| %>
+            <label class="checkbox-row"><%= check_box_tag "quiz_answer[selected_option_ids][]", option.id, selected_ids.include?(option.id), id: "quiz_answer_option_#{option.id}" %><span><%= option.content %></span></label>
+          <% end %>
+        </div>
+      </fieldset>
+    <% elsif question.cloze? %>
+      <fieldset>
+        <legend class="label">Complete every blank</legend>
+        <div class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-base leading-10 text-slate-950">
+          <% question.cloze_segments.each do |segment| %>
+            <% if segment[:text] %>
+              <%= cloze_text(segment[:text]) %>
+            <% else %>
+              <% position = segment.fetch(:blank_position) %>
+              <%= text_field_tag "quiz_answer[cloze_responses][#{position}]",
+                answer.cloze_response_at(position),
+                maxlength: 1_000,
+                class: "mx-1 inline-block w-44 rounded-md border border-slate-300 bg-white px-3 py-1.5 align-baseline text-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-100",
+                aria: { label: "Answer blank #{position}" },
+                autocomplete: "off" %>
+            <% end %>
+          <% end %>
+        </div>
+      </fieldset>
+    <% elsif question.audio? %>
+      <% accepted_audio = ".wav,.mp3,.aiff,.aif,.aac,.ogg,.oga,.flac,.m4a,.opus,.webm" %>
+      <% saved_audio = answer.audio_response.attachment&.persisted? %>
+      <div class="space-y-5" data-controller="audio-recorder">
+        <div>
+          <p class="label">Your audio response</p>
+          <p class="hint">Record one response or upload one audio file. A new recording or upload replaces the previous one when saved.</p>
+        </div>
+        <audio
+          controls
+          preload="metadata"
+          class="w-full"
+          data-audio-recorder-target="preview"
+          data-answer-present="<%= saved_audio %>"
+          <%= "hidden" unless saved_audio %>
+          <% if saved_audio %>src="<%= url_for(answer.audio_response) %>"<% end %>></audio>
+        <div class="actions">
+          <button type="button" class="btn-primary" data-audio-recorder-target="start" data-action="audio-recorder#start">Start recording</button>
+          <button type="button" class="btn-danger" data-audio-recorder-target="stop" data-action="audio-recorder#stop" hidden disabled>Stop recording</button>
+          <button type="button" class="btn-secondary" data-audio-recorder-target="retry" data-action="audio-recorder#retry" <%= "hidden" unless saved_audio %>>Record again</button>
+          <span class="font-mono text-sm font-semibold text-slate-700" data-audio-recorder-target="duration" hidden>00:00</span>
+        </div>
+        <canvas class="h-24 w-full rounded-lg border border-slate-200 bg-slate-50" data-audio-recorder-target="visualizer" aria-label="Live microphone waveform" hidden></canvas>
+        <p class="text-sm text-slate-600" aria-live="polite" aria-atomic="true" data-audio-recorder-target="status"><%= saved_audio ? "Saved audio response. Record again or choose a file to replace it." : "No audio selected." %></p>
+        <div>
+          <%= form.label :audio_response, "Or upload an audio file", class: "label" %>
+          <%= form.file_field :audio_response,
+            accept: accepted_audio,
+            class: "field",
+            data: { audio_recorder_target: "input", action: "change->audio-recorder#fileSelected" } %>
+          <p class="hint">WAV, MP3, AIFF, AAC, OGG, FLAC, M4A, Opus, or WebM. Maximum 100 MB.</p>
+        </div>
+      </div>
+    <% elsif question.essay? %>
+      <div data-controller="word-counter">
+        <%= form.label :short_answer_response, "Your essay", class: "label" %>
+        <p class="hint">Your response is saved when you navigate, submit, or leave the quiz.</p>
+        <%= form.text_area :short_answer_response,
+          value: answer.short_answer_response,
+          maxlength: 50_000,
+          class: "field min-h-96 resize-y",
+          placeholder: "Write your response here…",
+          data: { word_counter_target: "input", action: "input->word-counter#update" } %>
+        <p class="mt-2 text-right text-sm font-medium text-slate-600" aria-live="polite" aria-atomic="true" data-word-counter-target="output">0 words</p>
+      </div>
+    <% else %>
+      <%= form.label :short_answer_response, "Your answer", class: "label" %>
+      <%= form.text_area :short_answer_response, value: answer.short_answer_response, maxlength: 50_000, rows: 6, class: "field resize-y" %>
+    <% end %>
+    <% if answer.errors.any? %><p class="field-error"><%= answer.errors.full_messages.to_sentence %></p><% end %>
+  </div>
+  <div class="actions mt-6 border-t border-slate-200 pt-5">
+    <button type="submit" name="next_question" value="<%= previous_question&.position %>" formaction="<%= organization_course_quiz_attempt_answer_path(current_organization, @course, @quiz, question_id: question.id, next_question: previous_question&.position) %>" class="<%= previous_question ? "btn-secondary" : "btn-disabled" %>" <%= "disabled" if previous_question.nil? %>>Previous</button>
+    <% if next_question %>
+      <button type="submit" name="next_question" value="<%= next_question.position %>" formaction="<%= organization_course_quiz_attempt_answer_path(current_organization, @course, @quiz, question_id: question.id, next_question: next_question.position) %>" class="btn-primary">Next</button>
+    <% else %>
+      <button type="submit" name="submit_attempt" value="1" class="btn-primary" data-action="click->quiz-submit#confirm">Submit</button>
+    <% end %>
+  </div>
 <% end %>

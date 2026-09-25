@@ -1,0 +1,45 @@
+<section class="material-block" data-content-block-editor-target="block" data-block-type="<%= block.object.block_type %>">
+  <%= block.hidden_field :id if block.object.persisted? %>
+  <%= block.hidden_field :block_type %>
+  <%= block.hidden_field :position, data: { content_block_editor_target: "position" } %>
+  <%= block.hidden_field :_destroy, value: "0", data: { content_block_editor_target: "destroy" } %>
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+    <p class="text-sm font-semibold text-slate-700"><%= block.object.block_type.titleize %></p>
+    <div class="actions">
+      <button type="button" class="btn-secondary" data-action="content-block-editor#moveUp">Move up</button>
+      <button type="button" class="btn-secondary" data-action="content-block-editor#moveDown">Move down</button>
+      <button type="button" class="btn-secondary" data-action="content-block-editor#remove">Remove</button>
+    </div>
+  </div>
+  <div class="p-4">
+    <% if block.object.text? %>
+      <div data-controller="rich-text-editor">
+        <div class="rich-editor-toolbar" aria-label="Text formatting" data-action="mousedown->rich-text-editor#preserveSelection">
+          <div class="rich-editor-group" role="group" aria-label="Text size">
+            <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="formatBlock" data-value="h2">Title</button>
+            <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="formatBlock" data-value="h3">Heading</button>
+            <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="formatBlock" data-value="p">Body</button>
+          </div>
+          <span class="rich-editor-separator" aria-hidden="true"></span>
+          <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="bold" aria-label="Bold"><strong>B</strong></button>
+          <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="italic" aria-label="Italic"><em>I</em></button>
+          <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="underline" aria-label="Underline"><u>U</u></button>
+          <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="insertUnorderedList">Bulleted list</button>
+          <button type="button" class="rich-editor-button" data-action="rich-text-editor#format" data-command="insertOrderedList">Numbered list</button>
+        </div>
+        <div class="rich-editor" contenteditable="true" role="textbox" aria-label="Page text" aria-multiline="true" data-rich-text-editor-target="editor" data-action="input->rich-text-editor#synchronize"><%= sanitize(block.object.body_html, tags: QuizPageBlock::ALLOWED_HTML_TAGS, attributes: QuizPageBlock::ALLOWED_HTML_ATTRIBUTES) %></div>
+        <%= block.hidden_field :body_html, data: { rich_text_editor_target: "input" } %>
+      </div>
+    <% else %>
+      <% if block.object.image.attached? %>
+        <div class="mb-4 flex flex-wrap items-center gap-4">
+          <%= image_tag block.object.image, alt: block.object.image.filename.to_s, class: "h-24 w-32 rounded-lg object-contain" %>
+          <p class="text-sm text-slate-600">Current image: <%= block.object.image.filename %></p>
+        </div>
+      <% end %>
+      <%= block.label :image, block.object.image.attached? ? "Replace image" : "Choose image", class: "label" %>
+      <%= block.file_field :image, accept: Material::ALLOWED_IMAGE_TYPES.join(","), class: "field", required: !block.object.image.attached? %>
+      <p class="hint">JPEG, PNG, GIF, or WebP. Maximum 10 MB.</p>
+    <% end %>
+  </div>
+</section>

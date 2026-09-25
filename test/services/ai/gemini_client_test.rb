@@ -46,4 +46,28 @@ class Ai::GeminiClientTest < ActiveSupport::TestCase
 
     assert_match "GEMINI_API_KEY", error.message
   end
+
+  test "adds labelled inline media to a structured request" do
+    response = Net::HTTPOK.new("1.1", "200", "OK")
+    response.instance_variable_set(:@body, {
+      candidates: [ { content: { parts: [ { text: '{"analysis":"Useful"}' } ] } } ]
+    }.to_json)
+    response.instance_variable_set(:@read, true)
+    transport = FakeTransport.new(response)
+    client = Ai::GeminiClient.new(api_key: "secret-key", model: "gemini-test", transport: transport)
+    media = Ai::GeminiClient::Media.new(label: "page-image-1", mime_type: "image/png", data: "image bytes", display_name: "source.png")
+
+    client.generate_json(
+      system_instruction: "Analyze.",
+      prompt: "Quiz data",
+      schema: { type: "object", properties: { analysis: { type: "string" } } },
+      media: [ media ]
+    )
+
+    parts = JSON.parse(transport.request.body).dig("contents", 0, "parts")
+    assert_equal "Quiz data", parts.first.fetch("text")
+    assert_equal "Media label: page-image-1", parts.second.fetch("text")
+    assert_equal "image/png", parts.third.dig("inlineData", "mimeType")
+    assert_equal Base64.strict_encode64("image bytes"), parts.third.dig("inlineData", "data")
+  end
 end

@@ -14,6 +14,7 @@ class Membership < ApplicationRecord
   has_many :teaching_assignments, class_name: "Assignment", foreign_key: :teacher_membership_id, dependent: :restrict_with_error, inverse_of: :teacher_membership
   has_many :assignment_recipients, foreign_key: :student_membership_id, dependent: :destroy, inverse_of: :student_membership
   has_many :assigned_assignments, through: :assignment_recipients, source: :assignment
+  has_many :reported_support_tickets, class_name: "SupportTicket", foreign_key: :reporter_membership_id, dependent: :restrict_with_error
   has_many :enrolled_courses, through: :course_enrollments, source: :course
   validates :user_id, uniqueness: { scope: :organization_id }
   validates :status, inclusion: { in: %w[active suspended] }

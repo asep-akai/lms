@@ -1,4 +1,8 @@
 module ApplicationHelper
+  def cloze_text(text)
+    safe_join(text.to_s.split("\n", -1).map { |line| ERB::Util.html_escape(line) }, tag.br)
+  end
+
   def current_organization = Current.organization
   def current_membership = Current.membership
 
@@ -10,8 +14,25 @@ module ApplicationHelper
     status == "active" ? "badge-active" : "badge-suspended"
   end
 
+  def support_status_badge_class(status)
+    {
+      "open" => "badge-active",
+      "in_progress" => "badge-info",
+      "waiting_for_reporter" => "badge-suspended",
+      "resolved" => "badge-neutral"
+    }.fetch(status, "badge-neutral")
+  end
+
+  def support_priority_badge_class(priority)
+    priority.in?(%w[high urgent]) ? "badge-danger" : "badge-neutral"
+  end
+
   def time_zone_label(time_zone)
     Time.current.in_time_zone(time_zone).strftime("%Z")
+  end
+
+  def wib_time(time)
+    time&.in_time_zone(Organization::TIME_ZONE)
   end
 
   def modal_link_to(name, url, **options)

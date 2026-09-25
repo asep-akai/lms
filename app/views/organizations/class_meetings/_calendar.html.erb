@@ -61,7 +61,7 @@
               <div class="mt-2 space-y-1.5">
                 <% meetings.first(3).each do |class_meeting| %>
                   <span class="block truncate rounded-md bg-brand-100 px-2 py-1.5 text-xs font-medium text-brand-900">
-                    <%= class_meeting.starts_at.in_time_zone(current_organization.timezone).strftime("%H:%M") %>
+                    <%= class_meeting.starts_at.in_time_zone(current_organization.timezone).strftime("%H:%M %Z") %>
                     · <%= class_meeting.subject %>
                   </span>
                 <% end %>

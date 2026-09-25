@@ -88,5 +88,6 @@ class Organizations::RolesController < Organizations::BaseController
 
     def load_permissions
       @permission_groups = Permission.organization_assignable.organization_groups
+      @existing_role_keys = Current.organization.roles.where.not(id: @role.id).pluck(:key)
     end
 end

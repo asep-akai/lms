@@ -105,8 +105,10 @@ class Organizations::QuizzesController < Organizations::BaseController
     end
 
     def load_editor
-      @questions = @quiz.questions.includes(:answer_options)
-      @new_question = @quiz.questions.new(question_type: :multiple_choice)
+      @pages = @quiz.pages.includes({ blocks: { image_attachment: :blob } }, questions: :answer_options)
+      @questions = @quiz.questions.includes(:answer_options, :quiz_page)
+      @new_page = @quiz.build_next_page
+      @new_question = @quiz.questions.new(question_type: :multiple_choice, quiz_page: @quiz.default_page)
     end
 
     def navigation_source

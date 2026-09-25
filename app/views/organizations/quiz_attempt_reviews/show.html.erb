@@ -1,5 +1,6 @@
 <% quiz = @attempt.quiz %>
 <% course = quiz.course %>
+<% has_manual_questions = quiz.questions.where(question_type: %w[essay audio]).exists? %>
 <div class="page-header">
   <div>
     <p class="eyebrow"><%= course.name %> · <%= quiz.title %></p>
@@ -49,30 +50,42 @@
   </div>
 </div>
 
+<% if has_manual_questions && @attempt.submitted? && !@attempt.reviewed? && !@attempt.cancelled? %>
+  <p class="mt-6 rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-900">Essay and audio responses are feedback-only by default. AI analysis gives draft scores only to responses marked for inclusion in the final score, while still analyzing feedback-only work. Every AI result must be confirmed before publication.</p>
+<% end %>
+
 <div class="mt-6 flex flex-wrap items-center gap-3">
   <% if @attempt.cancelled? %>
     <span class="badge-neutral">Cancelled for retake</span>
     <span class="text-sm text-slate-600">Retained as attempt <%= @attempt.attempt_number %> for audit history.</span>
   <% elsif @attempt.reviewed? %>
     <span class="badge-neutral">Published</span>
-    <span class="text-sm text-slate-600">Published <%= l(@attempt.reviewed_at, format: :short) %></span>
+    <span class="text-sm text-slate-600">Published <%= l(wib_time(@attempt.reviewed_at), format: :short) %> WIB</span>
   <% elsif @attempt.waiting_for_confirmation? %>
     <span class="badge-suspended">Waiting for confirmation</span>
-    <span class="text-sm text-slate-600">AI draft generated <%= l(@attempt.ai_analysis_generated_at, format: :short) %></span>
+    <span class="text-sm text-slate-600">AI draft generated <%= l(wib_time(@attempt.ai_analysis_generated_at), format: :short) %> WIB</span>
   <% elsif @attempt.waiting_for_review? %>
     <span class="badge-suspended"><%= @attempt.timed_out? ? "Timed out, waiting for review" : "Waiting for review" %></span>
-    <span class="text-sm text-slate-600"><%= @attempt.timed_out? ? "Automatically submitted" : "Submitted" %> <%= l(@attempt.submitted_at, format: :short) %></span>
+    <span class="text-sm text-slate-600"><%= @attempt.timed_out? ? "Automatically submitted" : "Submitted" %> <%= l(wib_time(@attempt.submitted_at), format: :short) %> WIB</span>
   <% else %>
     <span class="badge-active">In progress</span>
-    <span class="text-sm text-slate-600">Last active <%= l(@attempt.last_activity_at, format: :short) %></span>
+    <span class="text-sm text-slate-600">Last active <%= l(wib_time(@attempt.last_activity_at), format: :short) %> WIB</span>
   <% end %>
 </div>
 
 <section class="card card-body mt-8" aria-labelledby="score-heading">
   <p class="eyebrow">Score</p>
-  <h2 id="score-heading" class="mt-1"><%= @grading.correct_count %>/<%= @grading.total_count %></h2>
-  <p class="mt-1 text-2xl font-semibold text-slate-950"><%= @grading.percentage %>%</p>
-  <p class="subtitle">Calculated from the answer key and any manual overrides below.</p>
+  <% if @grading.scored? %>
+    <h2 id="score-heading" class="mt-1"><%= @grading.correct_count %>/<%= @grading.total_count %></h2>
+    <p class="mt-1 text-2xl font-semibold text-slate-950"><%= @grading.percentage %>%</p>
+    <p class="subtitle">Calculated from answer-key questions and any essay or audio responses scored below.</p>
+    <% if @grading.optionally_unscored_count.positive? %>
+      <p class="mt-2 text-sm text-slate-500"><%= pluralize(@grading.optionally_unscored_count, "essay or audio response") %> not included because <%= @grading.optionally_unscored_count == 1 ? "it is" : "they are" %> feedback-only or unscored.</p>
+    <% end %>
+  <% else %>
+    <h2 id="score-heading" class="mt-1">Not scored</h2>
+    <p class="subtitle">No answer-key or manually scored responses are included in this result.</p>
+  <% end %>
 </section>
 
 <section class="card card-body mt-8" aria-labelledby="feedback-heading">
@@ -145,34 +158,91 @@
   <% @grading.results.each do |result| %>
     <% question = result.question %>
     <% answer = result.answer %>
+    <% transcription = @transcriptions_by_question_id[question.id] %>
+    <% question_feedback = @feedbacks_by_question_id[question.id] %>
     <section id="question-<%= question.id %>" class="card card-body">
       <p class="text-sm font-medium text-slate-500">Question <%= question.position %> · <%= question.question_type.humanize %></p>
-      <div class="rich-content mt-3 text-slate-800"><%= sanitize(question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div>
+      <% if question.content_text? %><div class="rich-content mt-3 text-slate-800"><%= sanitize(question.content_html, tags: QuizQuestion::ALLOWED_HTML_TAGS, attributes: []) %></div><% end %>
       <div class="mt-5 grid gap-5 border-t border-slate-200 pt-4 sm:grid-cols-2">
         <div>
           <p class="text-sm font-medium text-slate-700">Student answer</p>
           <% if answer %>
-            <p class="mt-2 whitespace-pre-wrap text-slate-950"><%= question.multiple_choice? ? answer.quiz_answer_option&.content : answer.short_answer_response %></p>
+            <%= render "organizations/quiz_answers/response", question: question, answer: answer %>
+            <% if transcription %>
+              <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <p class="text-sm font-semibold text-slate-700">AI transcription</p>
+                <p class="mt-2 whitespace-pre-wrap text-sm text-slate-800"><%= transcription.transcript %></p>
+                <p class="mt-2 text-xs text-slate-500">AI-generated. Verify it against the recording before publishing the result.</p>
+              </div>
+            <% end %>
           <% else %>
             <p class="mt-2 text-sm text-slate-500">Unanswered</p>
           <% end %>
         </div>
         <div>
           <p class="text-sm font-medium text-slate-700">Answer key</p>
-          <p class="mt-2 text-slate-950"><%= question.multiple_choice? ? question.answer_options.find(&:correct?)&.content : question.short_answer %></p>
+          <% if question.feedback_only? %>
+            <p class="mt-2 text-sm text-slate-500">Feedback only. This response is analyzed but has no correct/wrong answer.</p>
+          <% elsif question.manual_grading? %>
+            <p class="mt-2 text-sm text-slate-500">No automatic answer key. Scoring this response is optional.</p>
+          <% else %>
+            <%= render "organizations/quiz_answers/answer_key", question: question %>
+          <% end %>
         </div>
       </div>
       <div class="mt-5 flex flex-wrap items-center gap-3">
-        <span class="<%= result.correct ? "badge-active" : "badge-suspended" %>"><%= result.correct ? "Correct" : "Wrong" %></span>
+        <% if question.feedback_only? %>
+          <span class="badge-neutral">Feedback only</span>
+        <% elsif result.correct.nil? %>
+          <span class="badge-neutral">Not scored</span>
+        <% else %>
+          <span class="<%= result.correct ? "badge-active" : "badge-suspended" %>"><%= result.correct ? "Correct" : "Wrong" %></span>
+        <% end %>
         <% if result.overridden %><span class="text-sm text-slate-500">Manually graded</span><% end %>
-        <% if @attempt.submitted? && !@attempt.reviewed? && !@attempt.cancelled? && policy(@attempt).review? %>
+        <% if result.ai_grade && !result.overridden %><span class="text-sm text-slate-500"><%= @attempt.reviewed? ? "AI score confirmed" : "AI-scored draft" %></span><% end %>
+        <% if question.included_in_score? && @attempt.submitted? && !@attempt.reviewed? && !@attempt.cancelled? && policy(@attempt).review? %>
           <%= button_to "Mark correct", organization_grade_answer_path(current_organization, @attempt, question_id: question.id), method: :patch, params: { correct: "1" }, class: result.correct ? "btn-primary" : "btn-secondary" %>
           <%= button_to "Mark wrong", organization_grade_answer_path(current_organization, @attempt, question_id: question.id), method: :patch, params: { correct: "0" }, class: result.correct ? "btn-secondary" : "btn-danger" %>
           <% if result.overridden %>
-            <%= button_to "Use answer key", organization_reset_answer_grade_path(current_organization, @attempt, question_id: question.id), method: :delete, class: "btn-secondary" %>
+            <% reset_label = if result.ai_grade then "Use AI score" elsif question.manual_grading? then "Remove manual score" else "Use answer key" end %>
+            <%= button_to reset_label, organization_reset_answer_grade_path(current_organization, @attempt, question_id: question.id), method: :delete, class: "btn-secondary" %>
           <% end %>
         <% end %>
       </div>
+      <% if result.ai_grade %>
+        <div class="mt-4 rounded-lg bg-slate-50 p-4">
+          <p class="text-sm font-semibold text-slate-700">AI scoring rationale</p>
+          <p class="mt-2 text-sm text-slate-700"><%= result.ai_grade.rationale %></p>
+        </div>
+      <% end %>
+      <% if question.essay? %>
+        <div class="mt-4 border-t border-slate-200 pt-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-sm font-semibold text-slate-700">Essay review</p>
+            <% if question_feedback&.ai_generated? %><span class="badge-neutral">AI-generated draft</span><% end %>
+          </div>
+          <% if @attempt.submitted? && !@attempt.reviewed? && !@attempt.cancelled? && policy(@attempt).review? %>
+            <%= form_with scope: :answer_feedback,
+              url: organization_answer_feedback_path(current_organization, @attempt, question_id: question.id),
+              method: :patch,
+              class: "mt-3" do |form| %>
+              <%= form.label :content, "Feedback for the student", class: "label" %>
+              <%= form.text_area :content,
+                value: question_feedback&.content,
+                rows: 5,
+                maxlength: 10_000,
+                class: "field",
+                placeholder: "Explain what worked and what the student should improve in this response." %>
+              <p class="hint">Saving changes marks this as reviewer feedback. Clear the field and save to remove it.</p>
+              <%= form.submit "Save essay review", class: "btn-secondary mt-3" %>
+            <% end %>
+          <% elsif question_feedback %>
+            <p class="mt-3 whitespace-pre-wrap text-sm text-slate-800"><%= question_feedback.content %></p>
+          <% else %>
+            <p class="mt-3 text-sm text-slate-500">No essay review was added.</p>
+          <% end %>
+        </div>
+      <% end %>
     </section>
   <% end %>
 </div>

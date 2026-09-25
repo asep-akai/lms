@@ -4,12 +4,12 @@ one:
   name: First Organization
   slug: first-organization
   status: active
-  timezone: UTC
+  timezone: Jakarta
   locale: en
 
 two:
   name: Second Organization
   slug: second-organization
   status: active
-  timezone: UTC
+  timezone: Jakarta
   locale: en
