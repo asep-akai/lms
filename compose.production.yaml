@@ -1,0 +1,83 @@
+name: lms-production
+
+x-app-environment: &app_environment
+  RAILS_ENV: production
+  APP_HOST: ${APP_HOST:?Set APP_HOST in .env.production}
+  RAILS_MASTER_KEY: ${RAILS_MASTER_KEY:?Set RAILS_MASTER_KEY in .env.production}
+  RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-info}
+  RAILS_MAX_THREADS: ${RAILS_MAX_THREADS:-3}
+  DATABASE_POOL: ${DATABASE_POOL:-5}
+  JOB_CONCURRENCY: ${JOB_CONCURRENCY:-1}
+  POSTGRES_HOST: db
+  POSTGRES_PORT: 5432
+  POSTGRES_USER: ${POSTGRES_USER:-lms}
+  LMS_DATABASE_PASSWORD: ${LMS_DATABASE_PASSWORD:?Set LMS_DATABASE_PASSWORD in .env.production}
+  POSTGRES_DB: ${POSTGRES_DB:-lms_production}
+  POSTGRES_CACHE_DB: ${POSTGRES_CACHE_DB:-lms_production_cache}
+  POSTGRES_CABLE_DB: ${POSTGRES_CABLE_DB:-lms_production_cable}
+  SMTP_ADDRESS: ${SMTP_ADDRESS:?Set SMTP_ADDRESS in .env.production}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_DOMAIN: ${SMTP_DOMAIN:-${APP_HOST}}
+  SMTP_USERNAME: ${SMTP_USERNAME:?Set SMTP_USERNAME in .env.production}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:?Set SMTP_PASSWORD in .env.production}
+  SMTP_AUTHENTICATION: ${SMTP_AUTHENTICATION:-plain}
+  SMTP_ENABLE_STARTTLS_AUTO: ${SMTP_ENABLE_STARTTLS_AUTO:-true}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+
+x-app: &app
+  image: ${LMS_IMAGE:-lms:production}
+  build:
+    context: .
+    dockerfile: Dockerfile
+  environment: *app_environment
+  volumes:
+    - active_storage:/rails/storage
+  depends_on:
+    db:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lms}
+      POSTGRES_PASSWORD: ${LMS_DATABASE_PASSWORD:?Set LMS_DATABASE_PASSWORD in .env.production}
+      POSTGRES_DB: ${POSTGRES_DB:-lms_production}
+      POSTGRES_CACHE_DB: ${POSTGRES_CACHE_DB:-lms_production_cache}
+      POSTGRES_CABLE_DB: ${POSTGRES_CABLE_DB:-lms_production_cable}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./docker/postgres/init-production-databases.sh:/docker-entrypoint-initdb.d/10-init-production-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  web:
+    <<: *app
+    ports:
+      - "127.0.0.1:${LMS_HTTP_PORT:-3001}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost/up >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    stop_grace_period: 30s
+
+  jobs:
+    <<: *app
+    command: ./bin/jobs start
+    depends_on:
+      web:
+        condition: service_healthy
+    stop_grace_period: 30s
+
+volumes:
+  postgres_data:
+  active_storage:

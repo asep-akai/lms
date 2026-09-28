@@ -286,6 +286,7 @@ lms/
 ├── .github/                  CI and dependency automation
 ├── .vscode/                  Editor recommendations and formatting settings
 ├── compose.yaml              Local service topology
+├── compose.production.yaml   Production web, worker, database, and volumes
 ├── Dockerfile.dev            Development application image
 ├── Dockerfile                Production application image
 ├── Gemfile                   Ruby dependencies
@@ -360,9 +361,10 @@ docker compose exec nginx nginx -t
 
 ## Production boundary
 
-The repository includes a multi-stage production Dockerfile, Kamal, Thruster,
-Solid Queue, Solid Cache, and Solid Cable. Production deployment is not fully
-specified. Before placing the application on a public VPS, provide:
+The repository includes a multi-stage production Dockerfile, Thruster, a
+production Compose template, and host-level Nginx templates. The production
+template runs Rails, Solid Queue, PostgreSQL, Solid Cache, and Solid Cable with
+persistent volumes. Before placing the application on a public VPS, provide:
 
 - A domain and a chosen TLS termination layer
 - Production database credentials and automated off-server backups
@@ -372,5 +374,6 @@ specified. Before placing the application on a public VPS, provide:
 - Monitoring, log retention, health checks, and restore testing
 - A production Action Cable path that preserves WebSocket upgrade headers
 
-The local Nginx service proves the reverse-proxy path but does not configure a
-public domain or TLS certificate.
+The local Nginx service proves the reverse-proxy path. The production runbook
+documents the separate HTTP bootstrap and HTTPS configurations required for a
+real domain and certificate.

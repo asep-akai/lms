@@ -31,6 +31,7 @@ no separate React application or public API.
 - [Engineer quick start](docs/ENGINEER_QUICKSTART.md)
 - [User quick start](docs/USER_QUICKSTART.md)
 - [Architecture and repository structure](docs/ARCHITECTURE.md)
+- [Production deployment with Nginx](docs/PRODUCTION_DEPLOYMENT.md)
 - [Repository conventions](AGENTS.md)
 
 ## Start the application with Docker
@@ -162,9 +163,9 @@ Only run that command when you intend to reset the local database.
 
 ## Production direction
 
-The development Compose file is not a production deployment definition. A VPS
-deployment needs a real domain, TLS termination, persistent storage, database
-backups, production secrets, SMTP delivery, and monitoring. The repository has
-a production Dockerfile and Kamal dependencies that can serve as the deployment
-base. Decide whether production TLS terminates in a host-level Nginx instance,
-a managed load balancer, or Kamal Proxy before exposing the application.
+The development Compose file is not a production deployment definition. The
+repository includes a separate production Compose template, host-level Nginx
+templates, persistent PostgreSQL and Active Storage volumes, and environment
+placeholders. Follow the [production deployment runbook](docs/PRODUCTION_DEPLOYMENT.md)
+before exposing the application. A real deployment still needs DNS, TLS
+issuance, protected secrets, backups, SMTP delivery, and monitoring.

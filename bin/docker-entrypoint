@@ -1,5 +1,30 @@
 #!/bin/bash -e
 
+if [ "${RAILS_ENV:-}" = "production" ]; then
+  required_variables=(
+    APP_HOST
+    RAILS_MASTER_KEY
+    POSTGRES_HOST
+    POSTGRES_USER
+    LMS_DATABASE_PASSWORD
+    SMTP_ADDRESS
+    SMTP_USERNAME
+    SMTP_PASSWORD
+  )
+
+  missing_variables=()
+  for variable_name in "${required_variables[@]}"; do
+    if [ -z "${!variable_name:-}" ]; then
+      missing_variables+=("${variable_name}")
+    fi
+  done
+
+  if [ "${#missing_variables[@]}" -gt 0 ]; then
+    echo "Missing required production environment variables: ${missing_variables[*]}" >&2
+    exit 1
+  fi
+fi
+
 # If running the rails server then create or migrate existing database
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
   ./bin/rails db:prepare

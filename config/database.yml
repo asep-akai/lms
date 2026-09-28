@@ -17,7 +17,7 @@ default: &default
   encoding: unicode
   # For details on connection pooling, see Rails configuration guide
   # https://guides.rubyonrails.org/configuring.html#database-pooling
-  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  max_connections: <%= ENV.fetch("DATABASE_POOL") { ENV.fetch("RAILS_MAX_THREADS", 5) } %>
   host: <%= ENV["POSTGRES_HOST"] %>
   port: <%= ENV["POSTGRES_PORT"] %>
   username: <%= ENV["POSTGRES_USER"] %>
@@ -92,14 +92,14 @@ test:
 production:
   primary: &primary_production
     <<: *default
-    database: lms_production
-    username: lms
+    database: <%= ENV.fetch("POSTGRES_DB", "lms_production") %>
+    username: <%= ENV.fetch("POSTGRES_USER", "lms") %>
     password: <%= ENV["LMS_DATABASE_PASSWORD"] %>
   cache:
     <<: *primary_production
-    database: lms_production_cache
+    database: <%= ENV.fetch("POSTGRES_CACHE_DB", "lms_production_cache") %>
     migrations_paths: db/cache_migrate
   cable:
     <<: *primary_production
-    database: lms_production_cable
+    database: <%= ENV.fetch("POSTGRES_CABLE_DB", "lms_production_cable") %>
     migrations_paths: db/cable_migrate
