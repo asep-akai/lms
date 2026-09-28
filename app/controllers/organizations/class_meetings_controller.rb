@@ -1,30 +1,32 @@
 class Organizations::ClassMeetingsController < Organizations::BaseController
-  before_action :set_class_meeting, only: %i[show edit update destroy]
-  before_action :set_navigation_context, only: %i[show edit update destroy]
+  before_action :set_class_meeting, only: %i[show edit update destroy request_reschedule]
+  before_action :set_navigation_context, only: %i[show edit update destroy request_reschedule]
   before_action :load_assignment_options, only: %i[new create edit update]
 
   def index
     authorize ClassMeeting
-    meetings = policy_scope(ClassMeeting)
+    meetings = policy_scope(ClassMeeting).scheduled
     @calendar = ClassMeetingCalendar.new(
       scope: meetings,
       month: params[:month],
       time_zone: Current.organization.timezone
     )
-    @class_meetings = meetings
+    upcoming_meetings = meetings
       .upcoming
       .includes(teacher_membership: :user, student_memberships: :user)
       .chronological
+    @pagination, @class_meetings = paginate(upcoming_meetings)
   end
 
   def history
     authorize ClassMeeting, :index?
     @query = params[:query].to_s.squish.first(200)
-    @class_meetings = ClassMeetingHistoryQuery.call(
+    class_meetings = ClassMeetingHistoryQuery.call(
       scope: class_history_scope,
       membership: Current.membership,
       query: @query
     )
+    @pagination, @class_meetings = paginate(class_meetings)
     visible_feedbacks = policy_scope(ClassMeetingFeedback)
       .where(class_meeting_id: @class_meetings.map(&:id))
       .includes(author_membership: :user)
@@ -40,7 +42,7 @@ class Organizations::ClassMeetingsController < Organizations::BaseController
   def day
     authorize ClassMeeting, :index?
     @date = calendar_date
-    @class_meetings = policy_scope(ClassMeeting)
+    @class_meetings = policy_scope(ClassMeeting).scheduled
       .where(starts_at: local_day_range(@date))
       .includes(teacher_membership: :user, student_memberships: :user)
       .chronological
@@ -84,9 +86,11 @@ class Organizations::ClassMeetingsController < Organizations::BaseController
 
   def update
     authorize @class_meeting
+    previous_attendees = @class_meeting.attendee_memberships
     assign_form_attributes
 
     if save_with_sequence_lock
+      ClassMeetingNotifier.updated(@class_meeting, recipients: previous_attendees | @class_meeting.attendee_memberships)
       AuditRecorder.record!(
         action: "class_meeting.updated",
         auditable: @class_meeting,
@@ -105,6 +109,21 @@ class Organizations::ClassMeetingsController < Organizations::BaseController
     @class_meeting.destroy!
     AuditRecorder.record!(action: "class_meeting.deleted", auditable: @class_meeting, metadata: metadata)
     redirect_to @back_path, notice: "Class meeting deleted."
+  end
+
+  def request_reschedule
+    authorize @class_meeting, :request_reschedule?
+    ClassRescheduleRequester.call!(class_meeting: @class_meeting, membership: Current.membership)
+    ClassMeetingMailer.with(class_meeting: @class_meeting, student_membership: Current.membership).reschedule_requested.deliver_later
+    ClassMeetingNotifier.rescheduled(@class_meeting, student: Current.membership)
+    AuditRecorder.record!(
+      action: "class_meeting.reschedule_requested",
+      auditable: @class_meeting,
+      metadata: audit_metadata.merge(student: Current.membership.user.name, remaining_quota: Current.membership.reschedule_quota)
+    )
+    redirect_to organization_class_meetings_path(Current.organization), notice: "Class cancelled and the teacher has been notified."
+  rescue ClassRescheduleRequester::NotAllowed => error
+    redirect_to organization_class_meeting_path(Current.organization, @class_meeting, **@navigation_params), alert: error.message
   end
 
   private
@@ -148,7 +167,7 @@ class Organizations::ClassMeetingsController < Organizations::BaseController
     end
 
     def class_history_scope
-      scope = policy_scope(ClassMeeting)
+      scope = policy_scope(ClassMeeting).scheduled
       return scope unless Current.membership.student? || Current.membership.teacher?
 
       scope.assigned_to(Current.membership)

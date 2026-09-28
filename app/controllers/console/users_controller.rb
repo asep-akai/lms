@@ -6,11 +6,12 @@ module Console
       authorize User
       @query = TableSearch.normalize(params[:query])
       users = policy_scope(User).left_joins(memberships: :organization)
-      @users = TableSearch.call(
+      users = TableSearch.call(
         users,
         query: @query,
         columns: %w[users.name users.email users.status organizations.name organizations.slug]
       ).includes(:roles, memberships: :organization).distinct.order(:name)
+      @pagination, @users = paginate(users)
     end
 
     def new

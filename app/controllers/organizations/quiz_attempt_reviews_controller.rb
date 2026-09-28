@@ -22,7 +22,8 @@ class Organizations::QuizAttemptReviewsController < Organizations::BaseControlle
       query: @query,
       columns: %w[quizzes.title courses.name users.name users.email]
     )
-    @attempts = attempts.order(Arel.sql("COALESCE(reviewed_at, submitted_at, last_activity_at, started_at) DESC"))
+    attempts = attempts.order(Arel.sql("COALESCE(reviewed_at, submitted_at, last_activity_at, started_at) DESC"))
+    @pagination, @attempts = paginate(attempts)
     @gradings_by_attempt_id = @attempts.to_h { |attempt| [ attempt.id, QuizAttemptGrader.new(attempt) ] }
   end
 
@@ -139,6 +140,14 @@ class Organizations::QuizAttemptReviewsController < Organizations::BaseControlle
     authorize @attempt, :review?
     return redirect_to organization_grading_attempt_path(Current.organization, @attempt), alert: "Only submitted attempts can be published." unless @attempt.submitted?
     @attempt.publish!(feedback_params.merge(grading_mode: @attempt.grading_mode || "manual"))
+    InAppNotifier.deliver(
+      recipient: @attempt.membership,
+      kind: "quiz_attempt_published",
+      title: "Quiz results published",
+      body: @attempt.quiz.title,
+      path: InAppNotifier.path_for(:organization_evaluation_attempt_path, Current.organization, @attempt),
+      notifiable: @attempt
+    )
     AuditRecorder.record!(action: "quiz_attempt.results_published", auditable: @attempt, metadata: { quiz: @attempt.quiz.title })
     redirect_to organization_grading_attempt_path(Current.organization, @attempt), notice: "Results published to the student."
   end
@@ -196,6 +205,8 @@ class Organizations::QuizAttemptReviewsController < Organizations::BaseControlle
     quiz_title = @attempt.quiz.title
     student_name = @attempt.membership.user.name
 
+    student = @attempt.membership
+    quiz = @attempt.quiz
     QuizAttempt.transaction do
       AuditRecorder.record!(
         action: "quiz_attempt.reset",
@@ -204,6 +215,14 @@ class Organizations::QuizAttemptReviewsController < Organizations::BaseControlle
       )
       @attempt.destroy!
     end
+    InAppNotifier.deliver(
+      recipient: student,
+      kind: "quiz_attempt_reset",
+      title: "Quiz attempt reset",
+      body: "You can attempt #{quiz.title} again.",
+      path: InAppNotifier.path_for(:organization_course_path, Current.organization, quiz.course),
+      notifiable: quiz
+    )
 
     redirect_to organization_grading_path(Current.organization), notice: "Attempt reset. #{student_name} can retry #{quiz_title}."
   end

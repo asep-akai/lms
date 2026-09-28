@@ -1,0 +1,19 @@
+<% contact = conversation.other_participant(membership) %>
+<%= link_to organization_direct_conversation_path(conversation.organization, conversation),
+  id: dom_id(conversation),
+  class: "message-directory-row #{"bg-brand-50" if conversation.unread_for?(membership)}" do %>
+  <span class="min-w-0">
+    <strong class="block truncate text-slate-950"><%= contact.user.name %></strong>
+    <span class="mt-1 block truncate text-sm text-slate-500"><%= contact.roles.ordered.pluck(:name).to_sentence %></span>
+  </span>
+  <span class="flex shrink-0 flex-col items-end gap-2">
+    <% if conversation.unread_for?(membership) %>
+      <span class="badge-info">New message</span>
+    <% end %>
+    <% if conversation.last_message_at %>
+      <time class="text-xs text-slate-500" datetime="<%= conversation.last_message_at.iso8601 %>"><%= l conversation.last_message_at.in_time_zone(conversation.organization.timezone), format: :short %></time>
+    <% else %>
+      <span class="text-sm font-medium text-brand-700">Start chatting</span>
+    <% end %>
+  </span>
+<% end %>

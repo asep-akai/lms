@@ -1,0 +1,5 @@
+<span id="<%= dom_id(membership, :notification_indicator) %>">
+  <% if unread_count.positive? %>
+    <span class="notification-count" aria-label="<%= pluralize(unread_count, "unread notification") %>"><%= unread_count > 99 ? "99+" : unread_count %></span>
+  <% end %>
+</span>

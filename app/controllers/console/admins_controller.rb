@@ -10,7 +10,7 @@ module Console
         query: @query,
         columns: %w[admins.name admins.email admins.status]
       )
-      @admins = admins.includes(:roles).order(:name)
+      @pagination, @admins = paginate(admins.includes(:roles).order(:name))
     end
 
     def new

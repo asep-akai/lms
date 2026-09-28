@@ -5,6 +5,7 @@ class ClassMeeting < ApplicationRecord
 
   belongs_to :organization
   belongs_to :teacher_membership, class_name: "Membership"
+  belongs_to :cancelled_by_membership, class_name: "Membership", optional: true
   has_many :class_meeting_students, dependent: :destroy
   has_many :student_memberships, through: :class_meeting_students, source: :membership
   has_many :feedbacks, class_name: "ClassMeetingFeedback", dependent: :destroy
@@ -32,6 +33,7 @@ class ClassMeeting < ApplicationRecord
   validate :meeting_url_is_safe
 
   scope :chronological, -> { order(starts_at: :asc, meeting_number: :asc) }
+  scope :scheduled, -> { where(cancelled_at: nil) }
   scope :upcoming, -> { where(starts_at: Time.current..) }
   scope :past, -> { where(starts_at: ...Time.current) }
   scope :reverse_chronological, -> { order(starts_at: :desc, meeting_number: :desc) }
@@ -52,6 +54,16 @@ class ClassMeeting < ApplicationRecord
   def onsite? = delivery_mode == "onsite"
   def online? = delivery_mode == "online"
   def started? = starts_at.present? && starts_at <= Time.current
+  def cancelled? = cancelled_at.present?
+
+  def reschedule_requestable_by?(membership, now: Time.current)
+    !cancelled? &&
+      membership&.student? &&
+      membership.id.in?(student_membership_ids) &&
+      student_memberships.size == 1 &&
+      membership.reschedule_quota.positive? &&
+      now <= starts_at - 24.hours
+  end
 
   def feedback_role_for(membership)
     return "teacher" if teacher_membership_id == membership&.id

@@ -9,9 +9,10 @@ class Organizations::AssignmentsController < Organizations::BaseController
       query: @query,
       columns: %w[assignments.title assignments.description]
     )
-    @assignments = assignments
+    assignments = assignments
       .includes({ teacher_membership: :user }, recipients: [ { student_membership: :user }, :submission ])
       .soonest_first
+    @pagination, @assignments = paginate(assignments)
   end
 
   def show

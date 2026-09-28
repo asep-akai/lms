@@ -81,3 +81,4 @@
     <div class="empty-state"><%= current_membership.student? ? "You have no assignments yet." : "No assignments have been created yet." %></div>
   <% end %>
 <% end %>
+<%= render "shared/pagination", pagination: @pagination %>

@@ -61,7 +61,6 @@
     </div>
   <% end %>
 </section>
-
 <section class="mt-10" aria-labelledby="feedback-results-heading">
   <div>
     <p class="eyebrow"><%= pluralize(@feedbacks.size, "response") %></p>
@@ -133,3 +132,4 @@
     <div class="empty-state">No class feedback matches these filters.</div>
   <% end %>
 </section>
+<%= render "shared/pagination", pagination: @pagination %>

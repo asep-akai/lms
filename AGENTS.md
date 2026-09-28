@@ -171,6 +171,20 @@ bin/dev       # web + Tailwind watcher + job worker
 bin/ci        # style, audits, brakeman, tests, system tests
 ```
 
+The supported container workflow is:
+
+```bash
+cp .env.example .env
+docker compose up --build
+docker compose exec web bin/ci
+```
+
+In Compose, Nginx is the public development edge at
+`http://localhost:3001`. Rails listens only on `web:3000` inside the Compose
+network. Validate proxy changes with `docker compose exec nginx nginx -t`.
+Source code is bind-mounted, so ordinary Ruby, ERB, JavaScript, and Tailwind
+changes do not require an image rebuild.
+
 Ruby 3.3.8, PostgreSQL, Rails 8.1. `bin/ci` is the check to run before calling
 something done; it is green, so a failure is yours.
 

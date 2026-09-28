@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_24_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_28_110000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -162,6 +162,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_100000) do
   end
 
   create_table "class_meetings", force: :cascade do |t|
+    t.datetime "cancelled_at"
+    t.bigint "cancelled_by_membership_id"
     t.datetime "created_at", null: false
     t.string "delivery_mode", null: false
     t.integer "meeting_number", null: false
@@ -173,6 +175,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_100000) do
     t.bigint "teacher_membership_id", null: false
     t.string "topic", null: false
     t.datetime "updated_at", null: false
+    t.index ["cancelled_at"], name: "index_class_meetings_on_cancelled_at"
+    t.index ["cancelled_by_membership_id"], name: "index_class_meetings_on_cancelled_by_membership_id"
     t.index ["organization_id", "subject_key", "meeting_number"], name: "index_class_meetings_on_subject_sequence", unique: true
     t.index ["organization_id"], name: "index_class_meetings_on_organization_id"
     t.index ["teacher_membership_id"], name: "index_class_meetings_on_teacher_membership_id"
@@ -223,6 +227,33 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_100000) do
     t.index ["organization_id"], name: "index_courses_on_organization_id"
   end
 
+  create_table "direct_conversations", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "last_message_at"
+    t.bigint "organization_id", null: false
+    t.datetime "participant_one_last_read_at"
+    t.bigint "participant_one_membership_id", null: false
+    t.datetime "participant_two_last_read_at"
+    t.bigint "participant_two_membership_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id", "participant_one_membership_id", "participant_two_membership_id"], name: "index_direct_conversations_on_participants", unique: true
+    t.index ["organization_id"], name: "index_direct_conversations_on_organization_id"
+    t.index ["participant_one_membership_id"], name: "index_direct_conversations_on_participant_one_membership_id"
+    t.index ["participant_two_membership_id"], name: "index_direct_conversations_on_participant_two_membership_id"
+    t.check_constraint "participant_one_membership_id < participant_two_membership_id", name: "direct_conversations_canonical_participant_order"
+  end
+
+  create_table "direct_messages", force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.bigint "direct_conversation_id", null: false
+    t.bigint "sender_membership_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["direct_conversation_id", "created_at"], name: "index_direct_messages_on_direct_conversation_id_and_created_at"
+    t.index ["direct_conversation_id"], name: "index_direct_messages_on_direct_conversation_id"
+    t.index ["sender_membership_id"], name: "index_direct_messages_on_sender_membership_id"
+  end
+
   create_table "material_blocks", force: :cascade do |t|
     t.string "block_type", null: false
     t.text "body_html"
@@ -259,6 +290,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_100000) do
   create_table "memberships", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "organization_id", null: false
+    t.integer "reschedule_quota", default: 0, null: false
     t.string "status", default: "active", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
@@ -266,6 +298,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_100000) do
     t.index ["organization_id", "user_id"], name: "index_memberships_on_organization_id_and_user_id", unique: true
     t.index ["organization_id"], name: "index_memberships_on_organization_id"
     t.index ["user_id"], name: "index_memberships_on_user_id"
+    t.check_constraint "reschedule_quota >= 0", name: "memberships_reschedule_quota_nonnegative"
+  end
+
+  create_table "notifications", force: :cascade do |t|
+    t.bigint "actor_membership_id"
+    t.text "body"
+    t.datetime "created_at", null: false
+    t.string "kind", null: false
+    t.bigint "notifiable_id"
+    t.string "notifiable_type"
+    t.bigint "organization_id", null: false
+    t.string "path", null: false
+    t.datetime "read_at"
+    t.bigint "recipient_membership_id", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_membership_id"], name: "index_notifications_on_actor_membership_id"
+    t.index ["notifiable_type", "notifiable_id"], name: "index_notifications_on_notifiable"
+    t.index ["organization_id"], name: "index_notifications_on_organization_id"
+    t.index ["recipient_membership_id", "read_at", "created_at"], name: "index_notifications_on_recipient_read_and_created"
+    t.index ["recipient_membership_id"], name: "index_notifications_on_recipient_membership_id"
   end
 
   create_table "organizations", force: :cascade do |t|
@@ -709,6 +762,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_100000) do
   add_foreign_key "class_meeting_feedbacks", "memberships", column: "author_membership_id"
   add_foreign_key "class_meeting_students", "class_meetings"
   add_foreign_key "class_meeting_students", "memberships"
+  add_foreign_key "class_meetings", "memberships", column: "cancelled_by_membership_id"
   add_foreign_key "class_meetings", "memberships", column: "teacher_membership_id"
   add_foreign_key "class_meetings", "organizations"
   add_foreign_key "course_contents", "course_sections"
@@ -717,12 +771,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_100000) do
   add_foreign_key "course_enrollments", "memberships"
   add_foreign_key "course_sections", "courses"
   add_foreign_key "courses", "organizations"
+  add_foreign_key "direct_conversations", "memberships", column: "participant_one_membership_id"
+  add_foreign_key "direct_conversations", "memberships", column: "participant_two_membership_id"
+  add_foreign_key "direct_conversations", "organizations"
+  add_foreign_key "direct_messages", "direct_conversations"
+  add_foreign_key "direct_messages", "memberships", column: "sender_membership_id"
   add_foreign_key "material_blocks", "materials"
   add_foreign_key "material_completions", "materials"
   add_foreign_key "material_completions", "memberships"
   add_foreign_key "materials", "courses"
   add_foreign_key "memberships", "organizations"
   add_foreign_key "memberships", "users"
+  add_foreign_key "notifications", "memberships", column: "actor_membership_id"
+  add_foreign_key "notifications", "memberships", column: "recipient_membership_id"
+  add_foreign_key "notifications", "organizations"
   add_foreign_key "quiz_answer_ai_grades", "quiz_attempts"
   add_foreign_key "quiz_answer_ai_grades", "quiz_questions"
   add_foreign_key "quiz_answer_ai_transcriptions", "quiz_attempts"

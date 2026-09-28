@@ -1,492 +1,376 @@
-# LMS architecture and project structure
+# LMS architecture and repository structure
 
-This document describes the current application, the boundaries between its
-subsystems, the tools it uses, and where each kind of code belongs. It reflects
-the implemented code rather than a future product plan.
+This document describes the implemented application, its runtime services, and
+where each kind of code belongs. It is a technical map rather than a product
+roadmap.
 
-## 1. System overview
+## System overview
 
 LMS is a server-rendered Ruby on Rails monolith backed by PostgreSQL. Rails owns
-HTML rendering, authentication, authorization, persistence, email, background
-jobs, and asset delivery. The browser receives ERB-generated HTML and uses
-Hotwire for navigation and small interactive behaviors.
+HTML rendering, authentication, authorization, business workflows, persistence,
+email, file attachments, background jobs, and real-time page updates.
 
 ```text
 Browser
   |
-  | HTTP / Turbo requests
+  | HTTP, Turbo, and WebSocket upgrade requests
   v
-Puma -> Rails routes -> Controllers -> Pundit policies
-                         |                 |
-                         v                 v
-                    Services          RBAC queries
-                         |                 |
-                         +-------> Active Record
-                                      |
-                                      v
-                                  PostgreSQL
-
-Rails -> Active Job -> Solid Queue worker -> PostgreSQL
-Rails -> Action Mailer -> SMTP -> Mailpit in development
+Nginx :3001 on the host
+  |
+  | proxy_pass
+  v
+Puma / Rails web:3000
+  |
+  +--> Controllers --> Pundit policies --> Models --> PostgreSQL
+  |                         |
+  |                         +--> Current tenant and membership context
+  |
+  +--> Services --> Gemini API, PDF rendering, notifications, and mail
+  |
+  +--> Active Job --> Solid Queue worker --> PostgreSQL
+  |
+  +--> Action Mailer --> SMTP --> Mailpit in development
+  |
+  +--> Active Storage --> local disk in development
 ```
 
-There is one deployable application, not separate frontend and backend
-services. The internal layers still have distinct responsibilities:
+There is no separate frontend service. ERB views render HTML, Turbo handles
+navigation and partial updates, and Stimulus controllers manage focused browser
+behavior such as modals, editors, audio recording, timers, search selectors,
+live chat, and notification menus.
 
-- Controllers coordinate HTTP requests.
-- Policies decide whether the current identity may perform an action.
-- Models define data relationships, validation, and small domain rules.
-- Services coordinate multi-record workflows and infrastructure operations.
-- Views render HTML.
-- Stimulus controllers provide focused browser behavior.
-- Jobs run deferred or scheduled work.
+## Local container topology
 
-## 2. Security domains
+`compose.yaml` defines six services:
 
-The application deliberately has two identity types and two login areas.
+| Service | Network role |
+| --- | --- |
+| `nginx` | Publishes `127.0.0.1:3001`, forwards requests to `web:3000`, and preserves proxy and WebSocket headers. |
+| `web` | Runs Puma and Rails. Port 3000 is exposed only to the Compose network. |
+| `db` | Runs PostgreSQL and publishes `127.0.0.1:5432` for local database tools. |
+| `jobs` | Runs the Solid Queue worker from the same application image. |
+| `css` | Watches and compiles Tailwind CSS from the same source mount. |
+| `mailpit` | Accepts development SMTP on the private port 1025 and publishes its inbox on port 8025. |
 
-### Application users
+The Nginx configuration lives in `docker/nginx/default.conf`. It accepts uploads
+up to 100 MB, forwards the original host and scheme, supports WebSocket upgrade
+headers, and allows long reads for operations such as AI analysis and file
+delivery. Its `/up` health check reaches the Rails health endpoint through the
+proxy.
 
-`User` records sign in through `/users/sign_in`. A user can belong to one or
-more organizations through `Membership`. Organization roles and permissions
-are evaluated within a specific organization.
+## Identity and security domains
 
-After login:
+The application has two identity types and two sessions.
 
-- A user with one active organization is redirected directly to it.
-- A user with multiple active organizations chooses one.
-- A user can only reach records through an active membership.
-- Students only see courses in which their membership is enrolled.
+### Organization users
 
-Public registration is disabled at the routing and controller layers. Users
-are created through the console or organization membership management.
+`User` records sign in through `/users/sign_in`. A user belongs to organizations
+through `Membership` records. Roles and permissions are evaluated within the
+current organization.
+
+After sign-in, a user with one active organization enters it directly. A user
+with several active organizations chooses one. Public registration is disabled;
+authorized administrators create accounts and memberships.
 
 ### Console administrators
 
-`Admin` records use the separate `/console/login` session. They manage the LMS
-installation: organizations, global users, console administrators, and global
-console roles.
+`Admin` records sign in through `/console/login`. The console manages the LMS
+installation, including organizations, application users, console
+administrators, console roles, and escalated support tickets.
 
-Console administrators do not become organization members and cannot receive
-organization-only permissions. Organization members cannot receive
-console-only permissions. The filtering is enforced in role forms, controller
-parameter handling, and authorization checks.
+An `Admin` is not a `User`. Console roles cannot receive organization-only
+permissions, and organization roles cannot receive console-only permissions.
+
+### RBAC and Pundit
+
+The authorization model consists of `Role`, `Permission`, `RolePermission`, and
+polymorphic `RoleAssignment` records. Policies check permission keys from
+`Permission::CATALOG`; they do not rely on editable role names.
+
+Organization and console permission groups are filtered independently. The
+built-in organization administrator role receives all organization permissions
+and has additional protection so an organization cannot lose its final active
+administrator.
+
+Pundit action methods authorize individual operations. Pundit scopes limit the
+records returned by index actions. Controller tests should cover the allowed,
+denied, and cross-tenant paths for every new protected resource.
 
 ### Current request context
 
-`Current` is an `ActiveSupport::CurrentAttributes` object containing the
-request's identity, organization, and membership. Organization controllers set
-this context before loading tenant-owned records. Helpers and policies read the
-same context.
+`Current` extends `ActiveSupport::CurrentAttributes`. Organization controllers
+set the current user, organization, and membership for the request. Policies,
+helpers, services, and nested record loading use the same context.
 
-## 3. Multi-tenancy
+## Multi-tenancy
 
-Tenants share one PostgreSQL schema. `organizations.id` is the tenant boundary
-for organization-owned records.
+Organizations share one PostgreSQL schema. Tenant-owned tables reference an
+organization either directly or through an organization-owned parent.
 
-Isolation is implemented through application code:
+Isolation depends on four rules:
 
-- Organization routes use a slug, such as `/organizations/example-school`.
-- `Organizations::BaseController` verifies an active membership before any
-  nested organization action runs.
-- Nested controllers load records through `Current.organization`, for example
-  `Current.organization.courses.find(params[:id])`.
-- Pundit scopes constrain list queries to the current organization or enrolled
-  membership.
-- Model validations prevent role assignments and course enrollments from
-  crossing organization boundaries.
+1. Organization routes use the organization slug.
+2. `Organizations::BaseController` verifies an active membership.
+3. Controllers load nested records through `Current.organization` or an
+   already-scoped association.
+4. Policies and model validations prevent cross-organization access and
+   assignments.
 
-PostgreSQL row-level security is not currently enabled. Correct controller and
-policy scoping therefore remains a critical invariant and should be covered by
-tests whenever a tenant-owned model is added.
+PostgreSQL row-level security is not enabled. Application scoping and its tests
+are therefore security-critical.
 
-## 4. Data model
+The configured application and organization time zone is Jakarta. Stored
+timestamps remain UTC through Rails and PostgreSQL; forms, pages, email, audit
+history, certificates, and deadlines convert them to WIB for display.
 
-```text
-User --< Membership >-- Organization --< Course
-  |                         |               |
-  |                         |               v
-  |                         |        CourseEnrollment
-  |                         |               |
-  |                         +--< Role       v
-  |                               |      Membership
-  |                               v
-  +--< RoleAssignment >-- RolePermission >-- Permission
-  |
-Admin --< RoleAssignment >-- global Role --< RolePermission >-- Permission
+## Domain model
 
-AuditEvent -> optional Organization
-AuditEvent -> polymorphic actor (User or Admin)
-AuditEvent -> polymorphic auditable record
-```
+The main records are grouped below. Join and detail records are listed with the
+feature they support.
 
-### Core records
+### Accounts and organizations
 
 | Model | Responsibility |
 | --- | --- |
-| `User` | Application identity, authentication state, memberships, and organization role assignments. |
-| `Admin` | Console identity and global role assignments. |
-| `Organization` | Tenant root, slug, status, locale, timezone, members, roles, courses, and audit events. |
-| `Membership` | Connects one user to one organization and records active or suspended status. |
-| `Role` | Named bundle of permissions. Global roles belong to no organization; application roles belong to one. |
-| `Permission` | Canonical permission catalog, console/organization boundaries, and display groups. |
-| `RolePermission` | Join between roles and permissions. |
-| `RoleAssignment` | Polymorphic assignment of a role to a `User` or `Admin`, with scope validation. |
-| `Course` | Organization-owned course metadata: name and description. |
-| `CourseEnrollment` | Connects a course to a Student membership in the same organization. |
-| `AuditEvent` | Immutable record of significant administrative actions. |
+| `User` | Organization-facing Devise identity. |
+| `Admin` | Platform-console Devise identity. |
+| `Organization` | Tenant root, status, slug, WIB time zone, and owned records. |
+| `Membership` | Connects a user to an organization, tracks status and student reschedule quota. |
+| `Role`, `Permission` | RBAC definitions. |
+| `RolePermission`, `RoleAssignment` | Permission grants and assignments to users or admins. |
+| `AuditEvent` | Immutable administrative activity record with polymorphic actor and subject. |
 
-### RBAC rules
+### Courses, content, and progress
 
-Policies ask for permission keys rather than checking role names. Built-in role
-keys still have domain meaning where required: `admin` protects the final
-active organization administrator and `student` determines course enrollment
-eligibility.
-
-Permission groups are divided into:
-
-- Console-only: console access and platform management of organizations,
-  users, and administrators.
-- Organization-only: organization settings, memberships, courses,
-  enrollments, and audit history.
-- Shared role-management keys: used in the appropriate role scope on either
-  side.
-
-Organization role forms cannot assign console-only permissions. Console role
-forms cannot assign organization-only permissions.
-
-## 5. Main request flows
-
-### Organization access
-
-1. Devise authenticates a `User`.
-2. `DashboardController` loads active organizations through
-   `OrganizationPolicy::Scope`.
-3. One organization causes an immediate redirect; multiple organizations
-   render the chooser.
-4. Organization controllers establish `Current.organization` and
-   `Current.membership`.
-5. Pundit authorizes the requested operation.
-
-### Creating an organization
-
-1. A console administrator selects an existing user as owner.
-2. `OrganizationProvisioner` creates the organization in a transaction.
-3. It creates the built-in Organization administrator, Teacher, and Student
-   roles.
-4. It grants organization-management permissions to the administrator role.
-5. It creates the owner's membership and role assignment.
-6. It records an audit event.
-
-### Managing members
-
-An authorized organization member can add an existing user or create a new
-user with an initial password. Membership role assignments are constrained to
-roles from the same organization. Password replacement never reveals the old
-password. The last active organization administrator cannot be removed,
-suspended, or stripped of the administrator role.
-
-### Courses and enrollment
-
-Authorized roles can create, edit, delete, and list all organization courses.
-Enrollment management lists active memberships carrying the Student role.
-`CourseEnrollment` validates both the organization boundary and Student role.
-Ordinary students receive a policy scope containing only their enrolled
-courses and cannot open an unenrolled course directly.
-
-### Auditing
-
-`AuditRecorder` writes `AuditEvent` rows for account, organization, membership,
-role, course, and enrollment changes. Organization audit pages show the most
-recent 100 events. Persisted audit records are read-only through the model.
-
-### Recovery sweep
-
-`RecoverySweep` removes role assignments whose assignee no longer belongs to
-the role's scope. `RecoverySweepJob` exposes this as an Active Job. Production
-schedules it daily at 03:00 through Solid Queue recurring tasks.
-
-## 6. Frontend architecture
-
-The UI is server-rendered ERB; there is no React, Vue, Node package manager, or
-client-side state store.
-
-- Turbo accelerates navigation, form submissions, and frame responses.
-- Stimulus controls shared modal behavior.
-- A small Turbo confirmation adapter renders destructive confirmations with
-  the native `<dialog>` element.
-- Tailwind CSS v4 is compiled through `tailwindcss-rails`.
-- Reusable design utilities such as `btn-primary`, `field`, `card`, and
-  `modal-panel` live in `app/assets/tailwind/application.css`.
-- Propshaft serves fingerprinted assets.
-- Importmap loads JavaScript modules without a bundling step.
-
-The application and console use separate layouts. Authentication pages also
-have dedicated layouts. Shared partials own validation errors, permission
-groups, and modal markup.
-
-## 7. Background services and storage
-
-- Solid Queue stores jobs in PostgreSQL and is run by the `jobs` Compose
-  service during development.
-- Solid Cache is configured as the production cache store.
-- Solid Cable is configured for production Action Cable, although the app has
-  no product-specific channels yet.
-- Active Storage is configured for local disk, but no current feature attaches
-  files. Image variants are explicitly disabled.
-- Action Mailer sends through SMTP. Development points to Mailpit.
-- `ApiTransport` provides HTTP timeout and connection-error normalization for
-  future integrations; no current feature calls an external API through it.
-
-## 8. Tools and dependencies
-
-### Runtime and framework
-
-| Tool | Use |
+| Model | Responsibility |
 | --- | --- |
-| Ruby 3.3.8 | Application language. |
-| Rails 8.1.3.1 | MVC framework, routing, Active Record, jobs, mail, and tests. |
-| PostgreSQL 18 (development image) | Primary relational database and development job storage. |
-| Puma | Rails application server. |
-| Bootsnap | Faster Ruby boot through load-path and bytecode caches. |
-| Thruster | Production HTTP proxy/cache/compression wrapper in the container command. |
+| `Course` | Course name, description, enrollment, and ordered content root. |
+| `CourseEnrollment` | Connects an eligible student membership to a course. |
+| `CourseSection` | Named, ordered group of course modules. |
+| `CourseContent` | Ordered polymorphic placement of a material or quiz in a course section. |
+| `CourseProgress` | Aggregates completion for one student and course. |
+| `Material` | Article-like course material and card metadata. |
+| `MaterialBlock` | Ordered text, image, or video content within a material. |
+| `MaterialCompletion` | Student-controlled material completion state. |
 
-### Authentication and authorization
+### Quizzes and grading
 
-| Tool | Use |
+| Model | Responsibility |
 | --- | --- |
-| Devise | Separate `User` and `Admin` authentication, password recovery, and sessions. |
-| Pundit | Policy authorization and scoped queries. |
-| bcrypt | Password hashing dependency. |
-| Custom RBAC models | Roles, permissions, assignments, scope separation, and permission groups. |
+| `Quiz` | Assessment settings, time limit, and retake quota. |
+| `QuizPage`, `QuizPageBlock` | Shared, ordered instructions containing text and images. |
+| `QuizQuestion` | Multiple choice, multi-select, short answer, cloze, essay, and audio questions. |
+| `QuizAttempt` | Attempt lifecycle, saved navigation position, timing, submission, review, score, and analysis. |
+| `QuizAnswer` and response records | Student text, selections, cloze responses, and audio attachments. |
+| `QuizAnswerOverride` | Manual correction of an automatically determined result. |
+| `QuizAnswerAiGrade` | AI-generated grade data for open-ended answers. |
+| `QuizAnswerAiTranscription` | Audio transcription generated for grading. |
+| `QuizAnswerFeedback` | Per-answer reviewer or AI feedback. |
+| `Certificate` | Published or unpublished certificate generated from a reviewed result. |
 
-### Browser and assets
+`QuizAttemptStarter` starts or resumes attempts and enforces retake rules.
+`QuizAttemptTimeoutJob` submits timed-out attempts even when the student has
+left the page. `QuizAttemptGrader` calculates deterministic results from stored
+answer keys. `QuizAttemptPerformanceAnalyzer` coordinates Gemini analysis while
+keeping its draft unpublished until an authorized reviewer confirms it.
 
-| Tool | Use |
+Certificate generation is split into a builder, generator, and PDF renderer so
+additional certificate sources and templates can be added without coupling them
+to quiz controllers.
+
+### Classes, assignments, and communication
+
+| Model | Responsibility |
 | --- | --- |
-| ERB | Server-rendered HTML templates. |
-| Turbo | Navigation, form handling, and modal frame requests. |
-| Stimulus | Small JavaScript controllers. |
-| Importmap | Browser module loading without Webpack, Vite, or npm. |
-| Tailwind CSS v4 | Utility-based styling compiled by Rails. |
-| Propshaft | Rails asset pipeline. |
-| Jbuilder | Installed for JSON views, though there is no application API yet. |
+| `ClassMeeting` | Subject, topic, start time, delivery mode, meeting number, teacher, and online link. |
+| `ClassMeetingStudent` | Student assignment for a meeting. |
+| `ClassMeetingFeedback` | Student-to-teacher feedback and per-student teacher feedback. |
+| `Assignment` | Teacher-created work, deadline, optional source document, and lifecycle. |
+| `AssignmentRecipient` | Assignment delivery to a student. |
+| `AssignmentSubmission` | Student text, attachments, submission state, and teacher comment. |
+| `DirectConversation`, `DirectMessage` | Class-relationship-based messaging and unread tracking. |
+| `Notification` | Organization-scoped in-app notification for a student or teacher membership. |
+| `SupportTicket`, `SupportMessage` | Organization support conversation, attachments, and console escalation. |
 
-### Data, jobs, and communication
+Service objects handle class email, reschedule validation, assignment email,
+support email, contact discovery, and in-app notification fan-out. This keeps
+controllers focused on HTTP and authorization.
 
-| Tool | Use |
-| --- | --- |
-| Active Record | PostgreSQL persistence, associations, validations, and transactions. |
-| Solid Queue | PostgreSQL-backed Active Job execution and recurring work. |
-| Solid Cache | PostgreSQL-backed production caching. |
-| Solid Cable | PostgreSQL-backed production Action Cable adapter. |
-| Action Mailer | Password recovery and account email delivery. |
-| Mailpit | Local SMTP server and browser inbox at port 8025. |
-| Active Storage | Configured local file storage; not used by current features. |
-| Net::HTTP | Standard-library HTTP client wrapped by `ApiTransport`. |
+## Request and update flows
 
-### Development, testing, and delivery
+### Server-rendered request
 
-| Tool | Use |
-| --- | --- |
-| Docker Compose | Local PostgreSQL, Rails, jobs, Tailwind watcher, and Mailpit services. |
-| Dockerfile.dev | Development image with Ruby build tools, Chromium, PostgreSQL headers, and libvips. |
-| Dockerfile | Multi-stage production image running as a non-root user. |
-| Foreman | Runs Puma, Tailwind, and jobs together outside Compose via `bin/dev`. |
-| Minitest | Model, service, and integration tests. |
-| Fixtures | Deterministic test data. |
-| Capybara + Selenium + Chromium | Browser-level system tests. |
-| WebMock | Blocks unintended outbound network access in tests. |
-| RuboCop Rails Omakase | Ruby style checks. |
-| Brakeman | Rails static security analysis. |
-| bundler-audit | Gem vulnerability checks. |
-| importmap audit | Imported JavaScript vulnerability checks. |
-| GitHub Actions | Hosted lint, security, integration, and system-test jobs. |
-| Dependabot | Automated dependency update configuration. |
-| Kamal | Available production deployment tooling; deployment is not yet fully configured. |
-| Ruby LSP | Ruby language intelligence in VS Code. |
-| htmlbeautifier | ERB formatting. |
+1. Nginx forwards the request to Puma.
+2. Rails routes it to a controller action.
+3. Devise authenticates the relevant identity.
+4. The organization base controller establishes tenant context.
+5. Pundit authorizes the action and scopes collections.
+6. Models or a service object perform the domain operation.
+7. ERB renders HTML or a Turbo Stream response.
 
-## 9. Repository structure
+### Live chat and notifications
+
+Messages and notifications render through Turbo Streams. The application uses
+the asynchronous Action Cable adapter in development and Solid Cable in
+production. Nginx forwards the required connection upgrade headers. Read state
+is stored in PostgreSQL, so unread markers survive navigation and reconnects.
+
+### Email
+
+Action Mailer sends through SMTP. Compose points Rails at Mailpit, where new
+class, reschedule, assignment, submission, comment, and support messages can be
+inspected without external delivery.
+
+### Uploaded files
+
+Active Storage owns material images, quiz page images, audio answers,
+assignment documents, submissions, and support attachments. Development and
+the current production configuration use local disk storage. Image variants are
+disabled, so code must not assume that Rails can transform uploaded images.
+
+## Frontend architecture
+
+- ERB templates live under `app/views` and mirror controller namespaces.
+- Turbo accelerates navigation, submits forms, renders frames, and broadcasts
+  live chat and notification updates.
+- Stimulus owns browser-only state and progressive behavior.
+- Importmap loads JavaScript modules without npm, Webpack, or Vite.
+- Tailwind CSS v4 is compiled by `tailwindcss-rails`.
+- Shared component utilities live in
+  `app/assets/tailwind/application.css`.
+- Propshaft fingerprints and serves assets.
+
+Views should use the existing component utilities. New JavaScript belongs in a
+narrowly scoped Stimulus controller rather than an inline script.
+
+## Background work, integrations, and documents
+
+- Solid Queue stores and executes jobs through PostgreSQL.
+- Solid Cache is the production cache store.
+- Solid Cable is the production Action Cable adapter.
+- Gemini is wrapped by `Ai::GeminiClient`; configuration and provider errors
+  have application-specific error classes.
+- Prawn generates certificate PDFs through the certificate service boundary.
+- `ApiTransport` normalizes HTTP timeouts, connection failures, and JSON API
+  requests.
+
+## Repository structure
 
 ```text
 lms/
 ├── app/
 │   ├── assets/               Tailwind source, compiled CSS, and images
 │   ├── channels/             Action Cable connection base
-│   ├── controllers/          HTTP coordination and namespace boundaries
-│   │   ├── concerns/         Shared modal rendering behavior
-│   │   ├── console/          Platform-console controllers
-│   │   ├── organizations/    Organization-scoped controllers
+│   ├── controllers/          HTTP actions and namespace boundaries
+│   │   ├── concerns/         Shared controller behavior
+│   │   ├── console/          Platform-console actions
+│   │   ├── organizations/    Tenant-scoped actions
 │   │   └── users/            User account customization
-│   ├── helpers/              View helpers and permission checks
-│   ├── javascript/           Importmap entry point and Stimulus controllers
-│   ├── jobs/                 Active Job classes
-│   ├── mailers/              Action Mailer base
-│   ├── models/               Domain records and relationships
-│   ├── policies/             Pundit authorization and query scopes
-│   ├── services/             Multi-record workflows and infrastructure wrappers
-│   └── views/                ERB templates by controller namespace
-├── bin/                      Versioned application and quality commands
-├── config/                   Routes, environments, adapters, initializers, and CI
-├── db/                       Migrations, schemas, and seeds
-├── docs/                     Maintained architecture documentation
-├── lib/                      Extension point for library code and Rake tasks
+│   ├── helpers/              View and authorization helpers
+│   ├── javascript/           Importmap entry and Stimulus controllers
+│   ├── jobs/                 Solid Queue jobs
+│   ├── mailers/              Email preparation
+│   ├── models/               Records, relationships, and invariants
+│   ├── policies/             Pundit actions and query scopes
+│   ├── presenters/           View-facing formatting and calendar logic
+│   ├── services/             Workflows, integrations, and document generation
+│   └── views/                ERB pages, partials, mail, and Turbo Streams
+├── bin/                      Application, setup, formatting, and CI commands
+├── config/                   Routes, environments, adapters, and initializers
+├── db/                       Migrations, schema snapshots, and seeds
+├── docker/nginx/             Local reverse-proxy configuration
+├── docs/                     Engineer, user, and architecture documentation
 ├── public/                   Static public files and error pages
-├── storage/                  Ignored local Active Storage data
-├── test/                     Minitest, fixtures, support, and browser tests
+├── storage/                  Ignored local Active Storage files
+├── test/                     Unit, service, integration, mailer, and system tests
 ├── .github/                  CI and dependency automation
-├── .vscode/                  Recommended editor extensions and formatting settings
-├── compose.yaml              Local multi-container environment
-├── Dockerfile.dev            Development image
-├── Dockerfile                Production image
-├── Gemfile / Gemfile.lock    Ruby dependency declarations and lockfile
-├── Procfile.dev              Foreman development processes
-└── README.md                 Setup and operational quick start
+├── .vscode/                  Editor recommendations and formatting settings
+├── compose.yaml              Local service topology
+├── Dockerfile.dev            Development application image
+├── Dockerfile                Production application image
+├── Gemfile                   Ruby dependencies
+├── Procfile.dev              Non-Compose development process definitions
+└── README.md                 Project entry point
 ```
 
-### `app/controllers`
+## Important files and directories
 
-- `ApplicationController` installs Pundit, modal support, modern-browser
-  requirements, and the shared unauthorized response.
-- `AppController` requires a signed-in `User` and exposes application context.
-- `DashboardController` handles organization selection and direct entry.
-- `OrganizationsController` renders the organization dashboard and settings.
-- `Organizations::BaseController` is the tenant gate for nested resources.
-- `Organizations::MembershipsController` manages members, roles, and password
-  replacement.
-- `Organizations::RolesController` manages organization RBAC while rejecting
-  console permissions.
-- `Organizations::CoursesController` manages courses and Student enrollments.
-- `Organizations::AuditEventsController` renders tenant audit history.
-- `Console::BaseController` requires an authenticated, authorized `Admin` and
-  verifies policy scopes for index actions.
-- Other `Console::*Controller` classes manage platform organizations, users,
-  administrators, and global roles.
-- `Users::RegistrationsController` permits account updates but blocks public
-  account creation.
+### Controllers
 
-### `app/models`
+`ApplicationController` installs Pundit and shared modal behavior.
+`AppController` requires a signed-in organization user.
+`Organizations::BaseController` establishes the tenant boundary.
+`Console::BaseController` requires a console administrator and verifies
+authorization and policy scopes.
 
-Model files own associations, validation, normalized identifiers, active-state
-rules, permission lookup, and cross-scope integrity checks. Complex workflows
-that touch several models are kept in services instead.
+Keep controllers small. When an operation changes several records, sends
+notifications, or calls an external service, put that workflow in
+`app/services`.
 
-### `app/policies`
+### Models and migrations
 
-Each protected resource has a Pundit policy. Action methods map to permission
-keys; nested `Scope` classes constrain collection queries. When adding a new
-action, add the permission to `Permission::CATALOG`, assign it through the
-appropriate seed role, and cover both allowed and denied paths.
+Models own associations, validation, normalized values, and compact domain
+rules. Migrations in `db/migrate` are the source of truth for schema changes;
+`db/schema.rb` is the resulting snapshot. Do not edit the schema snapshot to
+create a database change.
 
-### `app/services`
+### Policies and permissions
 
-- `OrganizationProvisioner` atomically creates a tenant and its initial RBAC.
-- `RbacSeeder` synchronizes the permission catalog and built-in console role.
-- `AuditRecorder` centralizes audit-event construction.
-- `RecoverySweep` repairs invalid role assignments.
-- `ApiTransport` standardizes low-level HTTP timeouts and connection failures.
+Each protected resource has a Pundit policy. Permission keys and display groups
+live in `app/models/permission.rb`. RBAC seed services synchronize the catalog
+with the database.
 
-### `app/views` and `app/javascript`
+### Views, presenters, and JavaScript
 
-Views mirror controller namespaces. Shared partials contain reusable form and
-modal pieces. JavaScript is intentionally small: the entry point imports Turbo,
-Stimulus controllers, and the confirmation adapter. New behavior should prefer
-HTML and Turbo first, then a narrowly-scoped Stimulus controller when browser
-state is required.
+Views should format little data themselves. Repeated or non-trivial display
+logic belongs in a helper or presenter. Shared form fields and cards belong in
+partials. Browser state belongs in a Stimulus controller.
 
-### `config`
+### Configuration
 
-- `routes.rb` defines the two authentication scopes, tenant resources, console
-  resources, and health endpoint.
-- `database.yml` configures PostgreSQL and production database roles.
-- `queue.yml`, `cache.yml`, and `cable.yml` configure Solid adapters.
-- `recurring.yml` schedules queue cleanup and the recovery sweep in production.
-- `importmap.rb` declares browser JavaScript modules.
-- `environments/` contains development, test, and production behavior.
-- `initializers/` configures Devise, parameter filtering, assets, and security
-  policy hooks.
-- `ci.rb` defines the local `bin/ci` sequence.
+- `config/routes.rb` defines application, organization, and console URLs.
+- `config/database.yml` configures PostgreSQL and production database roles.
+- `config/queue.yml`, `cache.yml`, and `cable.yml` configure Solid adapters.
+- `config/recurring.yml` defines recurring production work.
+- `config/importmap.rb` declares JavaScript modules.
+- `config/environments/` controls runtime behavior by environment.
+- `.env.example` documents local environment variables.
 
-### `db`
+## Testing and verification
 
-- `migrate/` is the source of truth for schema changes.
-- `schema.rb` is the current primary database snapshot.
-- `cache_schema.rb` and `cable_schema.rb` define Solid Cache and Solid Cable
-  storage.
-- `seeds.rb` synchronizes permissions and optionally provisions development
-  identities and an example organization from environment variables.
+The test suite uses Minitest, fixtures, Capybara, Selenium, Chromium, and
+WebMock. Tests run with one worker because parallel execution is disabled in
+this repository.
 
-### `test`
-
-- `models/` covers validations, permission behavior, and record invariants.
-- `services/` covers orchestration and recovery behavior.
-- `integration/` covers authentication, authorization, tenant isolation,
-  account administration, course enrollment, and rendered controls.
-- `system/` exercises modal behavior in Chromium.
-- `fixtures/` provides stable base identities and organizations.
-- `support/test_rbac.rb` creates the canonical roles and permissions for each
-  test.
-- `test_helper.rb` enables fixtures, Devise helpers, one-worker execution, and
-  outbound HTTP blocking.
-
-### Root operational files
-
-- `compose.yaml` runs `db`, `web`, `jobs`, `css`, and `mailpit`. Source code is
-  bind-mounted so Rails and Tailwind see local edits immediately.
-- `.env.example` documents local configuration. Real `.env` files are ignored.
-- `Dockerfile.dev` supplies the local runtime and browser-test dependencies.
-- `Dockerfile` builds the production image in two stages and runs it as an
-  unprivileged user.
-- `Procfile.dev` describes the non-Compose development process group.
-- `.github/workflows/ci.yml` runs hosted security, lint, Rails, and browser jobs.
-- `.vscode/` configures Ruby LSP and ERB formatting recommendations.
-
-## 10. Configuration and secrets
-
-Development configuration comes from Compose defaults or a local `.env` based
-on `.env.example`. Important values include PostgreSQL connection details,
-SMTP host and port, initial console administrator credentials, optional initial
-application user credentials, and example organization settings.
-
-Production additionally requires `RAILS_MASTER_KEY`, database credentials,
-real host/SSL configuration, and SMTP delivery settings. `.env` files and
-`config/*.key` are ignored and must not be committed.
-
-## 11. Verification workflow
-
-The primary commands are:
+Use focused tests while implementing a change, then run:
 
 ```bash
-docker compose up --build
-docker compose exec web bin/rails db:prepare
 docker compose exec web bin/rails test
 docker compose exec web bin/rails test:system
 docker compose exec web bin/ci
 ```
 
-`bin/ci` runs setup, RuboCop, gem and importmap audits, Brakeman, Rails tests,
-browser tests, and seed verification. It is the final local check before a
-change is considered complete.
+`bin/ci` covers style, dependency audits, Brakeman, Rails tests, system tests,
+and seed verification. Infrastructure changes should also pass:
 
-## 12. Current product boundary
+```bash
+docker compose config --quiet
+docker compose exec nginx nginx -t
+```
 
-Implemented:
+## Production boundary
 
-- Separate application and console authentication.
-- Shared-schema organizations and memberships.
-- Permission-based roles with console/organization separation.
-- User and administrator account management with password replacement.
-- Organization settings, member management, role management, and audit history.
-- Course metadata, Student enrollment, and enrollment-limited course access.
-- Docker-based development and automated verification.
+The repository includes a multi-stage production Dockerfile, Kamal, Thruster,
+Solid Queue, Solid Cache, and Solid Cable. Production deployment is not fully
+specified. Before placing the application on a public VPS, provide:
 
-Not implemented yet:
+- A domain and a chosen TLS termination layer
+- Production database credentials and automated off-server backups
+- Persistent or object storage for Active Storage
+- A real SMTP provider
+- Rails master key and API secrets outside the repository
+- Monitoring, log retention, health checks, and restore testing
+- A production Action Cable path that preserves WebSocket upgrade headers
 
-- Lessons, modules, files, video, or other course content.
-- Assignments, submissions, grading, completion, or progress tracking.
-- Teacher-specific course ownership or teaching workflows.
-- Notifications beyond Devise account email.
-- A public JSON API or third-party integration.
-- Production object storage, full deployment configuration, monitoring, and
-  backup automation.
+The local Nginx service proves the reverse-proxy path but does not configure a
+public domain or TLS certificate.

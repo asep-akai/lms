@@ -1,0 +1,11 @@
+<%= form_with model: message,
+  url: organization_direct_conversation_direct_messages_path(current_organization, conversation),
+  id: "new_direct_message",
+  class: "chat-composer" do |form| %>
+  <div class="min-w-0 flex-1">
+    <%= form.label :body, "Message", class: "sr-only" %>
+    <%= form.text_area :body, rows: 3, class: "field mt-0 resize-y", required: true, maxlength: 5_000, placeholder: "Write a message" %>
+    <% if message.errors.any? %><p class="field-error"><%= message.errors.full_messages.to_sentence %></p><% end %>
+  </div>
+  <%= form.submit "Send", class: "btn-primary self-end" %>
+<% end %>

@@ -32,7 +32,6 @@
     </div>
   <% end %>
 </section>
-
 <section class="mt-10" aria-labelledby="class-history-heading">
   <div>
     <p class="eyebrow"><%= pluralize(@class_meetings.size, "class") %></p>
@@ -104,3 +103,4 @@
     <div class="empty-state">You do not have any previous classes yet.</div>
   <% end %>
 </section>
+<%= render "shared/pagination", pagination: @pagination %>

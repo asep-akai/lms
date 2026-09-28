@@ -1,0 +1,7 @@
+<article id="<%= dom_id(message) %>" class="chat-message">
+  <div class="chat-message-meta">
+    <strong class="text-sm text-slate-950"><%= message.sender_membership.user.name %></strong>
+    <time class="text-xs text-slate-500" datetime="<%= message.created_at.iso8601 %>"><%= l message.created_at.in_time_zone(message.direct_conversation.organization.timezone), format: :short %></time>
+  </div>
+  <div class="chat-message-body"><%= simple_format message.body %></div>
+</article>

@@ -5,10 +5,11 @@ module Console
     def index
       authorize SupportTicket
       @query = TableSearch.normalize(params[:query])
-      @tickets = TableSearch.call(
+      tickets = TableSearch.call(
         policy_scope(SupportTicket), query: @query,
         columns: %w[support_tickets.subject support_tickets.category support_tickets.priority support_tickets.status organizations.name]
       ).joins(:organization).includes(:organization, reporter_membership: :user).recent
+      @pagination, @tickets = paginate(tickets)
     end
 
     def show

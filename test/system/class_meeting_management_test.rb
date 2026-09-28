@@ -19,7 +19,9 @@ class ClassMeetingManagementTest < ApplicationSystemTestCase
     page.execute_script("arguments[0].value = arguments[1]", date_time_field, "2026-10-10T08:30")
     select "Online", from: "Status"
     fill_in "Online meeting link", with: "https://meet.example.com/algebra"
-    select "Teacher One (teacher@example.com)", from: "Teacher"
+    click_button "Choose a teacher"
+    fill_in "Search teachers", with: "teacher@example.com"
+    click_button "Teacher One"
     click_button "Select students"
     fill_in "Search students", with: "student-one@example.com"
     check "Student One"

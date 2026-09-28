@@ -1,0 +1,22 @@
+<% content_for :title, "Conversation with #{@other_participant.user.name}" %>
+
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Private conversation</p>
+    <h1 class="title"><%= @other_participant.user.name %></h1>
+    <p class="subtitle"><%= @other_participant.roles.ordered.pluck(:name).to_sentence %></p>
+  </div>
+  <%= back_link_to "Back to messages", organization_direct_conversations_path(current_organization) %>
+</div>
+
+<section class="chat-panel" aria-label="Conversation with <%= @other_participant.user.name %>" data-controller="chat-thread">
+  <%= turbo_stream_from @conversation, current_membership %>
+  <div id="<%= dom_id(@conversation, :messages) %>" class="chat-messages" data-chat-thread-target="messages" aria-live="polite">
+    <% if @messages.any? %>
+      <%= render partial: "organizations/direct_messages/message", collection: @messages, as: :message %>
+    <% else %>
+      <div id="empty-conversation" class="chat-empty">No messages yet. Send the first message below.</div>
+    <% end %>
+  </div>
+  <%= render "organizations/direct_messages/form", conversation: @conversation, message: @message %>
+</section>

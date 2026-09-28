@@ -1,15 +1,17 @@
 class Organizations::StudentsController < Organizations::BaseController
-  before_action :set_student, only: %i[show enrollment enroll]
+  before_action :set_student, only: %i[show enrollment enroll reschedule_quota update_reschedule_quota]
+  helper_method :quota_return_path
 
   def index
     authorize :student, :index?
     @query = TableSearch.normalize(params[:query])
     students = visible_students.includes(:user, :course_enrollments).joins(:user)
-    @students = TableSearch.call(
+    students = TableSearch.call(
       students,
       query: @query,
       columns: %w[users.name users.email memberships.status]
     ).order("users.name")
+    @pagination, @students = paginate(students)
   end
 
   def show
@@ -48,7 +50,53 @@ class Organizations::StudentsController < Organizations::BaseController
     redirect_to organization_students_path(Current.organization), alert: error.record.errors.full_messages.to_sentence
   end
 
+  def reschedule_quota
+    authorize_quota_management!
+    render_modal(partial: "organizations/students/reschedule_quota_form", locals: { student: @student }) if modal_request?
+  end
+
+  def update_reschedule_quota
+    authorize_quota_management!
+    previous_quota = @student.reschedule_quota
+
+    if @student.update(reschedule_quota_params)
+      AuditRecorder.record!(
+        action: "membership.reschedule_quota_updated",
+        auditable: @student,
+        changes: { reschedule_quota: [ previous_quota, @student.reschedule_quota ] }
+      )
+      redirect_to quota_return_path, notice: "Reschedule quota updated."
+    else
+      if modal_request?
+        render_modal(
+          partial: "organizations/students/reschedule_quota_form",
+          locals: { student: @student },
+          status: :unprocessable_entity
+        )
+      else
+        render :reschedule_quota, status: :unprocessable_entity
+      end
+    end
+  end
+
   private
+    def authorize_quota_management!
+      authorize @student, :update?
+      raise Pundit::NotAuthorizedError unless Current.membership.organization_admin?
+    end
+
+    def reschedule_quota_params
+      params.require(:membership).permit(:reschedule_quota)
+    end
+
+    def quota_return_path
+      if params[:from] == "student"
+        organization_student_path(Current.organization, @student)
+      else
+        organization_students_path(Current.organization)
+      end
+    end
+
     def load_progress
       @courses = @student.enrolled_courses.includes(course_contents: :contentable).ordered
       @course_progress = CourseProgress.for(courses: @courses, memberships: [ @student ])

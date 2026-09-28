@@ -15,9 +15,15 @@ class Membership < ApplicationRecord
   has_many :assignment_recipients, foreign_key: :student_membership_id, dependent: :destroy, inverse_of: :student_membership
   has_many :assigned_assignments, through: :assignment_recipients, source: :assignment
   has_many :reported_support_tickets, class_name: "SupportTicket", foreign_key: :reporter_membership_id, dependent: :restrict_with_error
+  has_many :first_participant_direct_conversations, class_name: "DirectConversation", foreign_key: :participant_one_membership_id, dependent: :destroy
+  has_many :second_participant_direct_conversations, class_name: "DirectConversation", foreign_key: :participant_two_membership_id, dependent: :destroy
+  has_many :sent_direct_messages, class_name: "DirectMessage", foreign_key: :sender_membership_id, dependent: :destroy
+  has_many :notifications, foreign_key: :recipient_membership_id, dependent: :destroy, inverse_of: :recipient_membership
+  has_many :created_notifications, class_name: "Notification", foreign_key: :actor_membership_id, dependent: :nullify, inverse_of: :actor_membership
   has_many :enrolled_courses, through: :course_enrollments, source: :course
   validates :user_id, uniqueness: { scope: :organization_id }
   validates :status, inclusion: { in: %w[active suspended] }
+  validates :reschedule_quota, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 
   scope :active, -> { where(status: "active") }
   scope :taught_by, ->(teacher_membership) {
@@ -47,6 +53,10 @@ class Membership < ApplicationRecord
 
   def teacher?
     roles.exists?(key: "teacher")
+  end
+
+  def notification_recipient?
+    student? || teacher?
   end
 
   def roles

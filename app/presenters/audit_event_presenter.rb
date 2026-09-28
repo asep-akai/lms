@@ -4,6 +4,7 @@ class AuditEventPresenter
     "organization.updated" => "Updated organization settings",
     "membership.created" => "Added organization member",
     "membership.updated" => "Updated organization member",
+    "membership.reschedule_quota_updated" => "Updated student reschedule quota",
     "membership.user_password_changed" => "Changed member password",
     "membership.deleted" => "Removed organization member",
     "role.created" => "Created organization role",
@@ -17,6 +18,7 @@ class AuditEventPresenter
     "class_meeting.created" => "Scheduled class meeting",
     "class_meeting.updated" => "Updated class meeting",
     "class_meeting.deleted" => "Deleted class meeting",
+    "class_meeting.reschedule_requested" => "Cancelled class for a reschedule request",
     "class_meeting.feedback_submitted" => "Submitted class feedback",
     "certificate.generated" => "Generated assessment certificate",
     "certificate.unpublished" => "Unpublished assessment certificate",
@@ -76,7 +78,8 @@ class AuditEventPresenter
     "enrolled_students" => "Enrolled students",
     "question_count" => "Question count",
     "permissions" => "Permissions",
-    "roles" => "Roles"
+    "roles" => "Roles",
+    "reschedule_quota" => "Reschedule quota"
   }.freeze
 
   RESERVED_METADATA_KEYS = %w[actor changes subject].freeze

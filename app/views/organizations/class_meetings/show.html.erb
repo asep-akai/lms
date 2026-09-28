@@ -3,6 +3,9 @@
     <p class="eyebrow"><%= @class_meeting.subject %> · Meeting <%= @class_meeting.meeting_number %></p>
     <h1 class="title"><%= @class_meeting.topic %></h1>
     <p class="subtitle"><%= @class_meeting.starts_at.in_time_zone(current_organization.timezone).strftime("%-d %B %Y at %H:%M %Z") %></p>
+    <% if @class_meeting.cancelled? %>
+      <p class="mt-2"><span class="badge-suspended">Cancelled</span></p>
+    <% end %>
   </div>
   <div class="actions">
     <%= back_link_to @back_label, @back_path %>
@@ -13,6 +16,29 @@
     <% end %>
   </div>
 </div>
+
+<% if current_membership.student? && @class_meeting.student_memberships.exists?(current_membership.id) && !@class_meeting.cancelled? %>
+  <section class="card card-body mt-8" aria-labelledby="reschedule-heading">
+    <h2 id="reschedule-heading">Reschedule this class</h2>
+    <p class="mt-2 text-sm text-slate-600">You have <strong class="text-slate-950"><%= pluralize(current_membership.reschedule_quota, "reschedule") %></strong> remaining.</p>
+    <% if @class_meeting.student_memberships.size > 1 %>
+      <p class="mt-3 text-sm text-slate-600">Individual rescheduling is unavailable because this class has multiple students.</p>
+    <% elsif Time.current > @class_meeting.starts_at - 24.hours %>
+      <p class="mt-3 text-sm text-slate-600">The request window closed 24 hours before the class.</p>
+    <% elsif current_membership.reschedule_quota.zero? %>
+      <p class="mt-3 text-sm text-slate-600">Ask an organization administrator if you need additional quota.</p>
+    <% else %>
+      <p class="mt-3 text-sm text-slate-600">This will cancel the scheduled class and notify <%= @class_meeting.teacher_membership.user.name %>. An administrator can arrange the replacement class separately.</p>
+      <div class="actions mt-4">
+        <%= button_to "Request reschedule",
+          request_reschedule_organization_class_meeting_path(current_organization, @class_meeting, **@navigation_params),
+          method: :post,
+          form: { data: { turbo_confirm: "Use one reschedule quota and cancel this class? The teacher will be notified." } },
+          class: "btn-danger" %>
+      </div>
+    <% end %>
+  </section>
+<% end %>
 
 <div class="mt-8 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
   <section class="card card-body" aria-labelledby="class-details-heading">

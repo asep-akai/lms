@@ -11,6 +11,8 @@ class Organization < ApplicationRecord
   has_many :class_meeting_feedbacks, through: :class_meetings, source: :feedbacks
   has_many :audit_events, dependent: :destroy
   has_many :support_tickets, dependent: :destroy
+  has_many :direct_conversations, dependent: :destroy
+  has_many :notifications, dependent: :destroy
 
   normalizes :slug, with: ->(slug) { slug.to_s.strip.downcase.parameterize }
 

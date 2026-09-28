@@ -41,18 +41,15 @@
     <p class="hint">Students and the teacher will receive this link in their notification email.</p>
   </div>
 
-  <div>
-    <%= form.label :teacher_membership_id, "Teacher", class: "label" %>
-    <%= form.collection_select :teacher_membership_id,
-      @teachers,
-      :id,
-      ->(membership) { "#{membership.user.name} (#{membership.user.email})" },
-      { prompt: "Choose a teacher" },
-      { required: true, class: "field" } %>
-    <% if @teachers.empty? %>
-      <p class="field-error">Add an active member with the Teacher role before scheduling a class.</p>
-    <% end %>
-  </div>
+  <%= render "shared/searchable_membership_select",
+    memberships: @teachers,
+    selected_membership_id: class_meeting.teacher_membership_id,
+    field_name: "class_meeting[teacher_membership_id]",
+    id_prefix: "class-meeting-teacher",
+    label: "Teacher",
+    prompt: "Choose a teacher",
+    required: true,
+    empty_message: "Add an active member with the Teacher role before scheduling a class." %>
 
   <%= render "shared/searchable_student_multiselect",
     students: @students,

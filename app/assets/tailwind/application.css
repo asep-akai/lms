@@ -18,6 +18,9 @@
 }
 
 @layer components {
+  summary.notification-trigger::-webkit-details-marker { display: none; }
+  .notification-trigger .notification-count { @apply absolute -right-1 -top-1; }
+
   dialog.dismissible-modal::backdrop { @apply cursor-pointer; }
 
   dialog.blocking-dialog {
@@ -115,6 +118,8 @@
 @utility shell { @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8; }
 @utility topbar { @apply border-b border-slate-200 bg-white; }
 @utility topbar-inner { @apply shell flex items-center justify-between py-4; }
+@utility topbar-account-actions { @apply flex items-center gap-2; }
+@utility topbar-account-link { @apply inline-flex min-h-11 items-center rounded-lg px-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-950; }
 @utility brand { @apply text-xl font-bold tracking-tight text-brand-700; }
 @utility nav { @apply hidden items-center gap-4 text-sm md:flex; }
 @utility nav-link { @apply text-slate-600 hover:text-slate-950; }
@@ -167,6 +172,26 @@
 @utility support-detail-row { @apply flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0; }
 @utility support-composer { @apply border-t border-slate-200 bg-slate-50 px-5 py-5 sm:px-6; }
 @utility attachment-link { @apply mt-3 inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-brand-700 hover:border-brand-600 hover:bg-brand-50; }
+@utility message-directory { @apply mt-8 grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start; }
+@utility message-directory-row { @apply flex min-h-16 items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50 focus-visible:bg-brand-50; }
+@utility message-contact-row { @apply flex min-h-16 items-center justify-between gap-4 px-4 py-3; }
+@utility chat-panel { @apply mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm; }
+@utility chat-messages { @apply max-h-[60dvh] min-h-80 space-y-0 overflow-y-auto overscroll-contain; }
+@utility chat-empty { @apply px-6 py-16 text-center text-sm text-slate-500; }
+@utility chat-message { @apply border-b border-slate-200 px-5 py-5 last:border-b-0 sm:px-6; }
+@utility chat-message-meta { @apply mb-2 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between; }
+@utility chat-message-body { @apply break-words text-sm leading-6 text-slate-700; }
+@utility chat-composer { @apply flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-4 py-4 sm:flex-row sm:items-end sm:px-6; }
+@utility notification-count { @apply inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand-700 px-1.5 text-xs font-semibold text-white; }
+@utility notification-menu { @apply relative; }
+@utility notification-trigger { @apply relative inline-flex size-11 list-none items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-brand-600; }
+@utility notification-popover { @apply absolute right-0 z-40 mt-2 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg; }
+@utility notification-popover-header { @apply flex items-center justify-between gap-4 border-b border-slate-200 bg-slate-50 px-4 py-3; }
+@utility notification-preview-row { @apply block min-h-16 px-4 py-3 hover:bg-slate-50 focus-visible:bg-brand-50; }
+@utility notification-view-all { @apply block min-h-11 border-t border-slate-200 px-4 py-3 text-center text-sm font-semibold text-brand-700 hover:bg-slate-50; }
+@utility notification-list { @apply mt-8 divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm; }
+@utility notification-row { @apply flex min-h-20 flex-col justify-between gap-3 px-5 py-4 hover:bg-slate-50 sm:flex-row sm:items-start; }
+@utility notification-row-unread { @apply bg-brand-50; }
 @utility checkbox-grid { @apply mt-3 grid gap-3 sm:grid-cols-2; }
 @utility checkbox-row { @apply flex gap-3 rounded-lg border border-slate-200 bg-white p-4; }
 @utility select-picker-trigger { @apply flex min-h-11 w-full items-center justify-between gap-4 rounded-lg border border-slate-300 bg-white px-3 py-2 text-left text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-600; }

@@ -1,0 +1,4 @@
+<%= turbo_stream.remove "empty-conversation" %>
+<%= turbo_stream.append dom_id(message.direct_conversation, :messages) do %>
+  <%= render "organizations/direct_messages/message", message: message %>
+<% end %>

@@ -1,0 +1,16 @@
+<p>Hello <%= @teacher.name %>,</p>
+
+<p><strong><%= @student.name %></strong> has used a reschedule quota for this class. The existing class has been cancelled and removed from the active schedule.</p>
+
+<dl>
+  <dt>Subject</dt>
+  <dd><%= @class_meeting.subject %></dd>
+  <dt>Meeting</dt>
+  <dd><%= @class_meeting.meeting_number %></dd>
+  <dt>Topic</dt>
+  <dd><%= @class_meeting.topic %></dd>
+  <dt>Original time</dt>
+  <dd><%= @starts_at.strftime("%-d %B %Y at %H:%M %Z") %></dd>
+</dl>
+
+<p>Please coordinate the replacement class with the organization administrator.</p>

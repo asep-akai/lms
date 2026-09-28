@@ -3,7 +3,7 @@ class Organizations::CoursesController < Organizations::BaseController
 
   def index
     authorize Course
-    @courses = policy_scope(Course).ordered
+    @pagination, @courses = paginate(policy_scope(Course).ordered)
     load_course_progress(@courses) if Current.membership&.student?
   end
 

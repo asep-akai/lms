@@ -1,0 +1,35 @@
+<% content_for :title, "Notifications" %>
+
+<div class="page-header">
+  <div>
+    <h1 class="title">Notifications</h1>
+    <p class="subtitle">Updates about your classes, work, messages, and support requests.</p>
+  </div>
+  <div class="actions">
+    <% if notification_unread_count.positive? %>
+      <%= button_to "Mark all as read", mark_all_read_organization_notifications_path(current_organization), method: :patch, class: "btn-secondary" %>
+    <% end %>
+    <%= back_link_to "Back to organization", organization_path(current_organization) %>
+  </div>
+</div>
+
+<% if @notifications.any? %>
+  <div class="notification-list">
+    <% @notifications.each do |notification| %>
+      <%= link_to organization_notification_path(current_organization, notification), class: "notification-row #{"notification-row-unread" unless notification.read?}" do %>
+        <span class="min-w-0">
+          <span class="flex flex-wrap items-center gap-2">
+            <strong class="text-slate-950"><%= notification.title %></strong>
+            <% unless notification.read? %><span class="badge-info">New</span><% end %>
+          </span>
+          <% if notification.body.present? %><span class="mt-1 block break-words text-sm text-slate-600"><%= notification.body %></span><% end %>
+        </span>
+        <time class="shrink-0 text-xs text-slate-500" datetime="<%= notification.created_at.iso8601 %>"><%= l notification.created_at.in_time_zone(current_organization.timezone), format: :short %></time>
+      <% end %>
+    <% end %>
+  </div>
+<% else %>
+  <div class="empty-state">You have no notifications yet.</div>
+<% end %>
+
+<%= render "shared/pagination", pagination: @pagination %>

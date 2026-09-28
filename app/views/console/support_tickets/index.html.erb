@@ -14,7 +14,6 @@
   </div>
   <%= form.submit "Search", class: "btn-secondary" %>
 <% end %>
-
 <% if @tickets.any? %>
   <div class="table-wrap">
     <table class="data-table">
@@ -36,3 +35,4 @@
 <% else %>
   <div class="empty-state"><h2>No escalated tickets found</h2><p class="mt-2 text-sm"><%= @query.present? ? "Try a different search." : "Escalated organization tickets will appear here." %></p></div>
 <% end %>
+<%= render "shared/pagination", pagination: @pagination %>

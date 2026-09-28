@@ -9,8 +9,14 @@ class ClassMeetingPolicy < ApplicationPolicy
   end
 
   def create? = permitted?("class_meetings.create")
-  def update? = permitted?("class_meetings.update")
+  def update? = permitted?("class_meetings.update") && !record.cancelled?
   def destroy? = permitted?("class_meetings.destroy")
+
+  def request_reschedule?
+    Current.membership&.active? &&
+      Current.membership.student? &&
+      record.student_memberships.exists?(Current.membership.id)
+  end
 
   class Scope < ApplicationPolicy::Scope
     def resolve

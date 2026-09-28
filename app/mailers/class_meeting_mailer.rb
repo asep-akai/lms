@@ -11,4 +11,17 @@ class ClassMeetingMailer < ApplicationMailer
       subject: "Class scheduled: #{@class_meeting.subject}, meeting #{@class_meeting.meeting_number}"
     )
   end
+
+  def reschedule_requested
+    @class_meeting = params[:class_meeting]
+    @student_membership = params[:student_membership]
+    @student = @student_membership.user
+    @teacher = @class_meeting.teacher_membership.user
+    @starts_at = @class_meeting.starts_at.in_time_zone(@class_meeting.organization.timezone)
+
+    mail(
+      to: @teacher.email,
+      subject: "Class reschedule requested: #{@class_meeting.subject}, meeting #{@class_meeting.meeting_number}"
+    )
+  end
 end

@@ -5,11 +5,12 @@ class Organizations::MembershipsController < Organizations::BaseController
     authorize Membership
     @query = TableSearch.normalize(params[:query])
     memberships = policy_scope(Membership).includes(:user).joins(:user)
-    @memberships = TableSearch.call(
+    memberships = TableSearch.call(
       memberships,
       query: @query,
       columns: %w[users.name users.email memberships.status]
     ).order("users.name")
+    @pagination, @memberships = paginate(memberships)
   end
 
   def new

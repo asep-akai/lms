@@ -12,18 +12,20 @@ class ClassMeetingsTest < ActionDispatch::IntegrationTest
   test "administrator schedules a class and queues email for the teacher and students" do
     sign_in users(:one)
 
-    assert_enqueued_emails 2 do
-      post organization_class_meetings_path(organizations(:one)), params: {
-        class_meeting: {
-          teacher_membership_id: @teacher.id,
-          student_membership_ids: [ @student.id ],
-          subject: "Mathematics",
-          topic: "Introduction to algebra",
-          starts_at: "2026-10-10T08:30",
-          delivery_mode: "online",
-          meeting_url: "https://meet.example.com/algebra"
+    assert_difference "Notification.count", 2 do
+      assert_enqueued_emails 2 do
+        post organization_class_meetings_path(organizations(:one)), params: {
+          class_meeting: {
+            teacher_membership_id: @teacher.id,
+            student_membership_ids: [ @student.id ],
+            subject: "Mathematics",
+            topic: "Introduction to algebra",
+            starts_at: "2026-10-10T08:30",
+            delivery_mode: "online",
+            meeting_url: "https://meet.example.com/algebra"
+          }
         }
-      }
+      end
     end
 
     meeting = ClassMeeting.order(:id).last
@@ -61,6 +63,105 @@ class ClassMeetingsTest < ActionDispatch::IntegrationTest
     get organization_class_meetings_path(organizations(:one))
     assert_response :success
     assert_select "h2", { text: "Introduction to algebra", count: 0 }
+  end
+
+  test "student uses quota to cancel a single-student class more than 24 hours ahead" do
+    meeting = create_meeting(starts_at: 2.days.from_now)
+    @student.update!(reschedule_quota: 2)
+    sign_in @student.user
+
+    get organization_class_meeting_path(organizations(:one), meeting)
+    assert_select "button", "Request reschedule"
+    assert_select "p", text: /2 reschedules remaining/
+
+    assert_enqueued_email_with ClassMeetingMailer, :reschedule_requested, params: {
+      class_meeting: meeting,
+      student_membership: @student
+    } do
+      post request_reschedule_organization_class_meeting_path(organizations(:one), meeting)
+    end
+
+    assert_redirected_to organization_class_meetings_path(organizations(:one))
+    assert meeting.reload.cancelled?
+    assert_equal @student, meeting.cancelled_by_membership
+    assert_equal 1, @student.reload.reschedule_quota
+    assert AuditEvent.exists?(action: "class_meeting.reschedule_requested", auditable: meeting)
+
+    get organization_class_meetings_path(organizations(:one), month: meeting.starts_at.strftime("%Y-%m"))
+    assert_select "article[data-class-meeting-id='#{meeting.id}']", count: 0
+    assert_select "h2", { text: meeting.topic, count: 0 }
+  end
+
+  test "student cannot request within 24 hours" do
+    meeting = create_meeting(starts_at: 23.hours.from_now)
+    @student.update!(reschedule_quota: 1)
+    sign_in @student.user
+
+    get organization_class_meeting_path(organizations(:one), meeting)
+    assert_select "button", { text: "Request reschedule", count: 0 }
+    assert_select "p", text: /request window closed/
+
+    assert_no_enqueued_emails do
+      post request_reschedule_organization_class_meeting_path(organizations(:one), meeting)
+    end
+
+    assert_redirected_to organization_class_meeting_path(organizations(:one), meeting)
+    assert_equal "Rescheduling is only available until 24 hours before the class.", flash[:alert]
+    assert_not meeting.reload.cancelled?
+    assert_equal 1, @student.reload.reschedule_quota
+  end
+
+  test "student cannot request a reschedule for a group class" do
+    meeting = create_meeting(starts_at: 2.days.from_now, students: [ @student, @other_student ])
+    @student.update!(reschedule_quota: 1)
+    sign_in @student.user
+
+    get organization_class_meeting_path(organizations(:one), meeting)
+    assert_select "button", { text: "Request reschedule", count: 0 }
+    assert_select "p", text: /multiple students/
+
+    post request_reschedule_organization_class_meeting_path(organizations(:one), meeting)
+
+    assert_redirected_to organization_class_meeting_path(organizations(:one), meeting)
+    assert_equal "Group classes cannot be rescheduled by an individual student.", flash[:alert]
+    assert_not meeting.reload.cancelled?
+    assert_equal 1, @student.reload.reschedule_quota
+  end
+
+  test "student cannot request without remaining quota" do
+    meeting = create_meeting(starts_at: 2.days.from_now)
+    sign_in @student.user
+
+    get organization_class_meeting_path(organizations(:one), meeting)
+    assert_select "button", { text: "Request reschedule", count: 0 }
+    assert_select "p", text: /additional quota/
+
+    post request_reschedule_organization_class_meeting_path(organizations(:one), meeting)
+
+    assert_redirected_to organization_class_meeting_path(organizations(:one), meeting)
+    assert_equal "You do not have any reschedule quota remaining.", flash[:alert]
+    assert_not meeting.reload.cancelled?
+  end
+
+  test "organization administrator updates a student's reschedule quota" do
+    sign_in users(:one)
+
+    get reschedule_quota_organization_student_path(organizations(:one), @student, modal: 1),
+      headers: { "Turbo-Frame" => "modal" }
+
+    assert_response :success
+    assert_select "turbo-frame#modal"
+    assert_select "input[name='membership[reschedule_quota]'][min='0']"
+
+    patch reschedule_quota_organization_student_path(organizations(:one), @student), params: {
+      membership: {
+        reschedule_quota: 4
+      }
+    }
+
+    assert_redirected_to organization_students_path(organizations(:one))
+    assert_equal 4, @student.reload.reschedule_quota
+    assert AuditEvent.exists?(action: "membership.reschedule_quota_updated", auditable: @student)
   end
 
   test "student calendar shows assigned classes and opens a scoped day modal" do

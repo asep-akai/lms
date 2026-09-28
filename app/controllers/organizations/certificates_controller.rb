@@ -5,13 +5,14 @@ class Organizations::CertificatesController < Organizations::BaseController
     authorize Certificate
     @query = TableSearch.normalize(params[:query])
     certificates = policy_scope(Certificate).joins(recipient_membership: :user)
-    @certificates = TableSearch.call(
+    certificates = TableSearch.call(
       certificates,
       query: @query,
       columns: [ "certificates.certificate_type", "CAST(certificates.data AS text)", "users.name", "users.email" ]
     )
       .includes(recipient_membership: :user, unpublished_by_membership: :user)
       .newest_first
+    @pagination, @certificates = paginate(certificates)
   end
 
   def create
@@ -27,6 +28,14 @@ class Organizations::CertificatesController < Organizations::BaseController
         action: "certificate.generated",
         auditable: certificate,
         metadata: { certificate_type: certificate.certificate_type, exam: attempt.quiz.title, student: attempt.membership.user.name }
+      )
+      InAppNotifier.deliver(
+        recipient: certificate.recipient_membership,
+        kind: "certificate_created",
+        title: "New certificate available",
+        body: attempt.quiz.title,
+        path: InAppNotifier.path_for(:organization_certificate_path, Current.organization, certificate),
+        notifiable: certificate
       )
     end
 

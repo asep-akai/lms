@@ -5,7 +5,7 @@ class Organizations::EvaluationsController < Organizations::BaseController
     authorize :evaluation
     @query = TableSearch.normalize(params[:query])
     attempts = Current.membership.quiz_attempts.active.reviewed.joins(quiz: :course)
-    @attempts = TableSearch.call(
+    attempts = TableSearch.call(
       attempts,
       query: @query,
       columns: %w[quizzes.title courses.name]
@@ -19,6 +19,7 @@ class Organizations::EvaluationsController < Organizations::BaseController
         { answers: [ :quiz_answer_option, { audio_response_attachment: :blob } ] }
       )
       .order(reviewed_at: :desc)
+    @pagination, @attempts = paginate(attempts)
     @gradings_by_attempt_id = @attempts.to_h { |attempt| [ attempt.id, QuizAttemptGrader.new(attempt) ] }
   end
 

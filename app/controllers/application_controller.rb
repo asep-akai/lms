@@ -11,6 +11,10 @@ class ApplicationController < ActionController::Base
   rescue_from ActionController::InvalidAuthenticityToken, with: :handle_invalid_authenticity_token
 
   private
+    def paginate(scope, per_page: PageSlice::DEFAULT_PER_PAGE)
+      PageSlice.call(scope, page: params[:page], per_page: per_page)
+    end
+
     def handle_invalid_authenticity_token
       reset_session
       destination = request.path.start_with?("/console") ? new_admin_session_path : new_user_session_path

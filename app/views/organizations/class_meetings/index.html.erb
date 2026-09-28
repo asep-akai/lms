@@ -63,3 +63,4 @@
 <% if @class_meetings.empty? %>
   <div class="empty-state">No class meetings are scheduled for you.</div>
 <% end %>
+<%= render "shared/pagination", pagination: @pagination %>

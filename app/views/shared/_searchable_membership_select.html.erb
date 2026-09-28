@@ -1,0 +1,52 @@
+<% selected_id = selected_membership_id.to_i if selected_membership_id.present? %>
+<div data-controller="searchable-select"
+  data-action="click@window->searchable-select#closeOnOutside keydown@window->searchable-select#closeOnEscape">
+  <label class="label" id="<%= id_prefix %>-label"><%= label %></label>
+  <% if local_assigns[:hint].present? %>
+    <p class="hint"><%= hint %></p>
+  <% end %>
+
+  <% if memberships.any? %>
+    <%= hidden_field_tag field_name, selected_id, required: required, data: { searchable_select_target: "input" } %>
+    <div class="relative mt-2">
+      <button type="button"
+        class="select-picker-trigger"
+        aria-labelledby="<%= id_prefix %>-label <%= id_prefix %>-summary"
+        aria-controls="<%= id_prefix %>-options"
+        aria-expanded="false"
+        data-searchable-select-target="button"
+        data-action="searchable-select#toggle">
+        <span id="<%= id_prefix %>-summary" data-searchable-select-target="summary"><%= prompt %></span>
+        <span class="shrink-0 text-xs font-medium text-brand-700" data-searchable-select-target="toggleLabel">Open list</span>
+      </button>
+
+      <div id="<%= id_prefix %>-options" class="select-picker-panel" data-searchable-select-target="panel" hidden>
+        <div class="border-b border-slate-200 p-3">
+          <label for="<%= id_prefix %>-search" class="label">Search <%= label.downcase.pluralize %></label>
+          <input id="<%= id_prefix %>-search" type="search" class="field" placeholder="Search by name or email"
+            autocomplete="off" data-searchable-select-target="search" data-action="input->searchable-select#filter">
+        </div>
+        <div class="max-h-64 overflow-y-auto" role="listbox" aria-labelledby="<%= id_prefix %>-label">
+          <% memberships.each do |membership| %>
+            <button type="button" role="option"
+              class="select-picker-row w-full text-left aria-selected:bg-brand-50"
+              aria-selected="<%= selected_id == membership.id %>"
+              data-searchable-select-target="option"
+              data-action="searchable-select#select"
+              data-value="<%= membership.id %>"
+              data-label="<%= membership.user.name %>"
+              data-search="<%= "#{membership.user.name} #{membership.user.email}".downcase %>">
+              <span class="min-w-0">
+                <strong class="block truncate text-sm text-slate-950"><%= membership.user.name %></strong>
+                <span class="block truncate text-xs text-slate-600"><%= membership.user.email %></span>
+              </span>
+            </button>
+          <% end %>
+          <p class="p-4 text-sm text-slate-600" data-searchable-select-target="empty" hidden>No <%= label.downcase.pluralize %> match this search.</p>
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <div class="field-error"><%= empty_message %></div>
+  <% end %>
+</div>

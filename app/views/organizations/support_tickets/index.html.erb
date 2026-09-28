@@ -15,7 +15,6 @@
   </div>
   <%= form.submit "Search", class: "btn-secondary" %>
 <% end %>
-
 <% if @tickets.any? %>
   <div class="table-wrap">
     <table class="data-table">
@@ -45,3 +44,4 @@
     <p class="mt-2 text-sm"><%= @query.present? ? "Try a different search." : "When you report an issue, its replies and status will appear here." %></p>
   </div>
 <% end %>
+<%= render "shared/pagination", pagination: @pagination %>

@@ -44,7 +44,7 @@ class OrganizationsController < AppController
 
     def load_class_calendar
       @class_calendar = ClassMeetingCalendar.new(
-        scope: @organization.class_meetings.assigned_to(Current.membership),
+        scope: @organization.class_meetings.scheduled.assigned_to(Current.membership),
         month: params[:month],
         time_zone: @organization.timezone
       )

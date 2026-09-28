@@ -6,6 +6,11 @@
   </div>
   <div class="actions">
     <%= back_link_to "Back to students", organization_students_path(current_organization) %>
+    <% if current_membership.organization_admin? %>
+      <%= modal_link_to "Edit reschedule quota",
+        reschedule_quota_organization_student_path(current_organization, @student, from: "student"),
+        class: "btn-secondary" %>
+    <% end %>
     <% if policy(Assignment.new(organization: current_organization, teacher_membership: current_membership)).create? %>
       <%= link_to "Give assignment", new_organization_assignment_path(current_organization, student_id: @student.id), class: "btn-primary" %>
     <% end %>

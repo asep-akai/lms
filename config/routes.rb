@@ -18,9 +18,12 @@ Rails.application.routes.draw do
     resources :students, controller: "organizations/students", only: %i[index show] do
       get :enrollment, on: :member
       post :enroll, on: :member
+      get :reschedule_quota, on: :member
+      patch :reschedule_quota, action: :update_reschedule_quota, on: :member
     end
     resources :roles, controller: "organizations/roles", except: :show
     resources :class_meetings, path: "classes", controller: "organizations/class_meetings" do
+      post :request_reschedule, on: :member
       get :history, on: :collection
       get "calendar/:date", action: :day, on: :collection, as: :calendar_day
       resources :feedbacks, controller: "organizations/class_meeting_feedbacks", only: %i[index show new create]
@@ -82,6 +85,12 @@ Rails.application.routes.draw do
       post :reply, on: :member
       patch :escalate, on: :member
       get "attachments/:attachment_id", action: :download_attachment, on: :member, as: :attachment
+    end
+    resources :direct_conversations, path: "messages", controller: "organizations/direct_conversations", only: %i[index show create] do
+      resources :direct_messages, path: "replies", controller: "organizations/direct_messages", only: :create
+    end
+    resources :notifications, controller: "organizations/notifications", only: %i[index show] do
+      patch :mark_all_read, on: :collection
     end
   end
 

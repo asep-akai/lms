@@ -7,6 +7,6 @@ class Organizations::AuditEventsController < Organizations::BaseController
       query: @query,
       columns: [ "audit_events.action", "CAST(audit_events.metadata AS text)", "CAST(audit_events.changes AS text)" ]
     )
-    @audit_events = events.includes(:actor, :auditable).recent.limit(100)
+    @pagination, @audit_events = paginate(events.includes(:actor, :auditable).recent)
   end
 end

@@ -26,3 +26,4 @@
 <% if @courses.empty? %>
   <div class="empty-state">No courses are available to you yet.</div>
 <% end %>
+<%= render "shared/pagination", pagination: @pagination %>

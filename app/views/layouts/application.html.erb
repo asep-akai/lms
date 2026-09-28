@@ -28,6 +28,7 @@
                 <%= link_to current_organization.name, current_organization, class: "nav-link" %>
                 <%= link_to "Courses", organization_courses_path(current_organization), class: "nav-link" %>
                 <%= link_to "Classes", organization_class_meetings_path(current_organization), class: "nav-link" %>
+                <%= link_to "Messages", organization_direct_conversations_path(current_organization), class: "nav-link" %>
                 <% if policy(Assignment).index? %>
                   <%= link_to "Assignments", organization_assignments_path(current_organization), class: "nav-link" %>
                 <% end %>
@@ -56,9 +57,46 @@
               </nav>
             <% end %>
           </div>
-          <div class="actions">
-            <%= link_to current_user.name, edit_user_registration_path, class: "nav-link" %>
-            <%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "nav-link" %>
+          <div class="topbar-account-actions">
+            <% if current_organization && current_membership.notification_recipient? %>
+              <%= turbo_stream_from current_organization, current_membership, :notifications %>
+              <details class="notification-menu" data-controller="notification-menu">
+                <summary class="notification-trigger">
+                  <span class="sr-only">Notifications</span>
+                  <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="size-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.9 18a3 3 0 0 1-5.8 0m9.4-2.5H5.5c1.3-1.4 2-3.2 2-5.1V9a4.5 4.5 0 0 1 9 0v1.4c0 1.9.7 3.7 2 5.1Z" />
+                  </svg>
+                  <%= render "organizations/notifications/indicator", membership: current_membership, unread_count: notification_unread_count %>
+                </summary>
+                <div class="notification-popover">
+                  <div class="notification-popover-header">
+                    <strong>Notifications</strong>
+                    <% if notification_unread_count.positive? %><span class="text-xs text-slate-500"><%= pluralize(notification_unread_count, "unread") %></span><% end %>
+                  </div>
+                  <% if notification_preview.any? %>
+                    <div class="divide-y divide-slate-200">
+                      <% notification_preview.each do |notification| %>
+                        <%= link_to organization_notification_path(current_organization, notification), class: "notification-preview-row #{"notification-row-unread" unless notification.read?}" do %>
+                          <span class="min-w-0">
+                            <span class="flex items-center gap-2">
+                              <strong class="truncate text-sm text-slate-950"><%= notification.title %></strong>
+                              <% unless notification.read? %><span class="size-2 shrink-0 rounded-full bg-brand-700" aria-label="Unread"></span><% end %>
+                            </span>
+                            <% if notification.body.present? %><span class="mt-1 block truncate text-xs text-slate-600"><%= notification.body %></span><% end %>
+                            <time class="mt-1 block text-xs text-slate-500" datetime="<%= notification.created_at.iso8601 %>"><%= l notification.created_at.in_time_zone(current_organization.timezone), format: :short %></time>
+                          </span>
+                        <% end %>
+                      <% end %>
+                    </div>
+                  <% else %>
+                    <p class="px-4 py-8 text-center text-sm text-slate-500">No notifications yet.</p>
+                  <% end %>
+                  <%= link_to "View all notifications", organization_notifications_path(current_organization), class: "notification-view-all" %>
+                </div>
+              </details>
+            <% end %>
+            <%= link_to current_user.name, edit_user_registration_path, class: "topbar-account-link" %>
+            <%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "topbar-account-link" %>
           </div>
         </div>
       </header>

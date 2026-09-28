@@ -10,7 +10,7 @@ module Console
         query: @query,
         columns: %w[organizations.name organizations.slug organizations.status organizations.timezone]
       )
-      @organizations = organizations.order(:name)
+      @pagination, @organizations = paginate(organizations.order(:name))
     end
 
     def new

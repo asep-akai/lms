@@ -1,0 +1,20 @@
+<h1 class="title">Edit reschedule quota</h1>
+<p class="subtitle"><%= student.user.name %> currently has <%= pluralize(student.reschedule_quota, "reschedule") %> remaining.</p>
+
+<%= render "shared/errors", record: student %>
+
+<%= form_with model: student,
+  url: reschedule_quota_organization_student_path(current_organization, student, from: params[:from], modal: params[:modal]),
+  method: :patch,
+  class: "form-stack mt-6",
+  data: { turbo_frame: "_top" } do |form| %>
+  <div>
+    <%= form.label :reschedule_quota, "Reschedule quota", class: "label" %>
+    <%= form.number_field :reschedule_quota, min: 0, step: 1, required: true, class: "field", autofocus: true %>
+    <p class="hint">Each successful class reschedule request consumes one quota.</p>
+  </div>
+  <div class="actions">
+    <%= form.submit "Save quota", class: "btn-primary" %>
+    <%= link_to "Cancel", quota_return_path, class: "btn-secondary", data: { turbo_frame: "_top" } %>
+  </div>
+<% end %>

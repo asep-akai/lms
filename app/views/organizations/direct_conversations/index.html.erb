@@ -1,0 +1,44 @@
+<% content_for :title, "Messages" %>
+
+<div class="page-header">
+  <div>
+    <h1 class="title">Messages</h1>
+    <p class="subtitle">Private conversations with teachers and students connected through your classes.</p>
+  </div>
+  <%= back_link_to "Back to organization", organization_path(current_organization) %>
+</div>
+
+<div class="message-directory">
+  <section aria-labelledby="conversations-heading">
+    <%= turbo_stream_from current_organization, current_membership, :direct_conversations %>
+    <h2 id="conversations-heading">Conversations</h2>
+    <% if @conversations.any? %>
+      <div class="mt-4 divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <% @conversations.each do |conversation| %>
+          <%= render "conversation", conversation: conversation, membership: current_membership %>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="empty-state">You have no conversations yet. Choose a class connection to start one.</div>
+    <% end %>
+  </section>
+
+  <aside aria-labelledby="contacts-heading">
+    <h2 id="contacts-heading">Class connections</h2>
+    <% if @contacts.any? %>
+      <div class="mt-4 divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <% @contacts.each do |contact| %>
+          <div class="message-contact-row">
+            <span class="min-w-0">
+              <strong class="block truncate text-sm text-slate-950"><%= contact.user.name %></strong>
+              <span class="mt-1 block truncate text-xs text-slate-500"><%= contact.roles.ordered.pluck(:name).to_sentence %></span>
+            </span>
+            <%= button_to "Message", organization_direct_conversations_path(current_organization), params: { contact_id: contact.id }, class: "btn-secondary" %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="empty-state">No eligible contacts yet. Contacts appear after you are assigned to a class together.</div>
+    <% end %>
+  </aside>
+</div>

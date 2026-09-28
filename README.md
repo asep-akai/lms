@@ -1,117 +1,170 @@
 # LMS
 
-A multi-tenant learning management system built with Ruby on Rails and PostgreSQL.
+LMS is a multi-tenant learning management system built as a server-rendered
+Ruby on Rails application. It uses PostgreSQL for application data, Hotwire for
+browser interactions, Solid Queue for background work, and Nginx as the local
+reverse proxy.
 
-The current application includes:
+## What the application includes
 
-- Separate Devise authentication for application users and console administrators
-- A dedicated, permission-gated `/console`
-- Isolated organizations with active/suspended states
-- Organization memberships
-- Built-in Organization administrator, Teacher, and Student roles
-- Custom roles backed by explicit permissions
-- Organization-scoped course creation and management
-- Student enrollment and enrollment-limited course access
-- Cross-organization access checks
-- Administrative audit events
-- Docker Compose development environment
+- Separate sign-in areas for organization users and platform administrators
+- Organization-scoped roles and permissions with Pundit authorization
+- User, student, organization, and console administrator management
+- Courses organized into sections containing materials and quizzes
+- Materials with formatted text, images, and linked video
+- Quiz authoring, resumable attempts, time limits, retakes, grading, AI-assisted
+  analysis, audio transcription, and published evaluation results
+- Course progress and per-module completion tracking
+- PDF certificate generation and controlled publication
+- Class scheduling, calendars, class history, reschedule requests, and feedback
+- Assignments with files, student submissions, deadlines, and teacher comments
+- Direct messages between users with a class-based relationship
+- In-app notifications for students and teachers
+- Organization support tickets with console escalation
+- Email previews through Mailpit and administrative audit history
 
-Courses currently contain a name, description, and student enrollments. Lessons,
-learning materials, submissions, and grading are not implemented yet.
+The browser-facing application and its backend are one Rails service. There is
+no separate React application or public API.
 
-For a detailed system map, data model, request flows, and directory guide, see
-[Architecture and project structure](docs/ARCHITECTURE.md).
+## Documentation
 
-## Start with Docker
+- [Engineer quick start](docs/ENGINEER_QUICKSTART.md)
+- [User quick start](docs/USER_QUICKSTART.md)
+- [Architecture and repository structure](docs/ARCHITECTURE.md)
+- [Repository conventions](AGENTS.md)
 
-Docker Compose runs PostgreSQL, Rails, Solid Queue, the Tailwind watcher, and Mailpit.
+## Start the application with Docker
+
+You need Docker Desktop on macOS. Confirm that Docker is running:
 
 ```bash
+docker info
+```
+
+Create your local environment file and start the stack:
+
+```bash
+cp .env.example .env
 docker compose up --build
 ```
 
-Open:
+Open these addresses:
 
-- Application: <http://localhost:3001>
-- Development email: <http://localhost:8025>
+| Service | Address |
+| --- | --- |
+| LMS | <http://localhost:3001> |
+| Mailpit inbox | <http://localhost:8025> |
+| PostgreSQL | `localhost:5432` |
 
-The development console administrator and example organization owner are created automatically:
+Nginx owns `localhost:3001` and proxies requests to Rails at `web:3000` on the
+private Compose network. Rails is not published directly to the host.
+
+The default development accounts are:
 
 ```text
-Email: admin@example.com
-Password: change-me-in-development
-
-Application: http://localhost:3001/users/sign_in
+Organization user
+URL: http://localhost:3001/users/sign_in
 Email: owner@example.com
 Password: change-me-in-development
 
-Console: http://localhost:3001/console/login
+Console administrator
+URL: http://localhost:3001/console/login
 Email: admin@example.com
 Password: change-me-in-development
 ```
 
-These credentials are for local development only. Change the Compose environment values before sharing a development environment.
+These accounts are for local development. Set different credentials before
+sharing an environment.
 
-The PostgreSQL data is held in the `postgres_data` named volume. To stop the stack without deleting data:
+Stop the stack without removing database data:
 
 ```bash
 docker compose down
 ```
 
-## Configuration
+## Local services
 
-Production requires these secrets or equivalent Rails/Kamal configuration:
+| Service | Purpose |
+| --- | --- |
+| `nginx` | Public local entry point on port 3001 and reverse proxy to Rails |
+| `web` | Puma and the Rails application on the private port 3000 |
+| `db` | PostgreSQL database, published locally on port 5432 |
+| `jobs` | Solid Queue background worker |
+| `css` | Tailwind CSS watcher |
+| `mailpit` | Local SMTP server and browser inbox |
 
-- `RAILS_MASTER_KEY`
-- `LMS_DATABASE_PASSWORD` or database URLs
-- `ADMIN_EMAIL` and `ADMIN_PASSWORD` for the initial console seed
-- Optional `APP_USER_EMAIL` and `APP_USER_PASSWORD` for an initial organization owner
-- SMTP host and credentials
+Source files are bind-mounted into the Rails containers. Ruby, ERB, JavaScript,
+and CSS edits normally appear without rebuilding the image. Rebuild when the
+Gemfile, Dockerfile, or system packages change.
 
-Never commit a populated `.env` file or `config/master.key`.
+## Environment configuration
 
-### Gemini analysis
+`.env.example` lists the supported local settings. The most important values
+are:
 
-Automatic quiz analysis uses the Gemini API. Copy `.env.example` to `.env`, then add your key:
+- PostgreSQL database name and credentials
+- Development seed account names, email addresses, and passwords
+- Mailpit SMTP host and port
+- `GEMINI_API_KEY` and `GEMINI_MODEL` for AI-assisted quiz analysis
+- Default organization name, slug, and locale
 
-```text
-GEMINI_API_KEY=your-key-here
-GEMINI_MODEL=gemini-2.5-flash
-```
-
-Recreate the web container after changing these values so Compose passes them into Rails:
+After changing `.env`, recreate the application containers so Compose passes
+the new values into their processes:
 
 ```bash
-docker compose up -d --force-recreate web
+docker compose up -d --force-recreate web jobs css
 ```
 
-The application calculates quiz correctness from its own answer key. Gemini receives that grading data and writes an unpublished performance-analysis draft; an authorized reviewer must check and publish it before the student can see it.
+Never commit `.env`, `config/master.key`, production database credentials, or
+API keys.
 
 ## Useful commands
 
 ```bash
-docker compose run --rm web bin/rails db:prepare
-docker compose run --rm web bin/rails db:seed
-docker compose run --rm web bin/rails test
-docker compose run --rm web bin/rails test:system
-docker compose run --rm web bin/brakeman --no-pager
-docker compose run --rm web bin/rubocop
+# Show container state
+docker compose ps
+
+# Follow Rails, job worker, and proxy logs
+docker compose logs -f web jobs nginx
+
+# Prepare or seed the database
+docker compose exec web bin/rails db:prepare
+docker compose exec web bin/rails db:seed
+
+# Open a Rails console
+docker compose exec web bin/rails console
+
+# Run checks
+docker compose exec web bin/rails test
+docker compose exec web bin/rails test:system
+docker compose exec web bin/rubocop
+docker compose exec web bin/brakeman --no-pager
+docker compose exec web bin/ci
+
+# Validate Nginx configuration
+docker compose exec nginx nginx -t
 ```
 
-## Tenancy model
+## Data and uploaded files
 
-Organizations share one PostgreSQL schema. Tenant-owned records are reached through the current organization, and membership is checked before nested organization controllers run. Application roles belong to one organization; console roles are global. Polymorphic role assignments let both identity types use one permission-based policy system while validation prevents cross-scope assignments.
+PostgreSQL data is stored in the `postgres_data` Docker volume. Active Storage
+uses the configured local disk service in development. Running
+`docker compose down` preserves both bind-mounted project files and the named
+database volume.
 
-Console administrators are installation-level operators stored in the separate `admins` table. Organization administrators are ordinary application users who receive the protected organization `admin` role. These concepts and sessions are deliberately separate.
+Removing the volume deletes local database data:
 
-## Invitation flow
+```bash
+docker compose down --volumes
+```
 
-An organization administrator adds a member by name and email. Existing users
-receive another organization membership without changing their password. New
-users receive an initial password chosen by the administrator. Administrators
-can later replace that password without seeing its current value, and platform
-console administrators can also send Devise password-reset instructions.
+Only run that command when you intend to reset the local database.
 
 ## Production direction
 
-The generated production `Dockerfile` is suitable as the base for a Kamal deployment. PostgreSQL should be private, backed up off the VPS, and tested through periodic restores. The Compose file is intended for local development, not production.
+The development Compose file is not a production deployment definition. A VPS
+deployment needs a real domain, TLS termination, persistent storage, database
+backups, production secrets, SMTP delivery, and monitoring. The repository has
+a production Dockerfile and Kamal dependencies that can serve as the deployment
+base. Decide whether production TLS terminates in a host-level Nginx instance,
+a managed load balancer, or Kamal Proxy before exposing the application.

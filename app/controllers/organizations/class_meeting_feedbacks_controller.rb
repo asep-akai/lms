@@ -7,10 +7,11 @@ class Organizations::ClassMeetingFeedbacksController < Organizations::BaseContro
     authorize ClassMeetingFeedback, :index?
     load_filter_options
     @filters = normalized_filters
-    @feedbacks = ClassMeetingFeedbackQuery.call(
+    feedbacks = ClassMeetingFeedbackQuery.call(
       scope: policy_scope(ClassMeetingFeedback),
       **@filters.slice(:query, :author_role, :rating, :teacher_membership_id, :student_membership_id)
     )
+    @pagination, @feedbacks = paginate(feedbacks)
   end
 
   def index
@@ -52,6 +53,7 @@ class Organizations::ClassMeetingFeedbacksController < Organizations::BaseContro
     authorize @feedback
 
     if @feedback.save
+      notify_feedback_recipients
       AuditRecorder.record!(
         action: "class_meeting.feedback_submitted",
         auditable: @feedback,
@@ -107,6 +109,22 @@ class Organizations::ClassMeetingFeedbacksController < Organizations::BaseContro
       else
         feedbacks.teacher_feedbacks
       end
+    end
+
+    def notify_feedback_recipients
+      recipients = if @feedback.author_role == "teacher"
+        @class_meeting.student_memberships
+      else
+        [ @class_meeting.teacher_membership ]
+      end
+      InAppNotifier.deliver_to(
+        recipients,
+        kind: "class_feedback",
+        title: "New class feedback",
+        body: "#{@class_meeting.subject}: #{@class_meeting.topic}",
+        path: InAppNotifier.path_for(:organization_class_meeting_path, Current.organization, @class_meeting),
+        notifiable: @feedback
+      )
     end
 
     def feedback_params

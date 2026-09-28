@@ -1,0 +1,24 @@
+<% if pagination.total_count.positive? %>
+  <nav class="mt-6 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between"
+    aria-label="Pagination">
+    <p class="text-sm text-slate-600">
+      Showing <strong class="font-semibold text-slate-900"><%= pagination.first_item %>-<%= pagination.last_item %></strong>
+      of <strong class="font-semibold text-slate-900"><%= pagination.total_count %></strong>
+    </p>
+    <% if pagination.multiple_pages? %>
+      <div class="flex items-center gap-2">
+        <% if pagination.previous_page %>
+          <%= link_to "Previous", url_for(request.query_parameters.merge(page: pagination.previous_page)), class: "btn-secondary" %>
+        <% else %>
+          <span class="inline-flex min-h-11 items-center rounded-lg border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-500" aria-disabled="true">Previous</span>
+        <% end %>
+        <span class="px-2 text-sm text-slate-600" aria-current="page">Page <%= pagination.current_page %> of <%= pagination.total_pages %></span>
+        <% if pagination.next_page %>
+          <%= link_to "Next", url_for(request.query_parameters.merge(page: pagination.next_page)), class: "btn-secondary" %>
+        <% else %>
+          <span class="inline-flex min-h-11 items-center rounded-lg border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-500" aria-disabled="true">Next</span>
+        <% end %>
+      </div>
+    <% end %>
+  </nav>
+<% end %>
