@@ -5,7 +5,10 @@ class Organizations::AssignmentSubmissionsController < Organizations::BaseContro
     recipient = @assignment.recipients.find_by!(student_membership: Current.membership)
     submission = recipient.submission || recipient.build_submission
     authorize submission
-    submission.assign_attributes(submission_params)
+    attributes = submission_params
+    uploads = Array(attributes.delete(:documents)).reject(&:blank?)
+    submission.assign_attributes(attributes)
+    submission.documents = submission.documents.blobs.to_a + uploads if uploads.any?
 
     if params[:submit_assignment] == "1"
       submit_submission(submission)

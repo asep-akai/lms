@@ -19,12 +19,13 @@
   </head>
   <body>
     <% if user_signed_in? %>
-      <header class="topbar">
+      <header class="topbar" data-controller="mobile-navigation" data-action="click@document->mobile-navigation#outside keydown.esc@document->mobile-navigation#escape turbo:before-cache@document->mobile-navigation#close">
         <div class="topbar-inner">
-          <div class="actions">
+          <div class="topbar-navigation">
             <%= link_to "LMS", root_path, class: "brand" %>
             <% if current_organization %>
-              <nav class="nav">
+              <button type="button" class="navigation-toggle" aria-expanded="false" aria-controls="primary-navigation" data-mobile-navigation-target="toggle" data-action="mobile-navigation#toggle">Menu</button>
+              <nav id="primary-navigation" class="nav" aria-label="Main navigation" data-mobile-navigation-target="menu">
                 <%= link_to current_organization.name, current_organization, class: "nav-link" %>
                 <%= link_to "Courses", organization_courses_path(current_organization), class: "nav-link" %>
                 <%= link_to "Classes", organization_class_meetings_path(current_organization), class: "nav-link" %>

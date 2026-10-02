@@ -1,6 +1,80 @@
 require "application_system_test_case"
 
 class QuizEditorTest < ApplicationSystemTestCase
+  test "course quiz creation keeps its back destination and editor labels stay distinct" do
+    course = organizations(:one).courses.create!(name: "Navigation course", description: "Author a quiz from its course.")
+    visit new_user_session_path
+    fill_in "Email", with: users(:one).email
+    fill_in "Password", with: "password"
+    click_button "Sign in"
+    assert_button "Sign out"
+    visit new_organization_course_quiz_path(organizations(:one), course, from: "course")
+    assert_link "Back to course", href: organization_course_path(organizations(:one), course)
+    fill_in "Title", with: "Navigation quiz"
+    click_button "Create quiz"
+    assert_text "Quiz created."
+    click_link "Edit quiz"
+    assert_link "Back to course", href: organization_course_path(organizations(:one), course)
+
+    2.times do |index|
+      click_button "Add question"
+      within("section[data-controller='question-editor']", match: :first) do
+        select "Short answer", from: "Question type"
+        fill_in "Expected answer", with: "Answer #{index + 1}"
+        click_button "Add question"
+      end
+      assert_text "Question added."
+      assert_selector "button[data-closed-label='Edit question']", count: index + 1
+    end
+    all("button", text: "Edit question", exact_text: true).last.click
+    fill_in "Expected answer", with: "Updated second answer"
+    click_button "Save question"
+    assert_text "Question updated."
+    quiz = course.quizzes.last
+    assert_equal [ "Answer 1", "Updated second answer" ], quiz.questions.order(:position).pluck(:short_answer)
+    assert_link "Back to course", href: organization_course_path(organizations(:one), course)
+    click_link "Back to course"
+    assert_current_path organization_course_path(organizations(:one), course)
+  end
+
+  test "audio playback failure gives a download fallback in player and review" do
+    membership = organizations(:one).memberships.create!(user: users(:two), status: "active")
+    membership.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]
+    course = organizations(:one).courses.create!(name: "Playback course", description: "Audio fallback coverage.")
+    course.course_enrollments.create!(membership: membership)
+    quiz = course.quizzes.create!(title: "Audio playback")
+    question = quiz.questions.create!(question_type: "audio", content_html: "", position: 1)
+    attempt = QuizAttempt.create!(quiz: quiz, membership: membership, started_at: Time.current, last_activity_at: Time.current)
+    answer = attempt.answers.build(quiz_question: question)
+    answer.audio_response.attach(io: StringIO.new("unsupported test audio"), filename: "response.aiff", content_type: "audio/aiff", identify: false)
+    answer.save!
+
+    visit new_user_session_path
+    fill_in "Email", with: users(:two).email
+    fill_in "Password", with: "password"
+    click_button "Sign in"
+    assert_button "Sign out"
+    visit attempt_organization_course_quiz_path(organizations(:one), course, quiz, attempt_id: attempt.id)
+    assert_text "This browser could not play the audio."
+    assert_link "Download audio", href: /disposition=attachment/
+    attach_file "Or upload an audio file", file_fixture("sample.mp3")
+    assert_selector "a[data-audio-playback-target='download'][href^='blob:'][download='sample.mp3']"
+    click_button "Back to course"
+    assert_text "Quiz progress saved."
+    attempt.reload.submit!
+
+    click_button "Sign out"
+    assert_field "Email"
+    fill_in "Email", with: users(:one).email
+    fill_in "Password", with: "password"
+    click_button "Sign in"
+    assert_button "Sign out"
+    visit organization_grading_attempt_path(organizations(:one), attempt)
+    assert_link "Download audio", href: /disposition=attachment/
+    page.execute_script("document.querySelector('audio').dispatchEvent(new Event('error'))")
+    assert_text "This browser could not play the audio."
+  end
+
   test "student records and replaces a Safari-compatible audio response" do
     membership = organizations(:one).memberships.create!(user: users(:two), status: "active")
     membership.role_ids = [ organizations(:one).roles.find_by!(key: "student").id ]

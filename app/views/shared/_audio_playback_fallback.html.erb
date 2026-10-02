@@ -1,0 +1,3 @@
+<p class="field-error" role="status" data-audio-playback-target="error" hidden>This browser could not play the audio. Download the original file and open it in an audio player.</p>
+<% download_url = rails_blob_path(attachment, disposition: "attachment") if attachment&.persisted? %>
+<%= link_to "Download audio", download_url || "#", class: "attachment-link", hidden: download_url.nil?, data: { turbo: false, audio_playback_target: "download", saved_url: download_url } %>

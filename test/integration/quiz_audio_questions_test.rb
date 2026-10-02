@@ -55,7 +55,7 @@ class QuizAudioQuestionsTest < ActionDispatch::IntegrationTest
 
     get attempt_organization_course_quiz_path(@organization, @course, @quiz)
     assert_response :success
-    assert_select "[data-controller='audio-recorder']"
+    assert_select "[data-controller~='audio-recorder']"
     assert_select "input[type='file'][name='quiz_answer[audio_response]'][accept*='.mp3']"
     assert_select "button", text: "Start recording"
 
@@ -75,6 +75,7 @@ class QuizAudioQuestionsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "audio[src]"
     assert_select "button", text: "Record again"
+    assert_select "a[data-audio-playback-target='download'][href*='disposition=attachment']:not([hidden])", text: "Download audio"
 
     replacement = Rack::Test::UploadedFile.new(file_fixture("sample.mp3"), "audio/mpeg", false, original_filename: "replacement.mp3")
     patch organization_course_quiz_attempt_answer_path(@organization, @course, @quiz, question_id: question.id), params: {
@@ -127,6 +128,7 @@ class QuizAudioQuestionsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "audio[src]"
     assert_select "span", text: "Feedback only"
+    assert_select "a[data-audio-playback-target='download'][href*='disposition=attachment']", text: "Download audio"
     assert_select "button", text: "Run AI analysis"
 
     patch organization_review_grading_attempt_path(@organization, attempt)
@@ -137,6 +139,11 @@ class QuizAudioQuestionsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "#score-heading", text: "Not scored"
     assert_select ".badge-neutral", text: "Feedback only"
+
+    sign_in users(:two)
+    get organization_evaluation_attempt_path(@organization, attempt)
+    assert_response :success
+    assert_select "a[data-audio-playback-target='download'][href*='disposition=attachment']", text: "Download audio"
   end
 
   test "AI analysis stores and displays an audio transcription" do

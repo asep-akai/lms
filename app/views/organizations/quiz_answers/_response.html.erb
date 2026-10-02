@@ -1,6 +1,9 @@
 <% if question.audio? %>
   <% if answer.audio_response.attached? %>
-    <%= audio_tag url_for(answer.audio_response), controls: true, preload: "metadata", class: "mt-2 w-full" %>
+    <div class="mt-2 space-y-2" data-controller="audio-playback">
+      <%= audio_tag url_for(answer.audio_response), controls: true, preload: "metadata", class: "w-full", data: { audio_playback_target: "player", action: "error->audio-playback#failed loadedmetadata->audio-playback#reset" } %>
+      <%= render "shared/audio_playback_fallback", attachment: answer.audio_response.attachment %>
+    </div>
   <% else %>
     <p class="mt-2 text-sm text-slate-500">Audio unavailable</p>
   <% end %>

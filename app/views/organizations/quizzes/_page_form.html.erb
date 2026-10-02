@@ -3,7 +3,7 @@
 <section class="rounded-xl border border-slate-200 bg-slate-50 p-5">
   <h3 class="text-base font-semibold text-slate-950"><%= heading %></h3>
   <%= render "shared/errors", record: page %>
-  <%= form_with model: page, url: page_url, method: page_method, class: "form-stack mt-5", data: { controller: "content-block-editor", action: "submit->content-block-editor#synchronize" } do |form| %>
+  <%= form_with model: page, namespace: dom_id(page), url: page_url, method: page_method, class: "form-stack mt-5", data: { controller: "content-block-editor", action: "submit->content-block-editor#synchronize" } do |form| %>
     <div>
       <%= form.label :title, "Page name", class: "label" %>
       <%= form.text_field :title, maxlength: 160, class: "field", placeholder: "Reading passage" %>

@@ -51,7 +51,7 @@
       <div>
         <%= form.label :documents, "Documents", class: "label" %>
         <%= form.file_field :documents, multiple: true, accept: Assignment::ALLOWED_DOCUMENT_TYPES.join(","), class: "field" %>
-        <p class="hint">You can upload multiple files. Each file must be 20 MB or smaller.</p>
+        <p class="hint">New uploads are added to your saved documents. You do not need to select saved files again. Each file must be 20 MB or smaller.</p>
       </div>
       <%= render "organizations/assignments/submission_documents", assignment: assignment, submission: submission %>
       <div class="actions">

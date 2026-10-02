@@ -14,6 +14,7 @@
   </div>
 </div>
 
+<%= render "shared/errors", record: @quiz %>
 <section class="card card-body mt-8" data-controller="question-card">
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div><h2>Quiz details</h2><p class="hint">Title, description, time limit, and retake settings are saved separately.</p></div>

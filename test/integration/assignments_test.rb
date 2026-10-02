@@ -81,7 +81,7 @@ class AssignmentsTest < ActionDispatch::IntegrationTest
     assignment.update_column(:deadline, 1.hour.ago)
     assert_enqueued_emails 1 do
       patch organization_assignment_submission_path(organizations(:one), assignment), params: {
-        assignment_submission: { body: "My final response" },
+        assignment_submission: { body: "My final response", documents: [ "" ] },
         submit_assignment: "1"
       }
     end
@@ -90,6 +90,7 @@ class AssignmentsTest < ActionDispatch::IntegrationTest
     assert submission.submitted?
     assert submission.late?
     assert_equal "My final response", submission.body
+    assert_equal 1, submission.documents.count
     assert AuditEvent.exists?(action: "assignment.submitted", auditable: assignment)
 
     patch organization_assignment_submission_path(organizations(:one), assignment), params: {
@@ -118,6 +119,55 @@ class AssignmentsTest < ActionDispatch::IntegrationTest
     assert_redirected_to organization_assignment_path(organizations(:one), assignment)
     follow_redirect!
     assert_select "span", "Submitted late"
+  end
+
+  test "draft documents survive empty uploads and additional documents are appended" do
+    assignment = create_assignment
+    recipient = assignment.recipients.find_by!(student_membership: @student)
+    submission = recipient.create_submission!(body: "Draft")
+    submission.documents.attach(io: file_fixture("assignment.txt").open, filename: "original.txt", content_type: "text/plain")
+    original_blob = submission.documents.first.blob
+    sign_in @student.user
+
+    patch organization_assignment_submission_path(organizations(:one), assignment), params: {
+      assignment_submission: { body: "Revised draft", documents: [ "" ] }
+    }
+    assert_redirected_to organization_assignment_path(organizations(:one), assignment)
+    assert_equal [ original_blob.id ], submission.reload.documents.blobs.ids
+
+    patch organization_assignment_submission_path(organizations(:one), assignment), params: {
+      assignment_submission: { documents: [ "", fixture_file_upload("assignment.txt", "text/plain") ] }
+    }
+    assert_redirected_to organization_assignment_path(organizations(:one), assignment)
+    assert_equal [ "assignment.txt", "original.txt" ], submission.reload.documents.map { |file| file.filename.to_s }.sort
+
+    patch organization_assignment_submission_path(organizations(:one), assignment), params: {
+      assignment_submission: { body: "", documents: [ "" ] }, submit_assignment: "1"
+    }
+    assert_redirected_to organization_assignment_path(organizations(:one), assignment)
+    assert_predicate submission.reload, :submitted?
+    assert_equal 2, submission.documents.count
+
+    patch organization_assignment_submission_path(organizations(:one), assignment), params: {
+      assignment_submission: { documents: [ fixture_file_upload("assignment.txt", "text/plain") ] }
+    }
+    assert_redirected_to root_path
+    assert_equal 2, submission.reload.documents.count
+  end
+
+  test "invalid additional upload leaves saved draft documents intact" do
+    assignment = create_assignment
+    submission = assignment.recipients.find_by!(student_membership: @student).create_submission!(body: "Draft")
+    submission.documents.attach(io: file_fixture("assignment.txt").open, filename: "original.txt", content_type: "text/plain")
+    original_blob_id = submission.documents.first.blob_id
+    sign_in @student.user
+
+    patch organization_assignment_submission_path(organizations(:one), assignment), params: {
+      assignment_submission: { documents: [ fixture_file_upload("sample.mp3", "audio/mpeg") ] }, submit_assignment: "1"
+    }
+    assert_response :unprocessable_entity
+    assert_not submission.reload.submitted?
+    assert_equal [ original_blob_id ], submission.documents.blobs.ids
   end
 
   test "teacher reviews a submission and emails a comment to the student" do

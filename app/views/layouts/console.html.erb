@@ -11,11 +11,12 @@
     <%= javascript_importmap_tags %>
   </head>
   <body>
-    <header class="topbar">
+    <header class="topbar" data-controller="mobile-navigation" data-action="click@document->mobile-navigation#outside keydown.esc@document->mobile-navigation#escape turbo:before-cache@document->mobile-navigation#close">
       <div class="topbar-inner">
-        <div class="actions">
+        <div class="topbar-navigation">
           <%= link_to "LMS Console", console_root_path, class: "brand" %>
-          <nav class="nav">
+          <button type="button" class="navigation-toggle" aria-expanded="false" aria-controls="primary-navigation" data-mobile-navigation-target="toggle" data-action="mobile-navigation#toggle">Menu</button>
+          <nav id="primary-navigation" class="nav" aria-label="Main navigation" data-mobile-navigation-target="menu">
             <%= link_to "Organizations", console_organizations_path, class: "nav-link" %>
             <%= link_to "Users", console_users_path, class: "nav-link" %>
             <%= link_to "Administrators", console_admins_path, class: "nav-link" %>

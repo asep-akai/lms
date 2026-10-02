@@ -71,6 +71,7 @@ class Organizations::QuizzesController < Organizations::BaseController
       )
       redirect_to organization_course_quiz_path(Current.organization, @course, @quiz, from: navigation_source), notice: "Quiz updated."
     else
+      load_editor
       render :edit, status: :unprocessable_entity
     end
   end

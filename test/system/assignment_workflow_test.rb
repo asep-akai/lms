@@ -60,6 +60,7 @@ class AssignmentWorkflowTest < ApplicationSystemTestCase
     assert_text "Assignment submitted."
     assert_text "Submitted work cannot be changed."
     assert_no_field "Written response"
+    assert_link "assignment.txt", count: 2
 
     click_button "Sign out"
     assert_field "Email"
@@ -70,6 +71,7 @@ class AssignmentWorkflowTest < ApplicationSystemTestCase
     end
     within "article", text: "Workflow Student" do
       assert_text "These are my completed observation notes."
+      assert_link "assignment.txt"
       fill_in "Comment to student", with: "Good detail. Add one supporting example next time."
       click_button "Send comment"
     end
