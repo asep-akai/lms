@@ -1,0 +1,24 @@
+#!/usr/bin/env ruby
+require "json"
+require "net/http"
+require "uri"
+
+unit = ARGV.fetch(0, "lms-operations")
+warn "LMS operation failed: #{unit}. Inspect systemd journal; no automatic rollback was attempted."
+endpoint = ENV["LMS_ALERT_URL"].to_s
+abort "No LMS_ALERT_URL configured; failure is recorded locally only." if endpoint.empty?
+begin
+  uri = URI(endpoint)
+rescue URI::InvalidURIError
+  abort "Invalid LMS_ALERT_URL"
+end
+abort "Alert endpoint must use HTTPS" unless uri.is_a?(URI::HTTPS)
+request = Net::HTTP::Post.new(uri)
+request["Content-Type"] = "application/json"
+request.body = JSON.generate(service: unit, status: "failed")
+begin
+  response = Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 5, read_timeout: 10) { |http| http.request(request) }
+  abort "Alert endpoint rejected the notification (HTTP #{response.code})" unless response.is_a?(Net::HTTPSuccess)
+rescue StandardError
+  abort "Could not reach alert endpoint; inspect the service journal."
+end

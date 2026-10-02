@@ -1,0 +1,23 @@
+name: Production image rehearsal
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate production Compose template
+        run: docker compose --env-file .env.production.example -f compose.production.yaml config --quiet
+      - name: Build AMD64 production image without real secrets
+        run: docker build --build-arg BUILD_REVISION="$GITHUB_SHA" -t lms:ci .
+      - name: Verify that incomplete production settings fail closed
+        run: |
+          if docker run --rm lms:ci true; then
+            echo "Production image accepted missing settings"
+            exit 1
+          fi

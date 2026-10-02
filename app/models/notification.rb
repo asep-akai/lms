@@ -13,7 +13,7 @@ class Notification < ApplicationRecord
   validates :kind, inclusion: { in: KINDS }
   validates :title, presence: true, length: { maximum: 180 }
   validates :body, length: { maximum: 500 }, allow_blank: true
-  validates :path, presence: true, format: { with: %r{\A/[^/]} }
+  validates :path, presence: true, format: { with: %r{\A/(?![/\\])[^\r\n\\]+\z} }
   validate :memberships_belong_to_organization
 
   scope :recent, -> { order(created_at: :desc, id: :desc) }

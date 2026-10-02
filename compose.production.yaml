@@ -1,5 +1,11 @@
 name: lms-production
 
+x-logging: &logging
+  driver: local
+  options:
+    max-size: "20m"
+    max-file: "5"
+
 x-app-environment: &app_environment
   RAILS_ENV: production
   APP_HOST: ${APP_HOST:?Set APP_HOST in .env.production}
@@ -8,6 +14,9 @@ x-app-environment: &app_environment
   RAILS_MAX_THREADS: ${RAILS_MAX_THREADS:-3}
   DATABASE_POOL: ${DATABASE_POOL:-5}
   JOB_CONCURRENCY: ${JOB_CONCURRENCY:-1}
+  MAIL_FROM: ${MAIL_FROM:?Set MAIL_FROM to a verified sender}
+  HSTS_ENABLED: ${HSTS_ENABLED:-true}
+  HSTS_SUBDOMAINS: ${HSTS_SUBDOMAINS:-false}
   POSTGRES_HOST: db
   POSTGRES_PORT: 5432
   POSTGRES_USER: ${POSTGRES_USER:-lms}
@@ -22,6 +31,7 @@ x-app-environment: &app_environment
   SMTP_PASSWORD: ${SMTP_PASSWORD:?Set SMTP_PASSWORD in .env.production}
   SMTP_AUTHENTICATION: ${SMTP_AUTHENTICATION:-plain}
   SMTP_ENABLE_STARTTLS_AUTO: ${SMTP_ENABLE_STARTTLS_AUTO:-true}
+  SMTP_SSL: ${SMTP_SSL:-false}
   GEMINI_API_KEY: ${GEMINI_API_KEY:-}
   GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
 
@@ -37,13 +47,17 @@ x-app: &app
     db:
       condition: service_healthy
   restart: unless-stopped
+  init: true
+  logging: *logging
 
 services:
   db:
     image: postgres:18-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-lms}
-      POSTGRES_PASSWORD: ${LMS_DATABASE_PASSWORD:?Set LMS_DATABASE_PASSWORD in .env.production}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:-lms_bootstrap}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Set a separate POSTGRES_ADMIN_PASSWORD}
+      LMS_APP_USER: ${POSTGRES_USER:-lms}
+      LMS_DATABASE_PASSWORD: ${LMS_DATABASE_PASSWORD:?Set LMS_DATABASE_PASSWORD in .env.production}
       POSTGRES_DB: ${POSTGRES_DB:-lms_production}
       POSTGRES_CACHE_DB: ${POSTGRES_CACHE_DB:-lms_production_cache}
       POSTGRES_CABLE_DB: ${POSTGRES_CABLE_DB:-lms_production_cable}
@@ -51,12 +65,13 @@ services:
       - postgres_data:/var/lib/postgresql
       - ./docker/postgres/init-production-databases.sh:/docker-entrypoint-initdb.d/10-init-production-databases.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 10s
     restart: unless-stopped
+    logging: *logging
 
   web:
     <<: *app

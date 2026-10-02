@@ -241,6 +241,24 @@ Each of these has already cost an afternoon.
   `AssociationTypeMismatch`. Console wallet creation and approval both did this
   and could never run.
 
+## Production deployment work
+
+Read `docs/CODEX_DEPLOYMENT.md` before deployment or recovery work. It defines
+the target/approval checklist, secret handling, local rehearsal, remote rollout,
+verification, and stop conditions. `docs/PRE_HOSTING_IMPLEMENTATION.md` records
+the tooling and checks already implemented; the deployment/recovery runbooks
+describe operator procedures. Keep those documents aligned with code changes.
+
+Use `bin/production` for the supported production operations. Never infer
+permission to provision a VPS, publish an image, change DNS, send real mail,
+or replace existing data from a documentation/preparation request. Do not print
+rendered Compose environments or secrets. Existing production volumes require
+a reviewed migration plan; the PostgreSQL initializer is for empty volumes only.
+
+Run test commands sequentially against a shared test database. CI's final seed
+replant can leave data that requires `bin/rails db:test:prepare` before a later
+standalone test run. Never run that command against production credentials.
+
 <!-- antislop:start -->
 ## antislop
 For UI, copy, people, mobile layout, or code comments work, load the antislop skill for the task:

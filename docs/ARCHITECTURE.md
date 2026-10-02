@@ -374,6 +374,16 @@ persistent volumes. Before placing the application on a public VPS, provide:
 - Monitoring, log retention, health checks, and restore testing
 - A production Action Cable path that preserves WebSocket upgrade headers
 
-The local Nginx service proves the reverse-proxy path. The production runbook
-documents the separate HTTP bootstrap and HTTPS configurations required for a
-real domain and certificate.
+The [production runbook](PRODUCTION_DEPLOYMENT.md) documents host preparation,
+HTTP bootstrap, HTTPS and certificate renewal, administrator creation, release
+updates, and launch verification. `MAIL_FROM` supplies both application and
+Devise senders. Fresh production databases separate the PostgreSQL bootstrap
+superuser from the application owner, and the entrypoint validates production
+settings before startup. `bin/production` handles checks, backup/restore, and
+maintenance-window deployments; optional host timers live in `deploy/systemd`. The
+[recovery guide](PRODUCTION_RECOVERY.md) covers consistent backups of databases
+and files, off-server retention, isolated restore drills, and rollback decisions.
+These procedures require operator setup and verification on the chosen VPS.
+The [implementation record](PRE_HOSTING_IMPLEMENTATION.md) tracks preparation
+and testing; the [Codex handoff](CODEX_DEPLOYMENT.md) defines agent deployment
+stages, secret-handling rules, approval boundaries, and stop conditions.

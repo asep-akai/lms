@@ -1,0 +1,10 @@
+[Unit]
+Description=Notify operator about failed LMS unit %i
+
+[Service]
+Type=oneshot
+User=lmsdeploy
+Group=lmsdeploy
+EnvironmentFile=/etc/lms/backup.env
+ExecStart=/srv/lms/bin/production-alert %i
+TimeoutStartSec=30s

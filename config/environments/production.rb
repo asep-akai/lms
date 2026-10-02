@@ -31,7 +31,14 @@ Rails.application.configure do
   config.force_ssl = true
 
   # Skip http-to-https redirect for the default health check endpoint.
-  config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
+  config.ssl_options = {
+    redirect: { exclude: ->(request) { request.path == "/up" } },
+    hsts: ENV.fetch("HSTS_ENABLED", "true") == "true" ? {
+      expires: 1.year,
+      subdomains: ENV.fetch("HSTS_SUBDOMAINS", "false") == "true",
+      preload: false
+    } : false
+  }
 
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [ :request_id ]
@@ -72,7 +79,9 @@ Rails.application.configure do
     user_name: ENV["SMTP_USERNAME"],
     password: ENV["SMTP_PASSWORD"],
     authentication: ENV.fetch("SMTP_AUTHENTICATION", "plain"),
-    enable_starttls_auto: ENV.fetch("SMTP_ENABLE_STARTTLS_AUTO", "true") == "true"
+    enable_starttls: ENV.fetch("SMTP_ENABLE_STARTTLS_AUTO", "true") == "true",
+    enable_starttls_auto: ENV.fetch("SMTP_ENABLE_STARTTLS_AUTO", "true") == "true",
+    ssl: ENV.fetch("SMTP_SSL", "false") == "true"
   }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to

@@ -1,0 +1,13 @@
+[Unit]
+Description=LMS internal database and worker health check
+After=docker.service
+OnFailure=lms-ops-alert@%n.service
+
+[Service]
+Type=oneshot
+User=lmsdeploy
+Group=lmsdeploy
+WorkingDirectory=/srv/lms
+EnvironmentFile=/etc/lms/backup.env
+ExecStart=/srv/lms/bin/production monitor
+TimeoutStartSec=3min

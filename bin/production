@@ -1,0 +1,15 @@
+#!/usr/bin/env ruby
+require_relative "../lib/production_operations"
+
+begin
+  ProductionOperations.new.run(ARGV)
+rescue ProductionOperations::Failure, ArgumentError => error
+  warn error.message
+  exit 1
+rescue JSON::ParserError
+  warn "Invalid configuration response or backup metadata; no raw secret-bearing content will be printed."
+  exit 1
+rescue SystemCallError => error
+  warn "Operating-system error during deployment operation: #{error.class}. Check paths, permissions, and service state."
+  exit 1
+end

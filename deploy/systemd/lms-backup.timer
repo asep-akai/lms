@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily LMS backup window (WIB)
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 Asia/Jakarta
+Persistent=true
+Unit=lms-backup.service
+
+[Install]
+WantedBy=timers.target

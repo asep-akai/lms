@@ -165,6 +165,7 @@ class ClassMeetingsTest < ActionDispatch::IntegrationTest
   end
 
   test "student calendar shows assigned classes and opens a scoped day modal" do
+    travel_to Time.zone.local(2026, 9, 1)
     meeting = create_meeting
     sign_in @student.user
 

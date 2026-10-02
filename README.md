@@ -32,6 +32,9 @@ no separate React application or public API.
 - [User quick start](docs/USER_QUICKSTART.md)
 - [Architecture and repository structure](docs/ARCHITECTURE.md)
 - [Production deployment with Nginx](docs/PRODUCTION_DEPLOYMENT.md)
+- [Production backups, restore drills, and rollback](docs/PRODUCTION_RECOVERY.md)
+- [Pre-hosting implementation and operator commands](docs/PRE_HOSTING_IMPLEMENTATION.md)
+- [Deployment handoff for Codex agents](docs/CODEX_DEPLOYMENT.md)
 - [Repository conventions](AGENTS.md)
 
 ## Start the application with Docker
@@ -167,5 +170,12 @@ The development Compose file is not a production deployment definition. The
 repository includes a separate production Compose template, host-level Nginx
 templates, persistent PostgreSQL and Active Storage volumes, and environment
 placeholders. Follow the [production deployment runbook](docs/PRODUCTION_DEPLOYMENT.md)
-before exposing the application. A real deployment still needs DNS, TLS
-issuance, protected secrets, backups, SMTP delivery, and monitoring.
+before exposing the application. It covers host preparation, secrets, Nginx/TLS
+renewal, administrator creation, updates, and launch checks. Production now has
+configurable senders, startup validation, a separate non-superuser application
+database role on fresh volumes, and rotating logs. `bin/production` provides
+preflight, health, administrator bootstrap, backup, fresh-project restore, and
+deployment commands. The [implementation record](docs/PRE_HOSTING_IMPLEMENTATION.md)
+explains each step and the optional restic/systemd templates. Operators must
+still supply real services/secrets, install schedules, and verify the VPS;
+checking out the repository does not provision infrastructure.
