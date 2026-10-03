@@ -16,6 +16,17 @@ class ConsoleAccessTest < ActionDispatch::IntegrationTest
     assert_select "meta[name='turbo-cache-control'][content='no-cache']", count: 1
   end
 
+  test "successful console login redirects to the console dashboard" do
+    post admin_session_path, params: {
+      admin: { email: admins(:one).email, password: "password" }
+    }
+
+    assert_redirected_to console_root_path
+    follow_redirect!
+    assert_response :success
+    assert_select "h1", "Console"
+  end
+
   test "stale console login token returns a fresh form instead of crashing" do
     previous_setting = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true

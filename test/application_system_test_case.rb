@@ -10,6 +10,9 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     options.add_argument("--disable-dev-shm-usage")
   end
 
-  setup { page.current_window.resize_to(*STANDARD_SCREEN_SIZE) }
+  setup do
+    Capybara.reset_sessions!
+    page.current_window.resize_to(*STANDARD_SCREEN_SIZE)
+  end
   teardown { page.current_window.resize_to(*STANDARD_SCREEN_SIZE) }
 end

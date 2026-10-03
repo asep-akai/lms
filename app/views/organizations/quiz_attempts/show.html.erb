@@ -3,7 +3,7 @@
 <% next_question = current_index < @questions.size - 1 ? @questions[current_index + 1] : nil %>
 <% timer_data = @attempt.expires_at? ? {
   controller: "quiz-timer",
-  quiz_timer_expires_at_value: @attempt.expires_at.iso8601,
+  quiz_timer_expires_at_value: @attempt.expires_at.iso8601(3),
   quiz_timer_form_id_value: "quiz-answer-form"
 } : {} %>
 

@@ -51,7 +51,7 @@ class QuizAttemptLimitsTest < ActionDispatch::IntegrationTest
       assert_response :success
       attempt = QuizAttempt.find_by!(quiz: @quiz, membership: @student)
       assert_equal Time.current + 30.minutes, attempt.expires_at
-      assert_select "[data-controller='quiz-timer'][data-quiz-timer-expires-at-value='#{attempt.expires_at.iso8601}']"
+      assert_select "[data-controller='quiz-timer'][data-quiz-timer-expires-at-value='#{attempt.expires_at.iso8601(3)}']"
 
       patch organization_course_quiz_attempt_answer_path(organizations(:one), @course, @quiz, question_id: @question.id), params: {
         quiz_attempt_id: attempt.id,
