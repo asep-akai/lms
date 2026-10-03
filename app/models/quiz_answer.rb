@@ -1,30 +1,20 @@
 class QuizAnswer < ApplicationRecord
-  GEMINI_AUDIO_TYPES = %w[
+  OPENAI_AUDIO_TYPES = %w[
     audio/wav
     audio/mp3
-    audio/aiff
-    audio/aac
-    audio/ogg
-    audio/flac
     audio/mpeg
     audio/m4a
-    audio/l16
-    audio/opus
-    audio/alaw
-    audio/mulaw
     audio/webm
   ].freeze
   AUDIO_TYPE_ALIASES = {
     "audio/x-wav" => "audio/wav",
-    "audio/x-aiff" => "audio/aiff",
     "audio/x-m4a" => "audio/m4a",
     "audio/mp4" => "audio/m4a",
     "video/mp4" => "audio/m4a",
-    "application/ogg" => "audio/ogg",
     "video/webm" => "audio/webm"
   }.freeze
-  ALLOWED_AUDIO_TYPES = (GEMINI_AUDIO_TYPES + AUDIO_TYPE_ALIASES.keys).freeze
-  MAX_AUDIO_SIZE = 100.megabytes
+  ALLOWED_AUDIO_TYPES = (OPENAI_AUDIO_TYPES + AUDIO_TYPE_ALIASES.keys).freeze
+  MAX_AUDIO_SIZE = 25.megabytes
 
   belongs_to :quiz_attempt, inverse_of: :answers
   belongs_to :quiz_question
@@ -38,7 +28,7 @@ class QuizAnswer < ApplicationRecord
   validate :audio_response_is_supported
   validates :short_answer_response, length: { maximum: 50_000 }, allow_nil: true
 
-  def gemini_audio_content_type
+  def ai_audio_content_type
     AUDIO_TYPE_ALIASES.fetch(audio_response.blob.content_type, audio_response.blob.content_type) if audio_response.attached?
   end
 
@@ -156,7 +146,7 @@ class QuizAnswer < ApplicationRecord
     def audio_response_is_supported
       return unless audio_response.attached?
 
-      errors.add(:audio_response, "must use a Gemini-compatible audio format") unless audio_response.blob.content_type.in?(ALLOWED_AUDIO_TYPES)
-      errors.add(:audio_response, "must be 100 MB or smaller") if audio_response.blob.byte_size > MAX_AUDIO_SIZE
+      errors.add(:audio_response, "must use an AI-compatible audio format") unless audio_response.blob.content_type.in?(ALLOWED_AUDIO_TYPES)
+      errors.add(:audio_response, "must be 25 MB or smaller") if audio_response.blob.byte_size > MAX_AUDIO_SIZE
     end
 end

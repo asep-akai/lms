@@ -18,7 +18,7 @@ Before any remote mutation, obtain or confirm:
 - Public hostname, DNS owner, and who may change DNS records.
 - Whether this is a fresh installation or an existing production stack.
 - Approved maintenance window in WIB, service impact, and operator contact.
-- Secret delivery method, verified email sender/provider, optional Gemini use.
+- Secret delivery method, verified email sender/provider, optional OpenAI use.
 - Off-server backup destination, encryption-key custody, and recovery targets.
 - Whether the user authorized installation, certificate issuance, container
   startup, database migration, and public cutover, or only preparation/review.

@@ -25,7 +25,7 @@ Puma / Rails web:3000
   |                         |
   |                         +--> Current tenant and membership context
   |
-  +--> Services --> Gemini API, PDF rendering, notifications, and mail
+  +--> Services --> OpenAI API, PDF rendering, notifications, and mail
   |
   +--> Active Job --> Solid Queue worker --> PostgreSQL
   |
@@ -171,7 +171,7 @@ feature they support.
 `QuizAttemptStarter` starts or resumes attempts and enforces retake rules.
 `QuizAttemptTimeoutJob` submits timed-out attempts even when the student has
 left the page. `QuizAttemptGrader` calculates deterministic results from stored
-answer keys. `QuizAttemptPerformanceAnalyzer` coordinates Gemini analysis while
+answer keys. `QuizAttemptPerformanceAnalyzer` coordinates OpenAI analysis while
 keeping its draft unpublished until an authorized reviewer confirms it.
 
 Certificate generation is split into a builder, generator, and PDF renderer so
@@ -248,7 +248,7 @@ narrowly scoped Stimulus controller rather than an inline script.
 - Solid Queue stores and executes jobs through PostgreSQL.
 - Solid Cache is the production cache store.
 - Solid Cable is the production Action Cable adapter.
-- Gemini is wrapped by `Ai::GeminiClient`; configuration and provider errors
+- OpenAI is wrapped by `Ai::OpenaiClient`; configuration and provider errors
   have application-specific error classes.
 - Prawn generates certificate PDFs through the certificate service boundary.
 - `ApiTransport` normalizes HTTP timeouts, connection failures, and JSON API

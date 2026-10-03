@@ -59,7 +59,7 @@ Rails container through Thruster :80
   +--> Solid Queue worker container
   +--> Active Storage volume
   +--> SMTP provider
-  +--> Gemini API when configured
+  +--> OpenAI API when configured
 ```
 
 Only Nginx is public. The production Compose file publishes the application on
@@ -83,7 +83,7 @@ The following are requirements, not claims that the repository implements them:
 | Database privileges | Fresh volumes create a separate bootstrap administrator and non-superuser application owner. Supply different passwords. Existing volumes need a reviewed migration/restore plan; initialization does not run again. |
 | Recovery | Choose recovery targets, configure the restic destination and checked-in backup timer, and complete the [restore drill](PRODUCTION_RECOVERY.md). Templates exist, but no remote storage or scheduler is installed automatically. |
 | Host access | A named operator needs SSH key access, sudo, and a tested provider recovery console. |
-| Public services | Supply a domain, DNS control, SMTP account, and optionally a Gemini key. |
+| Public services | Supply a domain, DNS control, SMTP account, and optionally an OpenAI API key. |
 | Nginx | The checked-in HTTPS template requires Nginx 1.25.1+ with the HTTP/2 module. See the compatibility instructions below. |
 
 In the database container, `POSTGRES_USER` is the bootstrap administrator and
@@ -200,7 +200,7 @@ particular, change:
 - `MAIL_FROM` (verified with the SMTP provider)
 - SMTP host and credentials
 - `LMS_IMAGE` when using a container registry
-- `GEMINI_API_KEY` when AI-assisted grading is enabled
+- `OPENAI_API_KEY` when AI-assisted grading is enabled
 
 `APP_HOST` must be a hostname only, without `https://`, a port, or a path.
 Use the master key that matches the repository's encrypted credentials.
@@ -559,7 +559,7 @@ and significant updates. `/up` confirms application boot, not every dependency.
 - [ ] Jobs process queued work; recurring recovery work is scheduled and failures
       are visible to an operator. Test with controlled data, not real students.
 - [ ] A timed quiz can resume and expire correctly; UI/email dates show WIB.
-- [ ] If enabled, Gemini analysis completes or reports an actionable error.
+- [ ] If enabled, OpenAI analysis completes or reports an actionable error.
 - [ ] A planned container restart preserves data and uploaded files.
 - [ ] Renewal test and isolated backup restore drill pass.
 - [ ] All launch blockers above have an owner and are resolved before real use.

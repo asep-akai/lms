@@ -9,7 +9,7 @@ class QuizAttemptPerformanceAnalyzerTest < ActiveSupport::TestCase
       @prompt = JSON.parse(prompt)
       @schema = schema
       @media = media
-      Ai::GeminiClient::Response.new(
+      Ai::OpenaiClient::Response.new(
         data: {
           "performance_analysis" => "Strong overall result.",
           "strengths" => "Accurate recall.",
@@ -19,7 +19,7 @@ class QuizAttemptPerformanceAnalyzerTest < ActiveSupport::TestCase
           "transcriptions" => transcriptions,
           "reviews" => reviews
         },
-        model: "gemini-test",
+        model: "openai-test",
         response_id: "response-123"
       )
     end
@@ -141,7 +141,7 @@ class QuizAttemptPerformanceAnalyzerTest < ActiveSupport::TestCase
     attempt = QuizAttempt.create!(quiz: quiz, membership: membership, started_at: Time.current, last_activity_at: Time.current, submitted_at: Time.current)
     attempt.answers.create!(quiz_question: question, short_answer_response: "A reflective response.")
     client = FakeClient.new
-    client.manual_grades = [ { "question_id" => question.id, "correct" => true, "rationale" => "Gemini incorrectly scored feedback-only work." } ]
+    client.manual_grades = [ { "question_id" => question.id, "correct" => true, "rationale" => "AI incorrectly scored feedback-only work." } ]
     client.reviews = [ { "question_id" => question.id, "text" => "Connect the reflection to a specific example." } ]
 
     analysis = QuizAttemptPerformanceAnalyzer.call(attempt, client: client)

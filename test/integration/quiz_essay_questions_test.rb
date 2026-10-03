@@ -155,18 +155,19 @@ class QuizEssayQuestionsTest < ActionDispatch::IntegrationTest
     attempt.answers.create!(quiz_question: question, short_answer_response: "There are costs on both sides.")
 
     sign_in users(:one)
-    previous_api_key = ENV["GEMINI_API_KEY"]
-    previous_model = ENV["GEMINI_MODEL"]
-    ENV["GEMINI_API_KEY"] = "test-key"
-    ENV["GEMINI_MODEL"] = "gemini-test"
-    request = stub_request(:post, "https://generativelanguage.googleapis.com/v1beta/models/gemini-test:generateContent")
+    previous_api_key = ENV["OPENAI_API_KEY"]
+    previous_model = ENV["OPENAI_MODEL"]
+    ENV["OPENAI_API_KEY"] = "test-key"
+    ENV["OPENAI_MODEL"] = "openai-test"
+    request = stub_request(:post, "https://api.openai.com/v1/responses")
       .to_return(
         status: 200,
         headers: { "Content-Type" => "application/json" },
         body: {
-          responseId: "response-essay",
-          candidates: [ {
-            content: { parts: [ { text: {
+          id: "response-essay",
+          output: [ {
+            type: "message",
+            content: [ { type: "output_text", text: {
               performance_analysis: "The response addresses the tradeoff.",
               strengths: "Recognizes both sides.",
               weaknesses: "Needs more evidence.",
@@ -174,15 +175,15 @@ class QuizEssayQuestionsTest < ActionDispatch::IntegrationTest
               grades: [ { question_id: question.id, correct: true, rationale: "The response answers the prompt." } ],
               transcriptions: [],
               reviews: [ { question_id: question.id, text: "Explain the costs on each side with a concrete example." } ]
-            }.to_json } ] }
+            }.to_json } ]
           } ]
         }.to_json
       )
     begin
       post organization_automatic_grade_attempt_path(@organization, attempt)
     ensure
-      ENV["GEMINI_API_KEY"] = previous_api_key
-      ENV["GEMINI_MODEL"] = previous_model
+      ENV["OPENAI_API_KEY"] = previous_api_key
+      ENV["OPENAI_MODEL"] = previous_model
     end
     assert_redirected_to organization_grading_attempt_path(@organization, attempt)
     assert_requested request

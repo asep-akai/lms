@@ -46,7 +46,7 @@
       <p class="hint">Put each expected answer in double brackets. Students see an inline answer box in each position; the expected answers are never sent to their quiz page.</p>
     </div>
     <div data-question-editor-target="essay" <%= "hidden" unless question.essay? %>><p class="rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-900">Essay responses can remain unscored, be scored manually, or receive an AI-assisted draft score for reviewer confirmation.</p></div>
-    <div data-question-editor-target="audio" <%= "hidden" unless question.audio? %>><p class="rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-900">Students can record one response or upload one Gemini-compatible audio file. Responses can remain unscored, be scored manually, or receive an AI-assisted draft score.</p></div>
+    <div data-question-editor-target="audio" <%= "hidden" unless question.audio? %>><p class="rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-900">Students can record one response or upload one AI-compatible audio file. Responses can remain unscored, be scored manually, or receive an AI-assisted draft score.</p></div>
     <div data-question-editor-target="scoring" <%= "hidden" unless question.manual_grading? %>>
       <%= form.label :scoring_mode, "Result treatment", class: "label" %>
       <%= form.select :scoring_mode,

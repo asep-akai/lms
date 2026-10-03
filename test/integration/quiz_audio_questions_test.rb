@@ -68,7 +68,7 @@ class QuizAudioQuestionsTest < ActionDispatch::IntegrationTest
     attempt = @membership.quiz_attempts.find_by!(quiz: @quiz)
     answer = attempt.answers.find_by!(quiz_question: question)
     assert_predicate answer.audio_response, :attached?
-    assert_equal "audio/mpeg", answer.gemini_audio_content_type
+    assert_equal "audio/mpeg", answer.ai_audio_content_type
     assert_equal 1, answer.audio_response.attachments.count
 
     get attempt_organization_course_quiz_path(@organization, @course, @quiz, attempt_id: attempt.id)
@@ -100,7 +100,7 @@ class QuizAudioQuestionsTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :unprocessable_entity
-    assert_select ".field-error", text: /Gemini-compatible audio format/
+    assert_select ".field-error", text: /AI-compatible audio format/
     assert_not @membership.quiz_attempts.find_by!(quiz: @quiz).answers.exists?(quiz_question: question)
   end
 
@@ -165,18 +165,23 @@ class QuizAudioQuestionsTest < ActionDispatch::IntegrationTest
     answer.save!
 
     sign_in users(:one)
-    previous_api_key = ENV["GEMINI_API_KEY"]
-    previous_model = ENV["GEMINI_MODEL"]
-    ENV["GEMINI_API_KEY"] = "test-key"
-    ENV["GEMINI_MODEL"] = "gemini-test"
-    request = stub_request(:post, "https://generativelanguage.googleapis.com/v1beta/models/gemini-test:generateContent")
+    previous_api_key = ENV["OPENAI_API_KEY"]
+    previous_model = ENV["OPENAI_MODEL"]
+    previous_transcription_model = ENV["OPENAI_TRANSCRIPTION_MODEL"]
+    ENV["OPENAI_API_KEY"] = "test-key"
+    ENV["OPENAI_MODEL"] = "openai-test"
+    ENV["OPENAI_TRANSCRIPTION_MODEL"] = "transcribe-test"
+    transcription_request = stub_request(:post, "https://api.openai.com/v1/audio/transcriptions")
+      .to_return(status: 200, headers: { "Content-Type" => "application/json" }, body: { text: "This is the student's spoken response." }.to_json)
+    request = stub_request(:post, "https://api.openai.com/v1/responses")
       .to_return(
         status: 200,
         headers: { "Content-Type" => "application/json" },
         body: {
-          responseId: "response-audio",
-          candidates: [ {
-            content: { parts: [ { text: {
+          id: "response-audio",
+          output: [ {
+            type: "message",
+            content: [ { type: "output_text", text: {
               performance_analysis: "The spoken response is clear.",
               strengths: "Clear delivery.",
               weaknesses: "Could include more detail.",
@@ -184,7 +189,7 @@ class QuizAudioQuestionsTest < ActionDispatch::IntegrationTest
               grades: [],
               transcriptions: [ { question_id: question.id, text: "This is the student's spoken response." } ],
               reviews: []
-            }.to_json } ] }
+            }.to_json } ]
           } ]
         }.to_json
       )
@@ -192,15 +197,17 @@ class QuizAudioQuestionsTest < ActionDispatch::IntegrationTest
     begin
       post organization_automatic_grade_attempt_path(@organization, attempt)
     ensure
-      ENV["GEMINI_API_KEY"] = previous_api_key
-      ENV["GEMINI_MODEL"] = previous_model
+      ENV["OPENAI_API_KEY"] = previous_api_key
+      ENV["OPENAI_MODEL"] = previous_model
+      ENV["OPENAI_TRANSCRIPTION_MODEL"] = previous_transcription_model
     end
 
     assert_redirected_to organization_grading_attempt_path(@organization, attempt)
+    assert_requested transcription_request
     assert_requested request
     transcription = attempt.answer_ai_transcriptions.find_by!(quiz_question: question)
     assert_equal "This is the student's spoken response.", transcription.transcript
-    assert_equal "gemini-test", transcription.model
+    assert_equal "openai-test", transcription.model
 
     get organization_grading_attempt_path(@organization, attempt)
     assert_response :success

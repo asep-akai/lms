@@ -73,13 +73,13 @@ class QuizAttemptPerformanceAnalyzer
     exists, together with relevant shared page text and labelled page images as supporting source material.
     When the question is empty, use the shared page content as the task. Read page images when supplied.
     If neither question nor usable page content supplies a subject-matter target, judge the response on
-    relevant language quality: clarity, coherence, grammar, vocabulary, and completeness. For audio, also
-    consider intelligibility and spoken delivery. Do not penalize accent.
+    relevant language quality: clarity, coherence, grammar, vocabulary, and completeness. For audio, evaluate
+    the supplied faithful transcript and do not infer delivery qualities that are unavailable from the transcript.
     An unanswered response is incorrect. Keep each rationale concise and evidence-based. Do not identify
     the student. All scores remain a draft for human confirmation.
   TEXT
 
-  def self.call(attempt, client: Ai::GeminiClient.new)
+  def self.call(attempt, client: Ai::OpenaiClient.new)
     new(attempt, client:).call
   end
 
@@ -193,7 +193,7 @@ class QuizAttemptPerformanceAnalyzer
         questions = attempt.quiz.questions.select(&:manual_grading?)
         page_images = questions.flat_map { |question| page_image_blocks(question.quiz_page) }.uniq(&:id).map do |block|
           blob = block.image.blob
-          Ai::GeminiClient::Media.new(
+          Ai::OpenaiClient::Media.new(
             label: page_image_label(block),
             mime_type: blob.content_type,
             data: blob.download,
@@ -206,9 +206,9 @@ class QuizAttemptPerformanceAnalyzer
           next unless question.audio? && answer&.audio_response&.attached?
 
           blob = answer.audio_response.blob
-          Ai::GeminiClient::Media.new(
+          Ai::OpenaiClient::Media.new(
             label: audio_label(question),
-            mime_type: answer.gemini_audio_content_type,
+            mime_type: answer.ai_audio_content_type,
             data: blob.download,
             display_name: blob.filename.to_s
           )
@@ -229,12 +229,12 @@ class QuizAttemptPerformanceAnalyzer
           rationale: required_text(grade, "rationale")
         )
       rescue ArgumentError, TypeError, KeyError
-        raise Ai::ProviderError, "Gemini returned an invalid essay or audio grade. Please try again."
+        raise Ai::ProviderError, "OpenAI returned an invalid essay or audio grade. Please try again."
       end
       grades = returned_grades.select { |grade| expected_ids.include?(grade.question_id) }
       returned_ids = grades.map(&:question_id)
       if returned_ids.sort != expected_ids || returned_ids.uniq.size != returned_ids.size
-        raise Ai::ProviderError, "Gemini did not grade every essay and audio question exactly once. Please try again."
+        raise Ai::ProviderError, "OpenAI did not grade every essay and audio question exactly once. Please try again."
       end
 
       grades
@@ -248,11 +248,11 @@ class QuizAttemptPerformanceAnalyzer
           text: required_text(transcription, "text")
         )
       rescue ArgumentError, TypeError, KeyError
-        raise Ai::ProviderError, "Gemini returned an invalid audio transcription. Please try again."
+        raise Ai::ProviderError, "OpenAI returned an invalid audio transcription. Please try again."
       end
       returned_ids = transcriptions.map(&:question_id)
       if returned_ids.sort != expected_ids || returned_ids.uniq.size != returned_ids.size
-        raise Ai::ProviderError, "Gemini did not transcribe every audio response exactly once. Please try again."
+        raise Ai::ProviderError, "OpenAI did not transcribe every audio response exactly once. Please try again."
       end
 
       transcriptions
@@ -266,10 +266,10 @@ class QuizAttemptPerformanceAnalyzer
 
         Review.new(question_id:, text: required_text(review, "text"))
       rescue ArgumentError, TypeError, KeyError
-        raise Ai::ProviderError, "Gemini returned an invalid essay review. Please try again."
+        raise Ai::ProviderError, "OpenAI returned an invalid essay review. Please try again."
       end
       if reviews.map(&:question_id).uniq.size != reviews.size
-        raise Ai::ProviderError, "Gemini returned more than one review for an essay question. Please try again."
+        raise Ai::ProviderError, "OpenAI returned more than one review for an essay question. Please try again."
       end
 
       reviews
@@ -293,7 +293,7 @@ class QuizAttemptPerformanceAnalyzer
 
     def required_text(data, key)
       value = data[key].to_s.strip
-      raise Ai::ProviderError, "Gemini omitted #{key.humanize.downcase}. Please try again." if value.blank?
+      raise Ai::ProviderError, "OpenAI omitted #{key.humanize.downcase}. Please try again." if value.blank?
 
       value
     end
@@ -302,6 +302,6 @@ class QuizAttemptPerformanceAnalyzer
       value = data.fetch(key)
       return value if value == true || value == false
 
-      raise Ai::ProviderError, "Gemini returned an invalid #{key.humanize.downcase}. Please try again."
+      raise Ai::ProviderError, "OpenAI returned an invalid #{key.humanize.downcase}. Please try again."
     end
 end

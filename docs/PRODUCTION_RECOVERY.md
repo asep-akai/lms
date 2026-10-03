@@ -174,7 +174,7 @@ or repeat external actions.
    change the production major-version tag as an upgrade strategy.
 3. Copy the environment securely to `.env.restore`, mode 600. Preserve the
    credentials key and database identity needed by the data, but replace SMTP
-   credentials/address with an isolated mail sink, clear the Gemini key, and
+   credentials/address with an isolated mail sink, clear the OpenAI key, and
    use a test hostname. Keep required SMTP variables nonempty. Block outbound
    delivery/API traffic at the rehearsal network boundary as a second guard.
 4. Keep jobs stopped. Use a distinct project name and port. On the isolated

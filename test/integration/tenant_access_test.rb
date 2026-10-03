@@ -333,33 +333,32 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     assert_select "button", text: "Automatic grading"
     assert_select "form[data-controller='blocking-submit'][data-action*='turbo:submit-start']"
 
-    previous_api_key = ENV["GEMINI_API_KEY"]
-    previous_model = ENV["GEMINI_MODEL"]
-    ENV["GEMINI_API_KEY"] = "test-key"
-    ENV["GEMINI_MODEL"] = "gemini-test"
-    request = stub_request(:post, "https://generativelanguage.googleapis.com/v1beta/models/gemini-test:generateContent")
+    previous_api_key = ENV["OPENAI_API_KEY"]
+    previous_model = ENV["OPENAI_MODEL"]
+    ENV["OPENAI_API_KEY"] = "test-key"
+    ENV["OPENAI_MODEL"] = "openai-test"
+    request = stub_request(:post, "https://api.openai.com/v1/responses")
       .to_return(
         status: 200,
         headers: { "Content-Type" => "application/json" },
         body: {
-          responseId: "response-123",
-          candidates: [ {
-            content: {
-              parts: [ { text: {
+          id: "response-123",
+          output: [ {
+            type: "message",
+            content: [ { type: "output_text", text: {
                 performance_analysis: "The answer demonstrates sound recall.",
                 strengths: "Correctly identified the organelle.",
                 weaknesses: "The response does not explain its function.",
                 recommendations: "Review how mitochondria produce energy."
               }.to_json } ]
-            }
           } ]
         }.to_json
       )
     begin
       post organization_automatic_grade_attempt_path(organizations(:one), attempt)
     ensure
-      ENV["GEMINI_API_KEY"] = previous_api_key
-      ENV["GEMINI_MODEL"] = previous_model
+      ENV["OPENAI_API_KEY"] = previous_api_key
+      ENV["OPENAI_MODEL"] = previous_model
     end
 
     assert_redirected_to organization_grading_attempt_path(organizations(:one), attempt)

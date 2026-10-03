@@ -109,7 +109,7 @@ are:
 - PostgreSQL database name and credentials
 - Development seed account names, email addresses, and passwords
 - Mailpit SMTP host and port
-- `GEMINI_API_KEY` and `GEMINI_MODEL` for AI-assisted quiz analysis
+- `OPENAI_API_KEY`, `OPENAI_MODEL`, and `OPENAI_TRANSCRIPTION_MODEL` for AI-assisted quiz analysis
 - Default organization name, slug, and locale
 
 After changing `.env`, recreate the application containers so Compose passes

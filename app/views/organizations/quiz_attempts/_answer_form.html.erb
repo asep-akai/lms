@@ -41,7 +41,7 @@
         </div>
       </fieldset>
     <% elsif question.audio? %>
-      <% accepted_audio = ".wav,.mp3,.aiff,.aif,.aac,.ogg,.oga,.flac,.m4a,.opus,.webm" %>
+      <% accepted_audio = ".wav,.mp3,.mp4,.mpeg,.mpga,.m4a,.webm" %>
       <% saved_audio = answer.audio_response.attachment&.persisted? %>
       <div class="space-y-5" data-controller="audio-recorder audio-playback">
         <div>
@@ -73,7 +73,7 @@
             accept: accepted_audio,
             class: "field",
             data: { audio_recorder_target: "input", action: "change->audio-recorder#fileSelected" } %>
-          <p class="hint">WAV, MP3, AIFF, AAC, OGG, FLAC, M4A, Opus, or WebM. Maximum 100 MB.</p>
+          <p class="hint">WAV, MP3, MP4, MPEG, M4A, or WebM. Maximum 25 MB.</p>
         </div>
       </div>
     <% elsif question.essay? %>

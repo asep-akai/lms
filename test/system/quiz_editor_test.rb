@@ -47,7 +47,7 @@ class QuizEditorTest < ApplicationSystemTestCase
     attempt = QuizAttempt.create!(quiz: quiz, membership: membership, started_at: Time.current, last_activity_at: Time.current)
     answer = attempt.answers.build(quiz_question: question)
     answer.audio_response.attach(io: StringIO.new("unsupported test audio"), filename: "response.aiff", content_type: "audio/aiff", identify: false)
-    answer.save!
+    answer.save!(validate: false)
 
     visit new_user_session_path
     fill_in "Email", with: users(:two).email
@@ -134,7 +134,7 @@ class QuizEditorTest < ApplicationSystemTestCase
     answer = membership.quiz_attempts.find_by!(quiz: quiz).answers.find_by!(quiz_question: question)
     assert_predicate answer.audio_response, :attached?
     assert_equal "m4a", answer.audio_response.filename.extension
-    assert_equal "audio/m4a", answer.gemini_audio_content_type
+    assert_equal "audio/m4a", answer.ai_audio_content_type
   end
 
   test "essay word counter initializes from a saved response and updates while typing" do

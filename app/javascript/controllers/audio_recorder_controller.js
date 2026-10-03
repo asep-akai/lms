@@ -24,7 +24,7 @@ export default class extends Controller {
 
     const mimeType = this.supportedMimeType()
     if (!mimeType) {
-      this.showError("This browser cannot record a Gemini-compatible format. Upload a compatible audio file instead.")
+      this.showError("This browser cannot record an AI-compatible format. Upload a compatible audio file instead.")
       return
     }
 

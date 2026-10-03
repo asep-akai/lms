@@ -95,7 +95,7 @@ class QuizAttemptGraderTest < ActiveSupport::TestCase
     question = quiz.questions.create!(question_type: "essay", scoring_mode: "scored", content_html: "<p>Explain your reasoning.</p>", position: 1)
     attempt = QuizAttempt.create!(quiz: quiz, membership: membership, started_at: Time.current, last_activity_at: Time.current, submitted_at: Time.current)
     attempt.answers.create!(quiz_question: question, short_answer_response: "A detailed response.")
-    attempt.answer_ai_grades.create!(quiz_question: question, correct: true, rationale: "The response fulfills the prompt.", model: "gemini-test")
+    attempt.answer_ai_grades.create!(quiz_question: question, correct: true, rationale: "The response fulfills the prompt.", model: "openai-test")
 
     grading = QuizAttemptGrader.new(attempt)
     assert grading.results.first.correct

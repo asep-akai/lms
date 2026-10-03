@@ -67,7 +67,7 @@ Use unique backup destinations with existing parent directories outside the
 checkout. `check` validates settings and inspects the selected local image;
 build/pull it first. `verify` checks credentials decryption, database access,
 application role privileges, worker heartbeats, and failed jobs. It does not
-send mail or call Gemini. `bootstrap-admin` reads secrets interactively.
+send mail or call OpenAI. `bootstrap-admin` reads secrets interactively.
 
 Backup stops web/jobs, dumps all databases, archives storage, writes checksums
 and running-image metadata, and resumes the services that were running. It
