@@ -22,7 +22,7 @@
       <header class="topbar" data-controller="mobile-navigation" data-action="click@document->mobile-navigation#outside keydown.esc@document->mobile-navigation#escape turbo:before-cache@document->mobile-navigation#close">
         <div class="topbar-inner">
           <div class="topbar-navigation">
-            <%= link_to "LMS", root_path, class: "brand" %>
+            <%= link_to "LMS", user_root_path, class: "brand" %>
             <% if current_organization %>
               <button type="button" class="navigation-toggle" aria-expanded="false" aria-controls="primary-navigation" data-mobile-navigation-target="toggle" data-action="mobile-navigation#toggle">Menu</button>
               <nav id="primary-navigation" class="nav" aria-label="Main navigation" data-mobile-navigation-target="menu">

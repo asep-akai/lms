@@ -1,0 +1,9 @@
+<% uploaded = website_uploaded_preview(section) %>
+<% preview = uploaded.presence || website_illustration_previews[section.illustration] %>
+<figure class="website-image-preview">
+  <figcaption class="label">Section image preview</figcaption>
+  <p class="hint" data-website-image-preview-target="label"><%= preview ? preview.fetch(:label) : "No image selected. This section will be text-only." %></p>
+  <%= tag.img src: preview&.fetch(:src), alt: preview ? preview.fetch(:alt) : "", hidden: preview.nil?, data: { website_image_preview_target: "image", action: "load->website-image-preview#loaded error->website-image-preview#failed" } %>
+  <p class="hint" role="status" data-website-image-preview-target="status"></p>
+  <p class="hint">Preview of your selection. Save the section to update the draft; publish to update the live page.</p>
+</figure>

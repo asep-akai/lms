@@ -1,5 +1,16 @@
 class AuditEventPresenter
   ACTION_LABELS = {
+    "website.navigation_created" => "Added website navigation link",
+    "website.navigation_updated" => "Updated website navigation link",
+    "website.navigation_deleted" => "Removed website navigation link",
+    "website.navigation_reordered" => "Reordered website navigation links",
+    "website.updated" => "Updated website draft settings",
+    "website.published" => "Published website",
+    "website.unpublished" => "Unpublished website",
+    "website.section_created" => "Added website section",
+    "website.section_updated" => "Updated website section",
+    "website.section_deleted" => "Removed website section",
+    "website.section_reordered" => "Reordered website section",
     "organization.created" => "Created organization",
     "organization.updated" => "Updated organization settings",
     "membership.created" => "Added organization member",
@@ -59,6 +70,7 @@ class AuditEventPresenter
   }.freeze
 
   TYPE_LABELS = {
+    "LandingPage" => "Public website",
     "Admin" => "Console administrator",
     "ClassMeeting" => "Class meeting",
     "ClassMeetingFeedback" => "Class feedback",

@@ -1,4 +1,5 @@
 RbacSeeder.call!
+LandingPageStarter.call!
 
 admin_email = ENV["ADMIN_EMAIL"]
 admin_password = ENV["ADMIN_PASSWORD"]

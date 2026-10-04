@@ -1,0 +1,18 @@
+<section id="footer" aria-label="Footer settings" class="mb-8">
+  <h2 class="mb-5">Footer</h2>
+  <% if policy(page).edit? %>
+    <%= form_with model: page, url: console_website_path(anchor: "footer"), class: "card p-6 form-stack mb-6" do |form| %>
+      <p class="hint">The footer uses the site name above. Configure the text and links below, then preview and publish.</p>
+      <div><%= form.label :footer_text, "Footer text", class: "label" %><%= form.text_area :footer_text, rows: 3, maxlength: 500, class: "field" %><p class="hint">Optional tagline or short description. Plain text only.</p></div>
+      <div><%= form.label :footer_copyright, "Copyright line (optional)", class: "label" %><%= form.text_field :footer_copyright, maxlength: 200, class: "field" %><p class="hint">Enter the complete line you want displayed. Leave blank to omit it.</p></div>
+      <div><%= form.label :footer_background_style, "Footer background", class: "label" %><%= form.select :footer_background_style, LandingSection::BACKGROUND_STYLES.except("Auto"), {}, class: "field" %></div>
+      <label class="flex min-h-11 items-center gap-2"><%= form.check_box :footer_visible %> Show footer</label>
+      <label class="flex min-h-11 items-center gap-2"><%= form.check_box :footer_workspace_link %> Show workspace link in footer</label>
+      <p class="hint">Hiding the footer keeps its settings and links. The top-bar sign-in link remains available.</p>
+      <%= form.submit "Save footer to draft", class: "btn-primary", data: { turbo_submits_with: "Saving footer…" } %>
+    <% end %>
+  <% else %>
+    <p class="hint mb-5">You can preview and publish footer changes. Editing requires Edit website permission.</p>
+  <% end %>
+  <%= render "navigation", page: page, placement: "footer" %>
+</section>

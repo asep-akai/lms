@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_28_110000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_03_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -252,6 +252,65 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_110000) do
     t.index ["direct_conversation_id", "created_at"], name: "index_direct_messages_on_direct_conversation_id_and_created_at"
     t.index ["direct_conversation_id"], name: "index_direct_messages_on_direct_conversation_id"
     t.index ["sender_membership_id"], name: "index_direct_messages_on_sender_membership_id"
+  end
+
+  create_table "landing_navigation_items", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "label", null: false
+    t.bigint "landing_page_id", null: false
+    t.bigint "landing_section_id"
+    t.string "placement", default: "header", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.string "url"
+    t.boolean "visible", default: true, null: false
+    t.index ["landing_page_id", "placement", "position"], name: "idx_on_landing_page_id_placement_position_801169ebce"
+    t.index ["landing_page_id"], name: "index_landing_navigation_items_on_landing_page_id"
+    t.index ["landing_section_id"], name: "index_landing_navigation_items_on_landing_section_id"
+  end
+
+  create_table "landing_pages", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "current_publication_id"
+    t.text "description"
+    t.string "footer_background_style", default: "cream", null: false
+    t.string "footer_copyright", default: "", null: false
+    t.string "footer_text", default: "Learning, organized.", null: false
+    t.boolean "footer_visible", default: true, null: false
+    t.boolean "footer_workspace_link", default: true, null: false
+    t.string "key", default: "home", null: false
+    t.string "site_name", default: "Kelasona", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_landing_pages_on_key", unique: true
+  end
+
+  create_table "landing_publications", force: :cascade do |t|
+    t.jsonb "content", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.bigint "landing_page_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["landing_page_id"], name: "index_landing_publications_on_landing_page_id"
+  end
+
+  create_table "landing_sections", force: :cascade do |t|
+    t.string "background_style", default: "auto", null: false
+    t.text "body"
+    t.string "button_label"
+    t.string "button_url"
+    t.datetime "created_at", null: false
+    t.string "eyebrow"
+    t.string "heading", null: false
+    t.text "highlights"
+    t.string "illustration"
+    t.string "image_alt"
+    t.string "image_position", default: "right", null: false
+    t.bigint "landing_page_id", null: false
+    t.string "layout", default: "story", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.boolean "visible", default: true, null: false
+    t.index ["landing_page_id"], name: "index_landing_sections_on_landing_page_id"
   end
 
   create_table "material_blocks", force: :cascade do |t|
@@ -776,6 +835,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_110000) do
   add_foreign_key "direct_conversations", "organizations"
   add_foreign_key "direct_messages", "direct_conversations"
   add_foreign_key "direct_messages", "memberships", column: "sender_membership_id"
+  add_foreign_key "landing_navigation_items", "landing_pages"
+  add_foreign_key "landing_navigation_items", "landing_sections"
+  add_foreign_key "landing_pages", "landing_publications", column: "current_publication_id"
+  add_foreign_key "landing_publications", "landing_pages"
+  add_foreign_key "landing_sections", "landing_pages"
   add_foreign_key "material_blocks", "materials"
   add_foreign_key "material_completions", "materials"
   add_foreign_key "material_completions", "memberships"

@@ -10,6 +10,9 @@ class RbacSeeder
 
     sync_organization_admin_roles!
     sync_teacher_roles!
+    Role.where(organization_id: nil, key: "super_admin", system: true).find_each do |role|
+      role.permissions = Permission.console_assignable
+    end
   end
 
   def self.provision_console_role!

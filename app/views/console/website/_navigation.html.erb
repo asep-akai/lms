@@ -1,0 +1,35 @@
+<% placement = local_assigns.fetch(:placement, "header") %>
+<% footer = placement == "footer" %>
+<section id="<%= footer ? 'footer-links' : 'navigation' %>" aria-label="<%= footer ? 'Footer links' : 'Top-bar navigation' %>" class="mb-8">
+  <div class="page-header mb-5">
+    <div>
+      <h2><%= footer ? "Footer links" : "Top-bar navigation" %></h2>
+      <p class="hint">Add links to any page section or another destination. Changes go live when you publish.</p>
+    </div>
+    <% if policy(page).edit? %><%= link_to footer ? "Add footer link" : "Add navigation link", new_console_website_navigation_item_path(placement: placement), class: "btn-primary" %><% end %>
+  </div>
+  <% items = page.navigation_items.where(placement: placement).includes(:landing_section).to_a %>
+  <% if items.empty? %>
+    <p class="card p-5"><%= footer ? "No footer links yet. Add your contact, policy or section links here." : "No navigation links yet. Add a link to help visitors find a section. Workspace sign-in remains available." %></p>
+  <% else %>
+    <ol class="space-y-3">
+      <% items.each_with_index do |item, index| %>
+        <li class="card p-5 flex flex-wrap items-center justify-between gap-4" id="<%= dom_id(item) %>">
+          <div class="min-w-0 break-words">
+            <h3 class="font-semibold"><%= item.label %></h3>
+            <p class="hint"><%= item.landing_section ? "Section: #{item.landing_section.heading}" : item.url %></p>
+            <p class="hint"><%= !item.visible? ? "Hidden" : item.landing_section && !item.landing_section.visible? ? "Hidden while its section is hidden" : "Visible" %></p>
+          </div>
+          <% if policy(page).edit? %>
+            <div class="actions">
+              <%= button_to "Move up", move_console_website_navigation_item_path(item, direction: "up"), method: :patch, class: index.zero? ? "btn-disabled" : "btn-secondary", disabled: index.zero?, aria: { label: "Move navigation link #{item.label} up" } %>
+              <%= button_to "Move down", move_console_website_navigation_item_path(item, direction: "down"), method: :patch, class: index == items.size - 1 ? "btn-disabled" : "btn-secondary", disabled: index == items.size - 1, aria: { label: "Move navigation link #{item.label} down" } %>
+              <%= link_to "Edit", edit_console_website_navigation_item_path(item), class: "btn-secondary", aria: { label: "Edit navigation link #{item.label}" } %>
+              <%= button_to "Remove", console_website_navigation_item_path(item), method: :delete, class: "btn-secondary", data: { turbo_confirm: "Remove this navigation link from the draft? The live page stays unchanged until you publish." }, aria: { label: "Remove navigation link #{item.label}" } %>
+            </div>
+          <% end %>
+        </li>
+      <% end %>
+    </ol>
+  <% end %>
+</section>

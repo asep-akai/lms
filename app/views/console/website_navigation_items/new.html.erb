@@ -1,0 +1,2 @@
+<div class="page-header mb-6"><h1 class="title"><%= @item.footer? ? "Add footer link" : "Add navigation link" %></h1><%= back_link_to "Back to website", console_website_path(anchor: @item.editor_anchor) %></div>
+<%= render "form" %>

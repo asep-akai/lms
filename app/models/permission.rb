@@ -1,6 +1,8 @@
 class Permission < ApplicationRecord
   CATALOG = {
     "console.access" => [ "Access console", "Sign in to the platform console." ],
+    "website.edit" => [ "Edit website", "Edit and preview the public landing page draft." ],
+    "website.publish" => [ "Publish website", "Preview, publish and unpublish the public landing page." ],
     "organizations.index" => [ "List organizations", "View organizations in the platform console." ],
     "organizations.create" => [ "Create organizations", "Provision organizations and their default roles." ],
     "organizations.update" => [ "Update organizations", "Update or suspend organizations from the console." ],
@@ -59,6 +61,7 @@ class Permission < ApplicationRecord
 
   CONSOLE_ONLY_KEYS = %w[
     console.access
+    website.edit website.publish
     organizations.index organizations.create organizations.update
     users.index users.create users.update users.destroy
     admins.index admins.create admins.update admins.destroy
@@ -96,6 +99,7 @@ class Permission < ApplicationRecord
 
   CONSOLE_GROUPS = {
     "Console access" => %w[console.access],
+    "Website" => %w[website.edit website.publish],
     "Organizations" => %w[organizations.index organizations.create organizations.update],
     "Users" => %w[users.index users.create users.update users.destroy],
     "Administrators" => %w[admins.index admins.create admins.update admins.destroy],

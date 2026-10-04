@@ -1,0 +1,24 @@
+<%= render "shared/errors", record: @item %>
+<%= form_with model: @item, url: @item.persisted? ? console_website_navigation_item_path(@item) : console_website_navigation_items_path, class: "card p-6 form-stack" do |form| %>
+  <% unless @item.persisted? %><%= form.hidden_field :placement %><% end %>
+  <p class="hint">This link appears in the <%= @item.footer? ? "footer" : "top bar" %>. Saving only changes the draft.</p>
+  <div>
+    <%= form.label :label, "Link label", class: "label" %>
+    <%= form.text_field :label, class: "field", required: true, maxlength: 60 %>
+  </div>
+  <div>
+    <%= form.label :landing_section_id, "Page section", class: "label" %>
+    <%= form.select :landing_section_id, @page.sections.map { |section| [ "#{section.heading}#{section.visible? ? '' : ' (hidden)'}", section.id ] }, { include_blank: "Choose a section, or use a URL below" }, class: "field" %>
+    <p class="hint">You can link to any section, including multiple sections with the same layout. Links follow renamed or reordered sections, and disappear while their section is hidden.</p>
+  </div>
+  <div>
+    <%= form.label :url, "Destination URL (instead of a section)", class: "label" %>
+    <%= form.text_field :url, class: "field", maxlength: 2000, placeholder: "https://…" %>
+    <p class="hint">Use an HTTPS URL, mailto: address, or local path. Leave this empty when selecting a page section.</p>
+  </div>
+  <label class="flex items-center gap-2"><%= form.check_box :visible %> Show in navigation</label>
+  <div class="actions">
+    <%= form.submit "Save navigation link", class: "btn-primary", data: { turbo_submits_with: "Saving navigation link…" } %>
+    <%= link_to "Cancel", console_website_path(anchor: @item.editor_anchor), class: "btn-secondary" %>
+  </div>
+<% end %>

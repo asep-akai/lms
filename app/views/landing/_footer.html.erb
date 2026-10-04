@@ -1,0 +1,17 @@
+<% footer = marketing_footer %>
+<% if footer.fetch("visible", true) %>
+  <footer class="marketing-footer <%= marketing_section_theme('resolved_background_style' => footer['background_style']) %>">
+    <div class="marketing-container marketing-footer-inner">
+      <div class="marketing-footer-copy">
+        <p><%= @content&.fetch("site_name", nil).presence || "Kelasona" %><% if footer["text"].present? %> · <%= footer["text"] %><% end %></p>
+        <% if footer["copyright"].present? %><p class="marketing-footer-copyright"><%= footer["copyright"] %></p><% end %>
+      </div>
+      <% if footer.fetch("links", []).any? || footer.fetch("workspace_link", true) %>
+        <nav aria-label="Footer navigation" class="marketing-footer-links">
+          <% footer.fetch("links", []).each do |item| %><%= link_to item.fetch("label"), item.fetch("url") %><% end %>
+          <% if footer.fetch("workspace_link", true) %><%= link_to admin_signed_in? ? "Console" : "Learning workspace", marketing_workspace_path %><% end %>
+        </nav>
+      <% end %>
+    </div>
+  </footer>
+<% end %>

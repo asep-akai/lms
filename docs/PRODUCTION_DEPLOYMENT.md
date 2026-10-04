@@ -550,6 +550,18 @@ and significant updates. `/up` confirms application boot, not every dependency.
 - [ ] `curl --fail https://your-domain/up` succeeds from outside the VPS.
 - [ ] Ports 3001/5432 are unreachable externally, including over IPv6.
 - [ ] Console and organization login/logout work without CSRF errors.
+- [ ] `/` shows the landing page signed out and opens the console/workspace when
+      signed in (console first if both sessions exist). `/welcome` always shows
+      the public page, and `/app` opens the authenticated workspace. The console Website
+      preview loads. New sites show the built-in template without manual setup;
+      existing publications remain unchanged. Do not publish CMS drafts during
+      deployment. Confirm draft edits stay private and intentionally unpublished
+      pages stay hidden. See the [CMS guide](WEBSITE_CMS.md).
+- [ ] Built-in illustrations load from packaged assets in the default page/preview.
+      The release includes `config/website_default.json`, the captured approved
+      template. It must not rely on local database IDs or uploaded storage files.
+      The illustration migration only annotates matching starter draft sections;
+      publishing those changes remains an explicit CMS action.
 - [ ] Teacher/student permissions and organization isolation work with test accounts.
 - [ ] CSS, editor controls, images, and JavaScript load without browser errors.
 - [ ] Upload and download a document/audio file and a generated certificate.

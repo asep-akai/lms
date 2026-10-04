@@ -11,7 +11,9 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   end
 
   setup do
+    page.driver.browser.navigate.to("about:blank")
     Capybara.reset_sessions!
+    page.driver.browser.execute_cdp("Network.clearBrowserCookies")
     page.current_window.resize_to(*STANDARD_SCREEN_SIZE)
   end
   teardown { page.current_window.resize_to(*STANDARD_SCREEN_SIZE) }

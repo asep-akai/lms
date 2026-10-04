@@ -3,6 +3,16 @@
 This guide takes a new engineer from a fresh checkout to a working local LMS.
 It assumes Docker Desktop is installed and running.
 
+The public marketing site is part of this same Rails app. `/` opens the homepage
+for visitors and prioritizes the console/workspace for signed-in accounts.
+`/welcome` always shows the public page; `/app` opens the workspace. The built-in template is live
+by default, including on new deployments. Seeds create an editable starter draft;
+publish it in **Console → Website** to replace the default. See the
+[CMS guide](WEBSITE_CMS.md) before first publication or changing its content model.
+The versioned default lives in `config/website_default.json`, captured from the
+approved published page. It ships with the app and uses bundled images, not local
+upload IDs. Changing database drafts does not change this file or existing live pages.
+
 ## 1. Start the stack
 
 From the `lms` directory:

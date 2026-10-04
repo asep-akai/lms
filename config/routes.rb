@@ -11,7 +11,10 @@ Rails.application.routes.draw do
     skip: [ :registrations ],
     controllers: { sessions: "console/sessions", passwords: "console/passwords" }
 
-  root "dashboard#index"
+  root "landing#home"
+  get "app", to: "dashboard#index", as: :user_root
+  get "welcome", to: "landing#show", as: :landing
+  get "welcome/assets/:id", to: "landing#asset", as: :landing_asset
 
   resources :organizations, param: :slug, only: %i[index show edit update] do
     resources :memberships, controller: "organizations/memberships", except: :show
@@ -96,6 +99,18 @@ Rails.application.routes.draw do
 
   namespace :console do
     root "dashboard#show"
+    resource :website, only: %i[show update], controller: "website" do
+      get :preview
+      get "assets/:id", action: :asset, as: :asset
+      post :publish
+      delete :unpublish
+      resources :sections, controller: "website_sections", except: %i[index show] do
+        patch :move, on: :member
+      end
+      resources :navigation_items, controller: "website_navigation_items", except: %i[index show] do
+        patch :move, on: :member
+      end
+    end
     resources :organizations, param: :slug, except: %i[show destroy] do
       patch :toggle_status, on: :member
     end

@@ -26,7 +26,8 @@ class PermissionTest < ActiveSupport::TestCase
   test "console permissions are grouped by focus in a stable order" do
     groups = Permission.console_assignable.console_groups
 
-    assert_equal [ "Console access", "Organizations", "Users", "Administrators", "Support", "Roles" ], groups.map(&:first)
+    assert_equal [ "Console access", "Website", "Organizations", "Users", "Administrators", "Support", "Roles" ], groups.map(&:first)
+    assert_equal %w[website.edit website.publish], groups.to_h.fetch("Website").map(&:key)
     assert_equal %w[users.index users.create users.update users.destroy], groups.to_h.fetch("Users").map(&:key)
   end
 

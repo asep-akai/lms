@@ -1,0 +1,14 @@
+<% highlights = section["highlights"].to_s.lines.map(&:strip).reject(&:blank?) %>
+<% if highlights.any? %>
+  <div class="marketing-highlights">
+    <% if section["layout"] == "hero" %><p class="marketing-path-label">A connected learning journey</p><% end %>
+    <ol class="marketing-highlight-list">
+      <% highlights.each_with_index do |highlight, highlight_index| %>
+        <li>
+          <span class="marketing-step" aria-hidden="true"><%= format("%02d", highlight_index + 1) %></span>
+          <span><%= highlight %></span>
+        </li>
+      <% end %>
+    </ol>
+  </div>
+<% end %>

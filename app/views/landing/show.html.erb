@@ -1,0 +1,15 @@
+<% if @content.present? %>
+  <% @content.fetch("sections", []).each_with_index do |section, index| %>
+    <% if section["layout"] == "features" && section == @content.fetch("sections").find { |item| item["layout"] == "features" } %><div id="platform"></div><% end %>
+    <%= render "landing/section", section: section, index: index %>
+  <% end %>
+<% else %>
+  <section class="marketing-section marketing-hero">
+    <div class="marketing-container">
+      <p class="marketing-eyebrow">Kelasona</p>
+      <h1>Your learning workspace.</h1>
+      <p class="marketing-intro">Sign in to access your organization's courses, classes and assignments.</p>
+      <%= link_to marketing_workspace_label, marketing_workspace_path, class: "marketing-button" %>
+    </div>
+  </section>
+<% end %>

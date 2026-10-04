@@ -387,3 +387,31 @@ These procedures require operator setup and verification on the chosen VPS.
 The [implementation record](PRE_HOSTING_IMPLEMENTATION.md) tracks preparation
 and testing; the [Codex handoff](CODEX_DEPLOYMENT.md) defines agent deployment
 stages, secret-handling rules, approval boundaries, and stop conditions.
+
+## Public promotional site
+
+The Rails app also serves a public landing page, independently of the private LMS
+layouts and tenant context. `LandingPage` and ordered `LandingSection` records
+hold drafts; `LandingPublication` holds the public snapshot and asset references.
+`LandingController#home` routes `/` to the console for an admin session, then the
+workspace for a user session, otherwise the public page. It preserves flash
+messages and uses no-store responses. `/welcome` always serves the public page;
+`/app` retains the organization dashboard/chooser. Before the first publication, the public page
+renders `LandingPageStarter.default_content`, not editable database drafts. The
+starter content comes from the captured publication in `config/website_default.json`,
+is shared with seeds and ships in the application image. Its portable section
+anchors are remapped to real section records when creating a fresh draft. After
+an explicit unpublish, publication history suppresses that default so the page
+stays hidden. Public requests do not create CMS records.
+Section snapshots include an optional allowlisted illustration key and image
+placement. Uploaded Active Storage images take precedence; bundled JPEGs are
+Propshaft assets and do not depend on a developer's upload storage. Versioned
+asset filenames must be retained while published snapshots reference their keys.
+Footer text, copyright, visibility, workspace-link visibility and palette are
+draft attributes on `LandingPage`. `LandingNavigationItem#placement` separates
+header and footer links, with independent ordering and shared destination checks.
+Publication snapshots contain the footer settings and visible links; older
+snapshots retain the original footer. Section background presets resolve in the
+draft snapshot and remain fixed once published.
+The console CMS separates `website.edit` from `website.publish`. See
+[Website CMS](WEBSITE_CMS.md) for the code map, access rules and publishing flow.

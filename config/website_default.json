@@ -1,0 +1,110 @@
+{
+  "title": "Kelasona | Learning, organized.",
+  "sections": [
+    {
+      "id": "starter-1",
+      "body": "Bring courses, classes, assessments and student progress together. Give your team more room to teach, and your students a clearer path to learn.",
+      "image": null,
+      "layout": "hero",
+      "eyebrow": "A learning platform for your organization",
+      "heading": "Good teaching deserves a better workspace.",
+      "brochure": null,
+      "image_alt": null,
+      "button_url": "#platform",
+      "highlights": "Organize courses and materials\nTeach, assign and assess\nReview progress and celebrate results",
+      "button_label": "Explore the platform",
+      "illustration": null,
+      "image_position": "right",
+      "resolved_background_style": "cream"
+    },
+    {
+      "id": "starter-2",
+      "body": "Kelasona connects the work around learning: the materials you share, the classes you schedule, the feedback you give and the progress you follow.\n\nStudents know where to go next. Teachers can see who needs support. Administrators keep the organization running.",
+      "image": null,
+      "layout": "story",
+      "eyebrow": "One place to keep learning moving",
+      "heading": "From the first class to the final certificate.",
+      "brochure": null,
+      "image_alt": null,
+      "button_url": null,
+      "highlights": "Students: courses, assignments and results\nTeachers: classes, feedback and connected students\nAdministrators: enrollment, permissions and oversight",
+      "button_label": null,
+      "illustration": "course-materials",
+      "image_position": "right",
+      "resolved_background_style": "sage"
+    },
+    {
+      "id": "starter-3",
+      "body": "Start with your content and your people. Keep the day-to-day learning experience connected.",
+      "image": null,
+      "layout": "features",
+      "eyebrow": "The platform",
+      "heading": "Built around the work your team already does.",
+      "brochure": null,
+      "image_alt": null,
+      "button_url": null,
+      "highlights": "Courses: organize text, images, video and quizzes into sections.\nClasses: manage schedules, meeting links and class feedback.\nAssessments: use choice, cloze, essay and audio questions.\nAssignments: collect documents and written work, then share comments.\nProgress: follow completion and publish results and PDF certificates.\nCommunication: keep messages, notifications and support in the same place.",
+      "button_label": null,
+      "illustration": null,
+      "image_position": "right",
+      "resolved_background_style": "forest"
+    },
+    {
+      "id": "starter-4",
+      "body": "Use AI-assisted analysis for essays and audio alongside answer-key scoring. Review the draft, adjust the feedback and publish when you are ready. Students only see the results you release.",
+      "image": null,
+      "layout": "story",
+      "eyebrow": "AI assistance. Human decisions.",
+      "heading": "Give feedback with more context.",
+      "brochure": null,
+      "image_alt": null,
+      "button_url": null,
+      "highlights": "Audio transcription for review\nPer-question feedback and recommendations\nReviewer control before results are published",
+      "button_label": null,
+      "illustration": "review-feedback",
+      "image_position": "left",
+      "resolved_background_style": "cream"
+    },
+    {
+      "id": "starter-5",
+      "body": "Customization, organization logos and publishing tools are planned next. These features are not available yet; this is the direction we are building toward.",
+      "image": null,
+      "layout": "roadmap",
+      "eyebrow": "What we are working toward",
+      "heading": "More room for your organization's identity.",
+      "brochure": null,
+      "image_alt": null,
+      "button_url": null,
+      "highlights": "Your branding and logo\nMore options to customize your learning space\nBlogs to share your organization's stories",
+      "button_label": null,
+      "illustration": null,
+      "image_position": "right",
+      "resolved_background_style": "sage"
+    },
+    {
+      "id": "starter-6",
+      "body": "Explore what Kelasona can bring to your organization. Already have an account? Sign in to continue learning.",
+      "image": null,
+      "layout": "contact",
+      "eyebrow": "For schools, learning centers and training teams",
+      "heading": "Make space for your next learning program.",
+      "brochure": null,
+      "image_alt": null,
+      "button_url": "/users/sign_in",
+      "highlights": null,
+      "button_label": "Sign in to your workspace",
+      "illustration": null,
+      "image_position": "right",
+      "resolved_background_style": "forest"
+    }
+  ],
+  "site_name": "Kelasona",
+  "navigation": [
+    {
+      "url": "#section-starter-3",
+      "label": "The platform"
+    }
+  ],
+  "description": "Bring your courses, classes, assessments and student progress together in one learning platform for your organization.",
+  "social_image": null
+}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title><%= @content&.fetch("title", nil).presence || "Kelasona" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="turbo-cache-control" content="no-cache">
+    <% unless @preview %><link rel="canonical" href="<%= root_url %>"><% end %>
+    <meta name="description" content="<%= @content&.fetch("description", "") %>">
+    <meta property="og:title" content="<%= @content&.fetch("title", "Kelasona") %>">
+    <meta property="og:description" content="<%= @content&.fetch("description", "") %>">
+    <meta property="og:type" content="website">
+    <% if @preview %><meta name="robots" content="noindex,nofollow"><% end %>
+    <% if @content&.dig("social_image") && !@preview %><meta property="og:image" content="<%= landing_asset_url(@content.fetch("social_image")) %>"><% end %>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+  <body class="marketing">
+    <a class="marketing-skip" href="#main-content">Skip to content</a>
+    <% if @preview %>
+      <aside class="marketing-preview" aria-label="Draft preview">Draft preview. Not visible to visitors. <%= link_to "Back to website editor", console_website_path %></aside>
+    <% end %>
+    <header class="marketing-header" data-controller="mobile-navigation" data-action="click@document->mobile-navigation#outside keydown.esc@document->mobile-navigation#escape turbo:before-cache@document->mobile-navigation#close">
+      <div class="marketing-container marketing-header-inner">
+        <%= link_to @content&.fetch("site_name", nil).presence || "Kelasona", landing_path, class: "marketing-brand" %>
+        <button type="button" class="marketing-menu-toggle" aria-expanded="false" aria-controls="website-navigation" data-mobile-navigation-target="toggle" data-action="mobile-navigation#toggle">Menu</button>
+        <nav id="website-navigation" aria-label="Website navigation" class="marketing-nav" data-mobile-navigation-target="menu">
+          <% marketing_navigation.each do |item| %>
+            <%= link_to item.fetch("label"), item.fetch("url"), class: "marketing-nav-link", data: { action: "mobile-navigation#close" } %>
+          <% end %>
+          <%= link_to marketing_workspace_label, marketing_workspace_path, class: "marketing-button marketing-button-small" %>
+        </nav>
+      </div>
+    </header>
+    <main id="main-content">
+      <% flash.each do |type, message| %><div class="marketing-container"><div class="<%= type.to_s == "alert" ? "alert-error" : "alert-success" %>"><%= message %></div></div><% end %>
+      <%= yield %>
+    </main>
+    <%= render "landing/footer" %>
+  </body>
+</html>

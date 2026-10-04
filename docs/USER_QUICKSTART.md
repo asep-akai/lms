@@ -14,6 +14,39 @@ belong to several, choose the organization you want to enter.
 
 All displayed dates and times use Western Indonesian Time (WIB, Asia/Jakarta).
 
+## Public website (console administrators)
+
+Open **Console → Website** to edit the promotional landing page. Save section
+changes, reorder or hide sections, then use **Preview draft**. Publishing is a
+separate, confirmed action; saving alone never changes the public page. The
+built-in template is visible until you publish your own version. The homepage is
+at `/` when signed out and `/welcome` at any time. When signed in, `/` opens your
+console or learning workspace instead (console first if both are signed in).
+The shipped template matches the captured published Kelasona page, including its
+illustrations and colors. Existing customized sites keep their own publications;
+deployment and seed reruns do not reset them to this default.
+See the [CMS guide](WEBSITE_CMS.md) for images,
+brochures, contact buttons, metadata, permissions and first publication.
+Use **Top-bar navigation → Add navigation link** for additional menu items. Set
+each label and choose its section or URL, reorder the links, then publish the draft.
+
+Use **Footer** for its text, optional copyright line, background and visibility.
+**Footer links → Add footer link** adds a link to a section, contact address or
+existing page. Footer links can be edited, reordered, hidden and removed without
+changing the top bar. Save the settings, preview, then publish when ready.
+
+In a section editor, **Background style** offers Auto, Cream, Sage and Forest.
+Auto avoids matching adjacent visible sections; a named color stays fixed. Check
+**Preview draft** after reordering sections, then publish when ready. Existing
+published colors stay unchanged until you publish again.
+
+Choose a **Built-in illustration** and **Image placement**,
+or upload your own image. The **Section image preview** shows the selected image
+and whether it is built-in or uploaded. “No file chosen” means no replacement
+upload was selected, not that the section has no image. Uploads take precedence.
+Choose **No illustration** and
+remove any upload for a text-only section. Preview before publishing.
+
 ## Student guide
 
 ### Courses and progress

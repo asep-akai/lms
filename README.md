@@ -7,6 +7,7 @@ reverse proxy.
 
 ## What the application includes
 
+- Default Kelasona homepage with a console CMS, draft preview and explicit publication of custom content
 - Separate sign-in areas for organization users and platform administrators
 - Organization-scoped roles and permissions with Pundit authorization
 - User, student, organization, and console administrator management
@@ -26,10 +27,19 @@ reverse proxy.
 The browser-facing application and its backend are one Rails service. There is
 no separate React application or public API.
 
+The root URL (`/`) opens the promotional homepage for visitors. Signed-in admins
+go to `/console`; signed-in users go to `/app` (the console takes priority when
+both sessions exist). `/welcome` always opens the promotional page.
+New deployments show the built-in template automatically; publishing in the CMS
+replaces it. Deployments never overwrite existing published pages or expose drafts.
+Two bundled editorial illustrations are included; CMS editors can change their
+placement, replace them with uploads, or keep a section text-only.
+
 ## Documentation
 
 - [Engineer quick start](docs/ENGINEER_QUICKSTART.md)
 - [User quick start](docs/USER_QUICKSTART.md)
+- [Public website and CMS guide](docs/WEBSITE_CMS.md)
 - [Architecture and repository structure](docs/ARCHITECTURE.md)
 - [Production deployment with Nginx](docs/PRODUCTION_DEPLOYMENT.md)
 - [Production backups, restore drills, and rollback](docs/PRODUCTION_RECOVERY.md)

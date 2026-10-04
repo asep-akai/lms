@@ -1,0 +1,21 @@
+<% section_image = marketing_section_image(section) %>
+<section id="<%= marketing_section_anchor(section) %>" class="marketing-section marketing-<%= section.fetch("layout") %> <%= marketing_section_theme(section) %> <%= 'marketing-illustrated' if section_image %>" aria-labelledby="heading-<%= section.fetch("id") %>">
+  <div class="marketing-container <%= section_image || section["layout"].in?(%w[hero story]) ? "marketing-split" : "" %> <%= 'marketing-image-left' if section_image && section['image_position'] == 'left' %>">
+    <div class="marketing-copy">
+      <% if section["layout"] == "roadmap" %><span class="marketing-planned">Planned · Not yet available</span><% end %>
+      <% if section["eyebrow"].present? %><p class="marketing-eyebrow"><%= section["eyebrow"] %></p><% end %>
+      <%= content_tag(section["layout"] == "hero" ? :h1 : :h2, section.fetch("heading"), id: "heading-#{section.fetch('id')}") %>
+      <div class="marketing-body"><%= marketing_paragraphs(section["body"]) %></div>
+      <div class="marketing-actions">
+        <% if section["button_label"].present? %><%= link_to section["button_label"], section["button_url"], class: "marketing-button" %><% end %>
+        <% if section["brochure"] %><%= link_to "Download brochure (PDF)", marketing_asset_path(section["brochure"]), class: "marketing-text-link", data: { turbo: false } %><% end %>
+      </div>
+      <%= render "landing/highlights", section: section if section_image %>
+    </div>
+    <% if section_image %>
+      <figure class="marketing-image"><%= image_tag section_image.fetch(:src), **section_image.except(:src), loading: index.zero? ? "eager" : "lazy", decoding: "async" %></figure>
+    <% else %>
+      <%= render "landing/highlights", section: section %>
+    <% end %>
+  </div>
+</section>

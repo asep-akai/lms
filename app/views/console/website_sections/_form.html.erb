@@ -1,0 +1,28 @@
+<%= render "shared/errors", record: @section %>
+<%= form_with model: @section, url: @section.persisted? ? console_website_section_path(@section) : console_website_sections_path, class: "form-stack card p-6", data: { controller: "website-image-preview", website_image_preview_illustrations_value: website_illustration_previews, website_image_preview_uploaded_value: website_uploaded_preview(@section) } do |form| %>
+  <div class="form-grid">
+    <div><%= form.label :layout, class: "label" %><%= form.select :layout, LandingSection::LAYOUTS, {}, class: "field" %></div>
+    <div><%= form.label :eyebrow, "Small introductory label (optional)", class: "label" %><%= form.text_field :eyebrow, class: "field", maxlength: 160 %></div>
+  </div>
+  <div><%= form.label :background_style, "Background style", class: "label" %><%= form.select :background_style, LandingSection::BACKGROUND_STYLES, {}, class: "field", aria: { describedby: "background-style-hint" } %><p class="hint" id="background-style-hint">Auto chooses a color based on the layout and neighboring visible sections. Choose Cream, Sage or Forest to keep a fixed color. Text and buttons adapt automatically. Check the result in Preview draft.</p></div>
+  <div><%= form.label :heading, class: "label" %><%= form.text_field :heading, class: "field", required: true, maxlength: 160 %></div>
+  <div><%= form.label :body, "Description", class: "label" %><%= form.text_area :body, class: "field", rows: 6, maxlength: 5000 %><p class="hint">Plain text. Leave a blank line between paragraphs. HTML is displayed as text, not executed.</p></div>
+  <div><%= form.label :highlights, "Highlights (one per line)", class: "label" %><%= form.text_area :highlights, class: "field", rows: 6, maxlength: 2000 %><p class="hint">Displayed as a journey in the hero, a grid in features, or a list in other sections.</p></div>
+  <div class="form-grid">
+    <div><%= form.label :button_label, "Button text (optional)", class: "label" %><%= form.text_field :button_label, class: "field", maxlength: 60 %></div>
+    <div><%= form.label :button_url, "Button destination", class: "label" %><%= form.text_field :button_url, class: "field", placeholder: "https://…" %><p class="hint">HTTPS, mailto:, a local path, or an anchor such as #platform.</p></div>
+  </div>
+  <div class="form-grid">
+    <div><%= form.label :illustration, "Built-in illustration (optional)", class: "label" %><%= form.select :illustration, LandingSection::ILLUSTRATIONS.map { |key, item| [item.fetch(:label), key] }, { include_blank: "No illustration" }, class: "field", data: { website_image_preview_target: "illustration", action: "change->website-image-preview#refresh" } %><p class="hint">Conceptual illustrations, not product screenshots. Included with every deployment.</p></div>
+    <div><%= form.label :image_position, "Image placement", class: "label" %><%= form.select :image_position, [["Right of text", "right"], ["Left of text", "left"]], {}, class: "field" %><p class="hint">On phones, the image follows the text.</p></div>
+  </div>
+  <%= render "console/website_sections/image_preview", section: @section %>
+  <div><%= form.label :image, "Upload a replacement image (optional)", class: "label" %><%= form.file_field :image, accept: "image/jpeg,image/png,image/webp", class: "field", data: { website_image_preview_target: "upload", action: "change->website-image-preview#refresh" } %><p class="hint">Leave this empty to keep the image shown above. JPEG, PNG or WebP, up to 5 MB. An upload takes priority over the built-in illustration.</p></div>
+  <div><%= form.label :image_alt, "Image description", class: "label" %><%= form.text_field :image_alt, class: "field", maxlength: 160 %><p class="hint">Required for uploads. Built-in illustrations have a default description; enter text here to replace it.</p></div>
+  <% if @section.image.attached? && @section.image.persisted? %><label class="flex items-center gap-2"><%= check_box_tag :remove_image, "1", params[:remove_image] == "1", data: { website_image_preview_target: "remove", action: "change->website-image-preview#refresh" } %> Remove uploaded image and use the selected illustration</label><% end %>
+  <div><%= form.label :brochure, "Brochure (optional PDF)", class: "label" %><%= form.file_field :brochure, accept: "application/pdf", class: "field" %><p class="hint">Up to 10 MB. Adds a download button to this section.</p></div>
+  <% if @section.brochure.attached? && @section.brochure.persisted? %><p class="hint">Current: <%= @section.brochure.filename %></p><label class="flex items-center gap-2"><%= check_box_tag :remove_brochure, "1" %> Remove brochure</label><% end %>
+  <label class="flex items-center gap-2"><%= form.check_box :visible %> Include in published page</label>
+  <p class="hint">The Planned features layout always includes a “Not yet available” label. Saving does not publish.</p>
+  <div class="actions"><%= form.submit "Save section to draft", class: "btn-primary" %><%= link_to "Cancel", console_website_path, class: "btn-secondary" %></div>
+<% end %>

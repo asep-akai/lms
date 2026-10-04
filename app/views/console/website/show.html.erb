@@ -1,0 +1,61 @@
+<div class="page-header mb-6">
+  <div><h1 class="title">Website</h1><p class="hint">Manage the public landing page. Saving edits only changes the draft.</p></div>
+  <%= back_link_to "Back to console", console_root_path %>
+</div>
+<%= render "shared/errors", record: @page %>
+<section class="card p-6 mb-8" aria-label="Publication">
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <h2><%= @page.current_publication ? "Published" : (@page.default_template? ? "Default template is live" : "Not published") %></h2>
+      <% if @page.current_publication %>
+        <p class="hint">Published <%= @page.current_publication.created_at.in_time_zone("Asia/Jakarta").strftime("%-d %b %Y, %H:%M WIB") %>. Later draft changes are not live.</p>
+      <% elsif @page.default_template? %>
+        <p class="hint">Visitors see the built-in Kelasona template. Publish your draft to replace it. Unsaved and unpublished edits stay private.</p>
+      <% else %>
+        <p class="hint">Visitors see a simple workspace sign-in page until you publish.</p>
+      <% end %>
+    </div>
+    <div class="actions">
+      <%= link_to "Preview draft", preview_console_website_path, class: "btn-secondary" %>
+      <%= link_to "View live page", landing_path, class: "btn-secondary" %>
+      <% if policy(@page).publish? %>
+        <%= button_to "Publish draft", publish_console_website_path, class: "btn-primary", data: { turbo_confirm: "Publish all saved draft changes? These will replace the current public page." } %>
+        <% if @page.current_publication %><%= button_to "Unpublish", unpublish_console_website_path, method: :delete, class: "btn-secondary", data: { turbo_confirm: "Hide the landing page? Your draft will be kept, and workspace sign-in will still work." } %><% end %>
+      <% end %>
+    </div>
+  </div>
+</section>
+<% if policy(@page).edit? %>
+  <details class="card p-6 mb-8" <%= "open" if @page.errors.any? %>>
+    <summary class="font-semibold min-h-11 py-3">Site name, search preview and social image</summary>
+    <%= form_with model: @page, url: console_website_path, class: "form-stack mt-6" do |form| %>
+      <div><%= form.label :site_name, class: "label" %><%= form.text_field :site_name, class: "field", required: true, maxlength: 120 %></div>
+      <div><%= form.label :title, "Page title", class: "label" %><%= form.text_field :title, class: "field", required: true, maxlength: 120 %></div>
+      <div><%= form.label :description, "Search description", class: "label" %><%= form.text_area :description, class: "field", maxlength: 320, rows: 3 %></div>
+      <div><%= form.label :social_image, class: "label" %><%= form.file_field :social_image, accept: "image/jpeg,image/png,image/webp", class: "field" %><p class="hint">Optional. JPEG, PNG or WebP, up to 5 MB. Used when sharing the published page.</p></div>
+      <% if @page.social_image.attached? %><p class="hint">Current: <%= @page.social_image.filename %></p><label class="flex items-center gap-2"><%= check_box_tag :remove_social_image, "1" %> Remove social image</label><% end %>
+      <%= form.submit "Save settings to draft", class: "btn-primary" %>
+    <% end %>
+  </details>
+<% end %>
+<%= render "navigation", page: @page %>
+<%= render "footer", page: @page %>
+<section aria-label="Draft sections">
+  <div class="page-header mb-5"><div><h2>Draft sections</h2><p class="hint">Keep one visible hero at the top. All text is plain text; blank lines create paragraphs. No HTML or scripts.</p></div><% if policy(@page).edit? %><%= link_to "Add section", new_console_website_section_path, class: "btn-primary" %><% end %></div>
+  <ol class="space-y-3">
+    <% sections = @page.sections.to_a %>
+    <% sections.each_with_index do |section, index| %>
+      <li class="card p-5 flex flex-wrap items-center justify-between gap-4" id="<%= dom_id(section) %>">
+        <div class="min-w-0"><p class="hint"><%= index + 1 %> · <%= LandingSection::LAYOUTS.key(section.layout) %> · <%= section.visible? ? "Visible" : "Hidden" %></p><h3 class="font-semibold break-words"><%= section.heading %></h3></div>
+        <% if policy(@page).edit? %>
+          <div class="actions">
+            <%= button_to "Move up", move_console_website_section_path(section, direction: "up"), method: :patch, class: index.zero? ? "btn-disabled" : "btn-secondary", disabled: index.zero?, aria: { label: "Move #{section.heading} up" } %>
+            <%= button_to "Move down", move_console_website_section_path(section, direction: "down"), method: :patch, class: index == sections.size - 1 ? "btn-disabled" : "btn-secondary", disabled: index == sections.size - 1, aria: { label: "Move #{section.heading} down" } %>
+            <%= link_to "Edit", edit_console_website_section_path(section), class: "btn-secondary", aria: { label: "Edit #{section.heading}" } %>
+            <%= button_to "Remove", console_website_section_path(section), method: :delete, class: "btn-secondary", data: { turbo_confirm: "Remove this section from the draft? The live page stays unchanged until you publish." }, aria: { label: "Remove #{section.heading}" } %>
+          </div>
+        <% end %>
+      </li>
+    <% end %>
+  </ol>
+</section>

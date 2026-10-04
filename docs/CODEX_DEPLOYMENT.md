@@ -114,6 +114,16 @@ After receiving remote deployment authorization:
    enabling timers. Confirm the backup downtime is acceptable.
 9. Complete the launch smoke checklist. Ask before sending test messages/emails
    to real recipients or invoking paid AI services.
+   Include `/`, `/welcome`, `/app` and the console Website preview. `/` must show
+   the landing page signed out, prioritize the console for admins, and otherwise
+   open the workspace for signed-in users. `/welcome` stays public in all sessions.
+   Verify the two bundled illustrations load in the default template/preview.
+   New sites automatically serve the built-in
+   template from the image; no manual page creation or publication is required.
+   The captured default is `config/website_default.json`; keep it and the referenced
+   bundled illustrations in the release. Do not regenerate it from deployment data.
+   Existing published versions and intentional unpublishing must survive releases.
+   Do not publish editable CMS drafts during deployment. See [Website CMS](WEBSITE_CMS.md).
 
 Do not call the deployment complete merely because `/up` returns HTTP 200.
 Record browser login, permissions, uploads/downloads, live updates, queued mail,

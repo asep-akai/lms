@@ -781,7 +781,7 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
 
   test "dashboard redirects a member with one organization into that organization" do
     sign_in users(:one)
-    get root_path
+    get user_root_path
 
     assert_redirected_to organization_path(organizations(:one))
   end
@@ -791,7 +791,7 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     membership.role_ids = [ organizations(:two).roles.find_by!(key: "teacher").id ]
 
     sign_in users(:one)
-    get root_path
+    get user_root_path
 
     assert_response :success
     assert_select "h2", text: organizations(:one).name
@@ -861,12 +861,14 @@ class TenantAccessTest < ActionDispatch::IntegrationTest
     organization.update!(status: "suspended")
     sign_in users(:two)
 
-    get root_path
+    get user_root_path
     assert_response :success
     assert_select "h2", text: organization.name, count: 0
 
     get organization_path(organization)
     assert_redirected_to root_path
+    follow_redirect!
+    assert_redirected_to user_root_path
     follow_redirect!
     assert_select ".alert-error", "This organization is suspended and cannot be accessed."
   end
